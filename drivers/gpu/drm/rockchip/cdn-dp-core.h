@@ -73,6 +73,7 @@ struct cdn_dp_device {
 	struct device *codec_dev;
 	struct work_struct event_work;
 	struct edid *edid;
+	struct drm_dp_aux aux;
 
 	struct mutex lock;
 	bool connected;
