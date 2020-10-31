@@ -564,7 +564,7 @@ mt7531_pll_setup(struct mt7530_priv *priv)
 		val |= 0x190000 << RG_COREPLL_SDM_PCW_S;
 		mt7530_write(priv, MT7531_PLLGP_CR0, val);
 		break;
-	};
+	}
 
 	/* Set feedback divide ratio update signal to high */
 	val = mt7530_read(priv, MT7531_PLLGP_CR0);
