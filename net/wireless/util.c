@@ -587,8 +587,7 @@ int ieee80211_data_to_8023_exthdr(struct sk_buff *skb, struct ethhdr *ehdr,
 			return -1;
 		break;
 	case cpu_to_le16(IEEE80211_FCTL_TODS | IEEE80211_FCTL_FROMDS):
-		if (unlikely(iftype != NL80211_IFTYPE_WDS &&
-			     iftype != NL80211_IFTYPE_MESH_POINT &&
+		if (unlikely(iftype != NL80211_IFTYPE_MESH_POINT &&
 			     iftype != NL80211_IFTYPE_AP_VLAN &&
 			     iftype != NL80211_IFTYPE_STATION))
 			return -1;
@@ -1095,7 +1094,6 @@ int cfg80211_change_iface(struct cfg80211_registered_device *rdev,
 		case NL80211_IFTYPE_P2P_GO:
 		case NL80211_IFTYPE_AP:
 		case NL80211_IFTYPE_AP_VLAN:
-		case NL80211_IFTYPE_WDS:
 		case NL80211_IFTYPE_MESH_POINT:
 			/* bridging OK */
 			break;
@@ -1107,6 +1105,7 @@ int cfg80211_change_iface(struct cfg80211_registered_device *rdev,
 			/* not happening */
 			break;
 		case NL80211_IFTYPE_P2P_DEVICE:
+		case NL80211_IFTYPE_WDS:
 		case NL80211_IFTYPE_NAN:
 			WARN_ON(1);
 			break;
