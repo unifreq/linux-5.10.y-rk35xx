@@ -1211,9 +1211,6 @@ static int ksz8795_switch_detect(struct ksz_device *dev)
 	    (id2 != CHIP_ID_94 && id2 != CHIP_ID_95))
 		return -ENODEV;
 
-	dev->mib_port_cnt = TOTAL_PORT_NUM;
-	dev->phy_port_cnt = SWITCH_PORT_NUM;
-
 	if (id2 == CHIP_ID_95) {
 		u8 val;
 
@@ -1227,9 +1224,6 @@ static int ksz8795_switch_detect(struct ksz_device *dev)
 	id16 &= ~0xff;
 	id16 |= id2;
 	dev->chip_id = id16;
-
-	dev->cpu_port = dev->mib_port_cnt - 1;
-	dev->host_mask = BIT(dev->cpu_port);
 
 	return 0;
 }
@@ -1304,6 +1298,12 @@ static int ksz8795_switch_init(struct ksz_device *dev)
 
 	dev->reg_mib_cnt = SWITCH_COUNTER_NUM;
 	dev->mib_cnt = TOTAL_SWITCH_COUNTER_NUM;
+
+	dev->mib_port_cnt = TOTAL_PORT_NUM;
+	dev->phy_port_cnt = SWITCH_PORT_NUM;
+
+	dev->cpu_port = dev->mib_port_cnt - 1;
+	dev->host_mask = BIT(dev->cpu_port);
 
 	i = dev->mib_port_cnt;
 	dev->ports = devm_kzalloc(dev->dev, sizeof(struct ksz_port) * i,
