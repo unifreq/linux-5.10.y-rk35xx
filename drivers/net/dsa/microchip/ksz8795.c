@@ -1245,7 +1245,7 @@ static const struct ksz_chip_data ksz8795_switch_chips[] = {
 		.num_alus = 0,
 		.num_statics = 8,
 		.cpu_ports = 0x10,	/* can be configured as cpu port */
-		.port_cnt = 4,		/* total physical port count */
+		.port_cnt = 5,		/* total cpu and user ports */
 	},
 	{
 		.chip_id = 0x8794,
@@ -1254,7 +1254,7 @@ static const struct ksz_chip_data ksz8795_switch_chips[] = {
 		.num_alus = 0,
 		.num_statics = 8,
 		.cpu_ports = 0x10,	/* can be configured as cpu port */
-		.port_cnt = 3,		/* total physical port count */
+		.port_cnt = 4,		/* total cpu and user ports */
 	},
 	{
 		.chip_id = 0x8765,
@@ -1263,7 +1263,7 @@ static const struct ksz_chip_data ksz8795_switch_chips[] = {
 		.num_alus = 0,
 		.num_statics = 8,
 		.cpu_ports = 0x10,	/* can be configured as cpu port */
-		.port_cnt = 4,		/* total physical port count */
+		.port_cnt = 5,		/* total cpu and user ports */
 	},
 };
 
@@ -1299,7 +1299,7 @@ static int ksz8795_switch_init(struct ksz_device *dev)
 	dev->mib_cnt = ARRAY_SIZE(mib_names);
 
 	dev->mib_port_cnt = TOTAL_PORT_NUM;
-	dev->phy_port_cnt = dev->port_cnt;
+	dev->phy_port_cnt = dev->port_cnt - 1;
 
 	dev->cpu_port = dev->mib_port_cnt - 1;
 	dev->host_mask = BIT(dev->cpu_port);
@@ -1321,7 +1321,7 @@ static int ksz8795_switch_init(struct ksz_device *dev)
 	}
 
 	/* set the real number of ports */
-	dev->ds->num_ports = dev->port_cnt + 1;
+	dev->ds->num_ports = dev->port_cnt;
 
 	/* We rely on software untagging on the CPU port, so that we
 	 * can support both tagged and untagged VLANs
