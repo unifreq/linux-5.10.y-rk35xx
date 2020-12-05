@@ -311,6 +311,7 @@ int dsa_master_setup(struct net_device *dev, struct dsa_port *cpu_dp)
 {
 	struct dsa_switch *ds = cpu_dp->ds;
 	struct device_link *consumer_link;
+	int mtu = ETH_DATA_LEN + cpu_dp->tag_ops->overhead;
 	int ret;
 
 	/* The DSA master must use SET_NETDEV_DEV for this to work. */
@@ -322,11 +323,11 @@ int dsa_master_setup(struct net_device *dev, struct dsa_port *cpu_dp)
 			   dev_name(ds->dev));
 
 	rtnl_lock();
-	ret = dev_set_mtu(dev, ETH_DATA_LEN + cpu_dp->tag_ops->overhead);
+	ret = dev_set_mtu(dev, mtu);
 	rtnl_unlock();
 	if (ret)
-		netdev_warn(dev, "error %d setting MTU to include DSA overhead\n",
-			    ret);
+		netdev_warn(dev, "error %d setting MTU to %d to include DSA overhead\n",
+			    ret, mtu);
 
 	/* If we use a tagging format that doesn't have an ethertype
 	 * field, make sure that all packets from this point on get
