@@ -2079,6 +2079,11 @@ ieee80211_sta_rx_bw_to_chan_width(struct sta_info *sta);
 
 /* HE */
 void
+ieee80211_he_mcs_disable(u16 *he_mcs);
+void
+ieee80211_he_mcs_intersection(u16 *he_own_rx, u16 *he_peer_rx,
+			      u16 *he_own_tx, u16 *he_peer_tx);
+void
 ieee80211_he_cap_ie_to_sta_he_cap(struct ieee80211_sub_if_data *sdata,
 				  struct ieee80211_supported_band *sband,
 				  const u8 *he_cap_ie, u8 he_cap_len,
