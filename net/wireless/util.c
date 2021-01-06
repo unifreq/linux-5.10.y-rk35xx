@@ -1197,6 +1197,25 @@ static u32 cfg80211_calculate_bitrate_dmg(struct rate_info *rate)
 	return __mcs2bitrate[rate->mcs];
 }
 
+static u32 cfg80211_calculate_bitrate_extended_sc_dmg(struct rate_info *rate)
+{
+	static const u32 __mcs2bitrate[] = {
+		[6] = 26950, /* MCS 9.1 : 2695.0 mbps */
+		[7] = 50050, /* MCS 12.1 */
+		[8] = 53900,
+		[9] = 57750,
+		[10] = 63900,
+		[11] = 75075,
+		[12] = 80850,
+	};
+
+	/* Extended SC MCS not defined for base MCS below 6 or above 12 */
+	if (WARN_ON_ONCE(rate->mcs < 6) || WARN_ON_ONCE(rate->mcs > 12))
+		return 0;
+
+	return __mcs2bitrate[rate->mcs];
+}
+
 static u32 cfg80211_calculate_bitrate_edmg(struct rate_info *rate)
 {
 	static const u32 __mcs2bitrate[] = {
@@ -1415,6 +1434,8 @@ u32 cfg80211_calculate_bitrate(struct rate_info *rate)
 		return cfg80211_calculate_bitrate_ht(rate);
 	if (rate->flags & RATE_INFO_FLAGS_DMG)
 		return cfg80211_calculate_bitrate_dmg(rate);
+	if (rate->flags & RATE_INFO_FLAGS_EXTENDED_SC_DMG)
+		return cfg80211_calculate_bitrate_extended_sc_dmg(rate);
 	if (rate->flags & RATE_INFO_FLAGS_EDMG)
 		return cfg80211_calculate_bitrate_edmg(rate);
 	if (rate->flags & RATE_INFO_FLAGS_VHT_MCS)
