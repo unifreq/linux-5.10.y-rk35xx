@@ -309,9 +309,9 @@ static struct lock_class_key dsa_master_addr_list_lock_key;
 
 int dsa_master_setup(struct net_device *dev, struct dsa_port *cpu_dp)
 {
+	int mtu = ETH_DATA_LEN + cpu_dp->tag_ops->overhead;
 	struct dsa_switch *ds = cpu_dp->ds;
 	struct device_link *consumer_link;
-	int mtu = ETH_DATA_LEN + cpu_dp->tag_ops->overhead;
 	int ret;
 
 	/* The DSA master must use SET_NETDEV_DEV for this to work. */
