@@ -1041,9 +1041,9 @@ static void __ieee80211_tx_status(struct ieee80211_hw *hw,
 		if (info->flags & IEEE80211_TX_STAT_ACK) {
 			local->ps_sdata->u.mgd.flags |=
 					IEEE80211_STA_NULLFUNC_ACKED;
-		} else
-			mod_timer(&local->dynamic_ps_timer, jiffies +
-					msecs_to_jiffies(10));
+		}
+		mod_timer(&local->dynamic_ps_timer, jiffies +
+				msecs_to_jiffies(10));
 	}
 
 	ieee80211_report_used_skb(local, skb, false);
