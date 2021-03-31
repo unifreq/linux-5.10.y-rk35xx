@@ -35,7 +35,7 @@ struct pm_clock_entry {
 };
 
 /**
- * pm_clk_enable - Enable a clock, reporting any errors
+ * __pm_clk_enable - Enable a clock, reporting any errors
  * @dev: The device for the given clock
  * @ce: PM clock entry corresponding to the clock.
  */
