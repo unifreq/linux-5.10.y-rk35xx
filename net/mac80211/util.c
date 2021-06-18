@@ -2965,15 +2965,15 @@ void ieee80211_ie_build_he_6ghz_cap(struct ieee80211_sub_if_data *sdata,
 	u8 *pos;
 	u16 cap;
 
-	sband = ieee80211_get_sband(sdata);
-	if (!sband)
+	if (!cfg80211_any_usable_channels(sdata->local->hw.wiphy,
+					  BIT(NL80211_BAND_6GHZ),
+					  IEEE80211_CHAN_NO_HE))
 		return;
 
-	if (sband->band != NL80211_BAND_6GHZ)
-		return;
+	sband = sdata->local->hw.wiphy->bands[NL80211_BAND_6GHZ];
 
 	iftd = ieee80211_get_sband_iftype_data(sband, iftype);
-	if (WARN_ON(!iftd))
+	if (!iftd)
 		return;
 
 	/* Check for device HE 6 GHz capability before adding element */
