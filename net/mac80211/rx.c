@@ -3227,10 +3227,7 @@ static bool
 ieee80211_process_rx_twt_action(struct ieee80211_rx_data *rx)
 {
 	struct ieee80211_mgmt *mgmt = (struct ieee80211_mgmt *)rx->skb->data;
-	struct ieee80211_rx_status *status = IEEE80211_SKB_RXCB(rx->skb);
 	struct ieee80211_sub_if_data *sdata = rx->sdata;
-	const struct ieee80211_sband_iftype_data *iftd;
-	struct ieee80211_supported_band *sband;
 
 	/* TWT actions are only supported in AP for the moment */
 	if (sdata->vif.type != NL80211_IFTYPE_AP)
@@ -3239,13 +3236,7 @@ ieee80211_process_rx_twt_action(struct ieee80211_rx_data *rx)
 	if (!rx->local->ops->add_twt_setup)
 		return false;
 
-	sband = rx->local->hw.wiphy->bands[status->band];
-	iftd = ieee80211_get_sband_iftype_data(sband, sdata->vif.type);
-	if (!iftd)
-		return false;
-
-	if (!(iftd->he_cap.he_cap_elem.mac_cap_info[0] &
-	      IEEE80211_HE_MAC_CAP0_TWT_RES))
+	if (!sdata->vif.bss_conf.twt_responder)
 		return false;
 
 	if (!rx->sta)
