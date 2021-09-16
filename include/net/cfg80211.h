@@ -5239,6 +5239,13 @@ struct wiphy_iftype_akm_suites {
  *	%NL80211_TID_CONFIG_ATTR_RETRY_LONG attributes
  * @sar_capa: SAR control capabilities
  * @rfkill: a pointer to the rfkill structure
+ *
+ * @mbssid_max_interfaces: maximum number of interfaces supported by the driver
+ *	in a multiple BSSID set. This field must be set to a non-zero value
+ *	by the driver to advertise MBSSID support.
+ * @mbssid_max_ema_profile_periodicity: maximum profile periodicity supported by
+ *	the driver. Setting this field to a non-zero value indicates that the
+ *	driver supports enhanced multi-BSSID advertisements (EMA AP).
  */
 struct wiphy {
 	struct mutex mtx;
