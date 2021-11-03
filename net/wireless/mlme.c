@@ -993,6 +993,9 @@ __cfg80211_offchan_cac_event(struct cfg80211_registered_device *rdev,
 
 	lockdep_assert_wiphy(&rdev->wiphy);
 
+	if (!cfg80211_chandef_valid(chandef))
+		return;
+
 	if (event != NL80211_RADAR_CAC_STARTED && !rdev->offchan_radar_wdev)
 		return;
 
@@ -1080,6 +1083,6 @@ void cfg80211_stop_offchan_radar_detection(struct wireless_dev *wdev)
 
 	rdev_set_radar_offchan(rdev, NULL);
 
-	__cfg80211_offchan_cac_event(rdev, NULL, NULL,
+	__cfg80211_offchan_cac_event(rdev, wdev, &rdev->offchan_radar_chandef,
 				     NL80211_RADAR_CAC_ABORTED);
 }
