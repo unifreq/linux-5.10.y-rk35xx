@@ -594,7 +594,7 @@ static void ieee80211_do_stop(struct ieee80211_sub_if_data *sdata, bool going_do
 	 */
 	if (local->suspended) {
 		WARN_ON(local->wowlan);
-		WARN_ON(rtnl_dereference(local->monitor_sdata));
+		WARN_ON(rcu_access_pointer(local->monitor_sdata));
 		return;
 	}
 
@@ -965,6 +965,7 @@ int ieee80211_add_virtual_monitor(struct ieee80211_local *local)
 		return 0;
 
 	ASSERT_RTNL();
+	lockdep_assert_wiphy(local->hw.wiphy);
 
 	if (local->monitor_sdata)
 		return 0;
@@ -1032,6 +1033,7 @@ void ieee80211_del_virtual_monitor(struct ieee80211_local *local)
 		return;
 
 	ASSERT_RTNL();
+	lockdep_assert_wiphy(local->hw.wiphy);
 
 	mutex_lock(&local->iflist_mtx);
 
