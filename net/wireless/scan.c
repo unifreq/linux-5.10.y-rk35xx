@@ -1825,13 +1825,15 @@ int cfg80211_get_ies_channel_number(const u8 *ie, size_t ielen,
 
 	if (band == NL80211_BAND_6GHZ) {
 		const struct element *elem;
+		struct ieee80211_he_operation *he_oper;
 
 		elem = cfg80211_find_ext_elem(WLAN_EID_EXT_HE_OPERATION, ie,
 					      ielen);
-		if (elem && elem->datalen >= ieee80211_he_oper_size(&elem->data[1])) {
-			struct ieee80211_he_operation *he_oper =
-				(void *)(&elem->data[1]);
+		if (elem && elem->datalen >= sizeof(*he_oper) &&
+		    elem->datalen >= ieee80211_he_oper_size(&elem->data[1])) {
 			const struct ieee80211_he_6ghz_oper *he_6ghz_oper;
+
+			he_oper = (void *)&elem->data[1];
 
 			he_6ghz_oper = ieee80211_he_6ghz_oper(he_oper);
 			if (!he_6ghz_oper)
