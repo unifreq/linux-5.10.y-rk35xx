@@ -117,6 +117,7 @@ struct wiphy;
  *	channel as the control or any of the secondary channels.
  *	This may be due to the driver or due to regulatory bandwidth
  *	restrictions.
+ * @IEEE80211_CHAN_NO_EHT: EHT operation is not permitted on this channel.
  */
 enum ieee80211_channel_flags {
 	IEEE80211_CHAN_DISABLED		= 1<<0,
@@ -139,7 +140,8 @@ enum ieee80211_channel_flags {
 	IEEE80211_CHAN_8MHZ		= 1<<17,
 	IEEE80211_CHAN_16MHZ		= 1<<18,
 	IEEE80211_CHAN_NO_320MHZ        = 1<<19,
-	IEEE80211_CHAN_PSD		= 1<<20,
+	IEEE80211_CHAN_NO_EHT		= 1<<20,
+	IEEE80211_CHAN_PSD		= 1<<21,
 };
 
 #define IEEE80211_CHAN_NO_HT40 \
