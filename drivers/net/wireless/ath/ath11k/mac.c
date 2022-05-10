@@ -411,7 +411,7 @@ static int ath11k_mac_vif_chan(struct ieee80211_vif *vif,
 	struct ieee80211_chanctx_conf *conf;
 
 	rcu_read_lock();
-	conf = rcu_dereference(vif->chanctx_conf);
+	conf = rcu_dereference(vif->bss_conf.chanctx_conf);
 	if (!conf) {
 		rcu_read_unlock();
 		return -ENOENT;
@@ -6139,7 +6139,7 @@ ath11k_mac_change_chanctx_cnt_iter(void *data, u8 *mac,
 {
 	struct ath11k_mac_change_chanctx_arg *arg = data;
 
-	if (rcu_access_pointer(vif->chanctx_conf) != arg->ctx)
+	if (rcu_access_pointer(vif->bss_conf.chanctx_conf) != arg->ctx)
 		return;
 
 	arg->n_vifs++;
@@ -6152,7 +6152,7 @@ ath11k_mac_change_chanctx_fill_iter(void *data, u8 *mac,
 	struct ath11k_mac_change_chanctx_arg *arg = data;
 	struct ieee80211_chanctx_conf *ctx;
 
-	ctx = rcu_access_pointer(vif->chanctx_conf);
+	ctx = rcu_access_pointer(vif->bss_conf.chanctx_conf);
 	if (ctx != arg->ctx)
 		return;
 

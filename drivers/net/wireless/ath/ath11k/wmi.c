@@ -6804,7 +6804,7 @@ ath11k_wmi_process_csa_switch_count_event(struct ath11k_base *ab,
 			continue;
 		}
 
-		if (arvif->is_up && arvif->vif->csa_active)
+		if (arvif->is_up && arvif->vif->bss_conf.csa_active)
 			ieee80211_csa_finish(arvif->vif);
 	}
 	rcu_read_unlock();

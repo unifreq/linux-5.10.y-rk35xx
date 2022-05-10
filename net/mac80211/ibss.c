@@ -9,7 +9,7 @@
  * Copyright 2009, Johannes Berg <johannes@sipsolutions.net>
  * Copyright 2013-2014  Intel Mobile Communications GmbH
  * Copyright(c) 2016 Intel Deutschland GmbH
- * Copyright(c) 2018-2021 Intel Corporation
+ * Copyright(c) 2018-2022 Intel Corporation
  */
 
 #include <linux/delay.h>
@@ -626,7 +626,7 @@ ieee80211_ibss_add_sta(struct ieee80211_sub_if_data *sdata, const u8 *bssid,
 	}
 
 	rcu_read_lock();
-	chanctx_conf = rcu_dereference(sdata->vif.chanctx_conf);
+	chanctx_conf = rcu_dereference(sdata->vif.bss_conf.chanctx_conf);
 	if (WARN_ON_ONCE(!chanctx_conf))
 		return NULL;
 	band = chanctx_conf->def.chan->band;
@@ -927,7 +927,7 @@ ieee80211_rx_mgmt_spectrum_mgmt(struct ieee80211_sub_if_data *sdata,
 	if (len < required_len)
 		return;
 
-	if (!sdata->vif.csa_active)
+	if (!sdata->vif.bss_conf.csa_active)
 		ieee80211_ibss_process_chanswitch(sdata, elems, false);
 }
 
@@ -1147,7 +1147,7 @@ static void ieee80211_rx_bss_info(struct ieee80211_sub_if_data *sdata,
 		goto put_bss;
 
 	/* process channel switch */
-	if (sdata->vif.csa_active ||
+	if (sdata->vif.bss_conf.csa_active ||
 	    ieee80211_ibss_process_chanswitch(sdata, elems, true))
 		goto put_bss;
 
@@ -1224,7 +1224,7 @@ void ieee80211_ibss_rx_no_sta(struct ieee80211_sub_if_data *sdata,
 		return;
 
 	rcu_read_lock();
-	chanctx_conf = rcu_dereference(sdata->vif.chanctx_conf);
+	chanctx_conf = rcu_dereference(sdata->vif.bss_conf.chanctx_conf);
 	if (WARN_ON_ONCE(!chanctx_conf)) {
 		rcu_read_unlock();
 		return;
