@@ -4508,7 +4508,7 @@ static void ieee80211_sta_timer(struct timer_list *t)
 }
 
 void ieee80211_sta_connection_lost(struct ieee80211_sub_if_data *sdata,
-				   u8 *bssid, u8 reason, bool tx)
+				   u8 reason, bool tx)
 {
 	u8 frame_buf[IEEE80211_DEAUTH_FRAME_LEN];
 
@@ -4763,7 +4763,7 @@ void ieee80211_sta_work(struct ieee80211_sub_if_data *sdata)
 				mlme_dbg(sdata,
 					 "No ack for nullfunc frame to AP %pM, disconnecting.\n",
 					 bssid);
-				ieee80211_sta_connection_lost(sdata, bssid,
+				ieee80211_sta_connection_lost(sdata,
 					WLAN_REASON_DISASSOC_DUE_TO_INACTIVITY,
 					false);
 			}
@@ -4773,7 +4773,7 @@ void ieee80211_sta_work(struct ieee80211_sub_if_data *sdata)
 			mlme_dbg(sdata,
 				 "Failed to send nullfunc to AP %pM after %dms, disconnecting\n",
 				 bssid, probe_wait_ms);
-			ieee80211_sta_connection_lost(sdata, bssid,
+			ieee80211_sta_connection_lost(sdata,
 				WLAN_REASON_DISASSOC_DUE_TO_INACTIVITY, false);
 		} else if (ifmgd->probe_send_count < max_tries) {
 			mlme_dbg(sdata,
@@ -4790,7 +4790,7 @@ void ieee80211_sta_work(struct ieee80211_sub_if_data *sdata)
 				 "No probe response from AP %pM after %dms, disconnecting.\n",
 				 bssid, probe_wait_ms);
 
-			ieee80211_sta_connection_lost(sdata, bssid,
+			ieee80211_sta_connection_lost(sdata,
 				WLAN_REASON_DISASSOC_DUE_TO_INACTIVITY, false);
 		}
 	}
@@ -4945,7 +4945,6 @@ void ieee80211_sta_restart(struct ieee80211_sub_if_data *sdata)
 		sdata->flags &= ~IEEE80211_SDATA_DISCONNECT_RESUME;
 		mlme_dbg(sdata, "driver requested disconnect after resume\n");
 		ieee80211_sta_connection_lost(sdata,
-					      ifmgd->bssid,
 					      WLAN_REASON_UNSPECIFIED,
 					      true);
 		sdata_unlock(sdata);
@@ -4956,7 +4955,6 @@ void ieee80211_sta_restart(struct ieee80211_sub_if_data *sdata)
 		sdata->flags &= ~IEEE80211_SDATA_DISCONNECT_HW_RESTART;
 		mlme_dbg(sdata, "driver requested disconnect after hardware restart\n");
 		ieee80211_sta_connection_lost(sdata,
-					      ifmgd->bssid,
 					      WLAN_REASON_UNSPECIFIED,
 					      true);
 		sdata_unlock(sdata);
