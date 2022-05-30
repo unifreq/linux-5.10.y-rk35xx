@@ -2072,8 +2072,6 @@ struct ieee80211_sta_txpwr {
 	enum nl80211_tx_power_setting type;
 };
 
-#define MAX_STA_LINKS			15
-
 /**
  * struct ieee80211_link_sta - station Link specific info
  * All link specific info for a STA link for a non MLD STA(single)
@@ -2201,7 +2199,7 @@ struct ieee80211_sta {
 
 	bool multi_link_sta;
 	struct ieee80211_link_sta deflink;
-	struct ieee80211_link_sta *link[MAX_STA_LINKS];
+	struct ieee80211_link_sta *link[IEEE80211_MLD_MAX_NUM_LINKS];
 
 	ANDROID_KABI_RESERVE(1);
 
