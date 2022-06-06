@@ -4710,11 +4710,12 @@ void ieee80211_tx_pending(unsigned long data)
 
 static void __ieee80211_beacon_add_tim(struct ieee80211_sub_if_data *sdata,
 				       struct ps_data *ps, struct sk_buff *skb,
-				       bool is_template)
+				       bool is_template, unsigned int link_id)
 {
 	u8 *pos, *tim;
 	int aid0 = 0;
 	int i, have_bits = 0, n1, n2;
+	struct ieee80211_bss_conf *link_conf = sdata->vif.link_conf[link_id];
 
 	/* Generate bitmap for TIM only if there are any STAs in power save
 	 * mode. */
@@ -4725,7 +4726,7 @@ static void __ieee80211_beacon_add_tim(struct ieee80211_sub_if_data *sdata,
 					  IEEE80211_MAX_AID+1);
 	if (!is_template) {
 		if (ps->dtim_count == 0)
-			ps->dtim_count = sdata->vif.bss_conf.dtim_period - 1;
+			ps->dtim_count = link_conf->dtim_period - 1;
 		else
 			ps->dtim_count--;
 	}
@@ -4734,7 +4735,7 @@ static void __ieee80211_beacon_add_tim(struct ieee80211_sub_if_data *sdata,
 	*pos++ = WLAN_EID_TIM;
 	*pos++ = 4;
 	*pos++ = ps->dtim_count;
-	*pos++ = sdata->vif.bss_conf.dtim_period;
+	*pos++ = link_conf->dtim_period;
 
 	if (ps->dtim_count == 0 && !skb_queue_empty(&ps->bc_buf))
 		aid0 = 1;
@@ -4775,7 +4776,7 @@ static void __ieee80211_beacon_add_tim(struct ieee80211_sub_if_data *sdata,
 
 static int ieee80211_beacon_add_tim(struct ieee80211_sub_if_data *sdata,
 				    struct ps_data *ps, struct sk_buff *skb,
-				    bool is_template)
+				    bool is_template, unsigned int link_id)
 {
 	struct ieee80211_local *local = sdata->local;
 
@@ -4787,10 +4788,12 @@ static int ieee80211_beacon_add_tim(struct ieee80211_sub_if_data *sdata,
 	 * of the tim bitmap in mac80211 and the driver.
 	 */
 	if (local->tim_in_locked_section) {
-		__ieee80211_beacon_add_tim(sdata, ps, skb, is_template);
+		__ieee80211_beacon_add_tim(sdata, ps, skb, is_template,
+					   link_id);
 	} else {
 		spin_lock_bh(&local->tim_lock);
-		__ieee80211_beacon_add_tim(sdata, ps, skb, is_template);
+		__ieee80211_beacon_add_tim(sdata, ps, skb, is_template,
+					   link_id);
 		spin_unlock_bh(&local->tim_lock);
 	}
 
@@ -4798,7 +4801,8 @@ static int ieee80211_beacon_add_tim(struct ieee80211_sub_if_data *sdata,
 }
 
 static void ieee80211_set_beacon_cntdwn(struct ieee80211_sub_if_data *sdata,
-					struct beacon_data *beacon)
+					struct beacon_data *beacon,
+					unsigned int link_id)
 {
 	u8 *beacon_data, count, max_count = 1;
 	struct probe_resp *resp;
@@ -4824,11 +4828,11 @@ static void ieee80211_set_beacon_cntdwn(struct ieee80211_sub_if_data *sdata,
 	}
 
 	rcu_read_lock();
-	resp = rcu_dereference(sdata->deflink.u.ap.probe_resp);
+	resp = rcu_dereference(sdata->link[link_id]->u.ap.probe_resp);
 
 	bcn_offsets = beacon->cntdwn_counter_offsets;
 	count = beacon->cntdwn_current_counter;
-	if (sdata->vif.bss_conf.csa_active)
+	if (sdata->vif.link_conf[link_id]->csa_active)
 		max_count = IEEE80211_MAX_CNTDWN_COUNTERS_NUM;
 
 	for (i = 0; i < max_count; ++i) {
@@ -4969,14 +4973,15 @@ EXPORT_SYMBOL(ieee80211_beacon_cntdwn_is_complete);
 
 static int ieee80211_beacon_protect(struct sk_buff *skb,
 				    struct ieee80211_local *local,
-				    struct ieee80211_sub_if_data *sdata)
+				    struct ieee80211_sub_if_data *sdata,
+				    unsigned int link_id)
 {
 	ieee80211_tx_result res;
 	struct ieee80211_tx_data tx;
 	struct sk_buff *check_skb;
 
 	memset(&tx, 0, sizeof(tx));
-	tx.key = rcu_dereference(sdata->deflink.default_beacon_key);
+	tx.key = rcu_dereference(sdata->link[link_id]->default_beacon_key);
 	if (!tx.key)
 		return 0;
 	tx.local = local;
@@ -5000,7 +5005,8 @@ ieee80211_beacon_get_finish(struct ieee80211_hw *hw,
 			    struct beacon_data *beacon,
 			    struct sk_buff *skb,
 			    struct ieee80211_chanctx_conf *chanctx_conf,
-			    u16 csa_off_base)
+			    u16 csa_off_base,
+			    unsigned int link_id)
 {
 	struct ieee80211_local *local = hw_to_local(hw);
 	struct ieee80211_sub_if_data *sdata = vif_to_sdata(vif);
@@ -5031,7 +5037,7 @@ ieee80211_beacon_get_finish(struct ieee80211_hw *hw,
 	memset(&txrc, 0, sizeof(txrc));
 	txrc.hw = hw;
 	txrc.sband = local->hw.wiphy->bands[band];
-	txrc.bss_conf = &sdata->vif.bss_conf;
+	txrc.bss_conf = sdata->vif.link_conf[link_id];
 	txrc.skb = skb;
 	txrc.reported_rate.idx = -1;
 	if (sdata->beacon_rate_set && sdata->beacon_rateidx_mask[band])
@@ -5066,7 +5072,8 @@ ieee80211_beacon_get_ap(struct ieee80211_hw *hw,
 			struct ieee80211_mutable_offsets *offs,
 			bool is_template,
 			struct beacon_data *beacon,
-			struct ieee80211_chanctx_conf *chanctx_conf)
+			struct ieee80211_chanctx_conf *chanctx_conf,
+			unsigned int link_id)
 {
 	struct ieee80211_local *local = hw_to_local(hw);
 	struct ieee80211_sub_if_data *sdata = vif_to_sdata(vif);
@@ -5079,7 +5086,7 @@ ieee80211_beacon_get_ap(struct ieee80211_hw *hw,
 		if (!is_template)
 			ieee80211_beacon_update_cntdwn(vif);
 
-		ieee80211_set_beacon_cntdwn(sdata, beacon);
+		ieee80211_set_beacon_cntdwn(sdata, beacon, link_id);
 	}
 
 	/* headroom, head length,
@@ -5095,7 +5102,7 @@ ieee80211_beacon_get_ap(struct ieee80211_hw *hw,
 	skb_reserve(skb, local->tx_headroom);
 	skb_put_data(skb, beacon->head, beacon->head_len);
 
-	ieee80211_beacon_add_tim(sdata, &ap->ps, skb, is_template);
+	ieee80211_beacon_add_tim(sdata, &ap->ps, skb, is_template, link_id);
 
 	if (offs) {
 		offs->tim_offset = beacon->head_len;
@@ -5114,11 +5121,11 @@ ieee80211_beacon_get_ap(struct ieee80211_hw *hw,
 	if (beacon->tail)
 		skb_put_data(skb, beacon->tail, beacon->tail_len);
 
-	if (ieee80211_beacon_protect(skb, local, sdata) < 0)
+	if (ieee80211_beacon_protect(skb, local, sdata, link_id) < 0)
 		return NULL;
 
 	ieee80211_beacon_get_finish(hw, vif, offs, beacon, skb, chanctx_conf,
-				    csa_off_base);
+				    csa_off_base, link_id);
 	return skb;
 }
 
@@ -5126,7 +5133,8 @@ static struct sk_buff *
 __ieee80211_beacon_get(struct ieee80211_hw *hw,
 		       struct ieee80211_vif *vif,
 		       struct ieee80211_mutable_offsets *offs,
-		       bool is_template)
+		       bool is_template,
+		       unsigned int link_id)
 {
 	struct ieee80211_local *local = hw_to_local(hw);
 	struct beacon_data *beacon = NULL;
@@ -5137,7 +5145,8 @@ __ieee80211_beacon_get(struct ieee80211_hw *hw,
 	rcu_read_lock();
 
 	sdata = vif_to_sdata(vif);
-	chanctx_conf = rcu_dereference(sdata->vif.bss_conf.chanctx_conf);
+	chanctx_conf =
+		rcu_dereference(sdata->vif.link_conf[link_id]->chanctx_conf);
 
 	if (!ieee80211_sdata_running(sdata) || !chanctx_conf)
 		goto out;
@@ -5146,12 +5155,12 @@ __ieee80211_beacon_get(struct ieee80211_hw *hw,
 		memset(offs, 0, sizeof(*offs));
 
 	if (sdata->vif.type == NL80211_IFTYPE_AP) {
-		beacon = rcu_dereference(sdata->deflink.u.ap.beacon);
+		beacon = rcu_dereference(sdata->link[link_id]->u.ap.beacon);
 		if (!beacon)
 			goto out;
 
 		skb = ieee80211_beacon_get_ap(hw, vif, offs, is_template,
-					      beacon, chanctx_conf);
+					      beacon, chanctx_conf, link_id);
 	} else if (sdata->vif.type == NL80211_IFTYPE_ADHOC) {
 		struct ieee80211_if_ibss *ifibss = &sdata->u.ibss;
 		struct ieee80211_hdr *hdr;
@@ -5164,7 +5173,7 @@ __ieee80211_beacon_get(struct ieee80211_hw *hw,
 			if (!is_template)
 				__ieee80211_beacon_update_cntdwn(beacon);
 
-			ieee80211_set_beacon_cntdwn(sdata, beacon);
+			ieee80211_set_beacon_cntdwn(sdata, beacon, link_id);
 		}
 
 		skb = dev_alloc_skb(local->tx_headroom + beacon->head_len +
@@ -5179,7 +5188,7 @@ __ieee80211_beacon_get(struct ieee80211_hw *hw,
 						 IEEE80211_STYPE_BEACON);
 
 		ieee80211_beacon_get_finish(hw, vif, offs, beacon, skb,
-					    chanctx_conf, 0);
+					    chanctx_conf, 0, link_id);
 	} else if (ieee80211_vif_is_mesh(&sdata->vif)) {
 		struct ieee80211_if_mesh *ifmsh = &sdata->u.mesh;
 
@@ -5196,7 +5205,7 @@ __ieee80211_beacon_get(struct ieee80211_hw *hw,
 				 */
 				__ieee80211_beacon_update_cntdwn(beacon);
 
-			ieee80211_set_beacon_cntdwn(sdata, beacon);
+			ieee80211_set_beacon_cntdwn(sdata, beacon, link_id);
 		}
 
 		if (ifmsh->sync_ops)
@@ -5211,7 +5220,8 @@ __ieee80211_beacon_get(struct ieee80211_hw *hw,
 			goto out;
 		skb_reserve(skb, local->tx_headroom);
 		skb_put_data(skb, beacon->head, beacon->head_len);
-		ieee80211_beacon_add_tim(sdata, &ifmsh->ps, skb, is_template);
+		ieee80211_beacon_add_tim(sdata, &ifmsh->ps, skb, is_template,
+					 link_id);
 
 		if (offs) {
 			offs->tim_offset = beacon->head_len;
@@ -5220,7 +5230,7 @@ __ieee80211_beacon_get(struct ieee80211_hw *hw,
 
 		skb_put_data(skb, beacon->tail, beacon->tail_len);
 		ieee80211_beacon_get_finish(hw, vif, offs, beacon, skb,
-					    chanctx_conf, 0);
+					    chanctx_conf, 0, link_id);
 	} else {
 		WARN_ON(1);
 		goto out;
@@ -5235,18 +5245,21 @@ __ieee80211_beacon_get(struct ieee80211_hw *hw,
 struct sk_buff *
 ieee80211_beacon_get_template(struct ieee80211_hw *hw,
 			      struct ieee80211_vif *vif,
-			      struct ieee80211_mutable_offsets *offs)
+			      struct ieee80211_mutable_offsets *offs,
+			      unsigned int link_id)
 {
-	return __ieee80211_beacon_get(hw, vif, offs, true);
+	return __ieee80211_beacon_get(hw, vif, offs, true, link_id);
 }
 EXPORT_SYMBOL(ieee80211_beacon_get_template);
 
 struct sk_buff *ieee80211_beacon_get_tim(struct ieee80211_hw *hw,
 					 struct ieee80211_vif *vif,
-					 u16 *tim_offset, u16 *tim_length)
+					 u16 *tim_offset, u16 *tim_length,
+					 unsigned int link_id)
 {
 	struct ieee80211_mutable_offsets offs = {};
-	struct sk_buff *bcn = __ieee80211_beacon_get(hw, vif, &offs, false);
+	struct sk_buff *bcn = __ieee80211_beacon_get(hw, vif, &offs, false,
+						     link_id);
 	struct sk_buff *copy;
 	int shift;
 

@@ -710,7 +710,7 @@ mt7615_mcu_add_beacon_offload(struct mt7615_dev *dev,
 	if (!enable)
 		goto out;
 
-	skb = ieee80211_beacon_get_template(hw, vif, &offs);
+	skb = ieee80211_beacon_get_template(hw, vif, &offs, 0);
 	if (!skb)
 		return -EINVAL;
 
@@ -1080,7 +1080,7 @@ mt7615_mcu_uni_add_beacon_offload(struct mt7615_dev *dev,
 	if (!enable)
 		goto out;
 
-	skb = ieee80211_beacon_get_template(mt76_hw(dev), vif, &offs);
+	skb = ieee80211_beacon_get_template(mt76_hw(dev), vif, &offs, 0);
 	if (!skb)
 		return -EINVAL;
 
