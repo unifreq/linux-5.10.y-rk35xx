@@ -13626,8 +13626,8 @@ wl_bss_roaming_done(struct bcm_cfg80211 *cfg, struct net_device *ndev,
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0)) || \
 	defined(WL_FILS_ROAM_OFFLD) || defined(CFG80211_ROAM_API_GE_4_12)
 	memset(&roam_info, 0, sizeof(struct cfg80211_roam_info));
-	roam_info.channel = notify_channel;
-	roam_info.bssid = curbssid;
+	roam_info.links[0].channel = notify_channel;
+	roam_info.links[0].bssid = curbssid;
 	roam_info.req_ie = conn_info->req_ie;
 	roam_info.req_ie_len = conn_info->req_ie_len;
 	roam_info.resp_ie = conn_info->resp_ie;
@@ -13821,10 +13821,10 @@ wl_fillup_resp_params(struct bcm_cfg80211 *cfg, struct net_device *ndev,
 
 	resp_params = (struct cfg80211_connect_resp_params *)params;
 	resp_params->status = status;
-	resp_params->bssid = curbssid;
-	resp_params->bss = CFG80211_GET_BSS(wiphy, NULL, curbssid,
+	resp_params->links[0].bssid = curbssid;
+	resp_params->links[0].bss = CFG80211_GET_BSS(wiphy, NULL, curbssid,
 		ssid->SSID, ssid->SSID_len);
-	if (!resp_params->bss) {
+	if (!resp_params->links[0].bss) {
 		WL_ERR(("null bss\n"));
 		return BCME_ERROR;
 	}
