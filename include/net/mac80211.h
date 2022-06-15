@@ -2216,7 +2216,7 @@ struct ieee80211_sta {
 
 	u16 valid_links;
 	struct ieee80211_link_sta deflink;
-	struct ieee80211_link_sta *link[IEEE80211_MLD_MAX_NUM_LINKS];
+	struct ieee80211_link_sta __rcu *link[IEEE80211_MLD_MAX_NUM_LINKS];
 
 	ANDROID_KABI_RESERVE(1);
 
