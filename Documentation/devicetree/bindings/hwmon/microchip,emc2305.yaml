@@ -1,0 +1,106 @@
+# SPDX-License-Identifier: (GPL-2.0 OR BSD-2-Clause)
+%YAML 1.2
+---
+
+$id: http://devicetree.org/schemas/hwmon/microchip,emc2305.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Microchip EMC2305 RPM-based PWM Fan Speed Controller
+
+maintainers:
+  - Michael Shych <michaelsh@nvidia.com>
+
+description: |
+  Microchip EMC2301/2/3/5 are RPM-based PWM Fan Controller.
+  The Fan Controller supports up to 5 independently controlled PWM fan drives.
+  Fan rotation speeds are reported in RPM.
+
+  Datasheet: https://www.microchip.com/en-us/product/EMC2305
+
+additionalProperties: false
+
+properties:
+  compatible:
+    enum:
+      - microchip,emc2305
+      - microchip,emc2303
+      - microchip,emc2302
+      - microchip,emc2301
+
+  reg:
+    maxItems: 1
+
+  "#address-cells":
+    const: 1
+
+  "#size-cells":
+    const: 0
+
+  microchip,cooling-levels:
+    description:
+      Quantity of cooling level state.
+    $ref: /schemas/types.yaml#/definitions/uint8
+    minimum: 0
+    maximum: 255
+
+  microchip,pwm-separate:
+    description:
+      This flag indicates that separate PWM setting will be used
+      for different channels.
+    $ref: /schemas/types.yaml#/definitions/flag
+
+patternProperties:
+  "^channel@[0-4]$":
+    type: object
+
+    additionalProperties: false
+
+    properties:
+      reg:
+        items:
+          - enum:
+              - 0
+              - 1
+              - 2
+              - 3
+              - 4
+
+      pwm-min:
+        description:
+          Min pwm of emc2305 channel
+        $ref: /schemas/types.yaml#/definitions/uint8
+        minimum: 0
+        maximum: 255
+
+    required:
+      - reg
+
+required:
+  - compatible
+
+
+examples:
+  - |
+    i2c {
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        fan-controller@4d {
+            compatible = "microchip,emc2305";
+            reg = <0x4d>;
+            #address-cells = <1>;
+            #size-cells = <0>;
+            microchip,pwm-separate;
+            microchip,cooling-levels = /bits/ 8 <10>;
+
+            channel@0 {
+                reg = <0>;
+                pwm-min = /bits/ 8 <0>;
+            };
+            channel@1 {
+                reg = <1>;
+                pwm-min = /bits/ 8 <0>;
+            };
+        };
+    };
+
