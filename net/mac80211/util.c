@@ -953,9 +953,11 @@ void ieee80211_queue_delayed_work(struct ieee80211_hw *hw,
 }
 EXPORT_SYMBOL(ieee80211_queue_delayed_work);
 
-static void ieee80211_parse_extension_element(u32 *crc,
-					      const struct element *elem,
-					      struct ieee802_11_elems *elems)
+static void
+ieee80211_parse_extension_element(u32 *crc,
+				  const struct element *elem,
+				  struct ieee802_11_elems *elems,
+				  struct ieee80211_elems_parse_params *params)
 {
 	const void *data = elem->data + 1;
 	u8 len;
@@ -1012,7 +1014,8 @@ static void ieee80211_parse_extension_element(u32 *crc,
 		break;
 	case WLAN_EID_EXT_EHT_CAPABILITY:
 		if (ieee80211_eht_capa_size_ok(elems->he_cap,
-					       data, len)) {
+					       data, len,
+					       params->from_ap)) {
 			elems->eht_cap = data;
 			elems->eht_cap_len = len;
 		}
@@ -1384,7 +1387,7 @@ _ieee802_11_parse_elems_full(struct ieee80211_elems_parse_params *params,
 		case WLAN_EID_EXTENSION:
 			ieee80211_parse_extension_element(calc_crc ?
 								&crc : NULL,
-							  elem, elems);
+							  elem, elems, params);
 			break;
 		case WLAN_EID_S1G_CAPABILITIES:
 			if (elen >= sizeof(*elems->s1g_capab))
@@ -2032,7 +2035,8 @@ static int ieee80211_build_preq_ies_band(struct ieee80211_sub_if_data *sdata,
 	    cfg80211_any_usable_channels(local->hw.wiphy, BIT(sband->band),
 					 IEEE80211_CHAN_NO_HE |
 					 IEEE80211_CHAN_NO_EHT)) {
-		pos = ieee80211_ie_build_eht_cap(pos, he_cap, eht_cap, end);
+		pos = ieee80211_ie_build_eht_cap(pos, he_cap, eht_cap, end,
+						 sdata->vif.type == NL80211_IFTYPE_AP);
 		if (!pos)
 			goto out_err;
 	}
@@ -4773,6 +4777,7 @@ u8 ieee80211_ie_len_eht_cap(struct ieee80211_sub_if_data *sdata, u8 iftype)
 	const struct ieee80211_sta_he_cap *he_cap;
 	const struct ieee80211_sta_eht_cap *eht_cap;
 	struct ieee80211_supported_band *sband;
+	bool is_ap;
 	u8 n;
 
 	sband = ieee80211_get_sband(sdata);
@@ -4784,8 +4789,12 @@ u8 ieee80211_ie_len_eht_cap(struct ieee80211_sub_if_data *sdata, u8 iftype)
 	if (!he_cap || !eht_cap)
 		return 0;
 
+	is_ap = iftype == NL80211_IFTYPE_AP ||
+		iftype == NL80211_IFTYPE_P2P_GO;
+
 	n = ieee80211_eht_mcs_nss_size(&he_cap->he_cap_elem,
-				       &eht_cap->eht_cap_elem);
+				       &eht_cap->eht_cap_elem,
+				       is_ap);
 	return 2 + 1 +
 	       sizeof(he_cap->he_cap_elem) + n +
 	       ieee80211_eht_ppe_size(eht_cap->eht_ppe_thres[0],
@@ -4796,7 +4805,8 @@ u8 ieee80211_ie_len_eht_cap(struct ieee80211_sub_if_data *sdata, u8 iftype)
 u8 *ieee80211_ie_build_eht_cap(u8 *pos,
 			       const struct ieee80211_sta_he_cap *he_cap,
 			       const struct ieee80211_sta_eht_cap *eht_cap,
-			       u8 *end)
+			       u8 *end,
+			       bool for_ap)
 {
 	u8 mcs_nss_len, ppet_len;
 	u8 ie_len;
@@ -4807,7 +4817,8 @@ u8 *ieee80211_ie_build_eht_cap(u8 *pos,
 		return orig_pos;
 
 	mcs_nss_len = ieee80211_eht_mcs_nss_size(&he_cap->he_cap_elem,
-						 &eht_cap->eht_cap_elem);
+						 &eht_cap->eht_cap_elem,
+						 for_ap);
 	ppet_len = ieee80211_eht_ppe_size(eht_cap->eht_ppe_thres[0],
 					  eht_cap->eht_cap_elem.phy_cap_info);
 
