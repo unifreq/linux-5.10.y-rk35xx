@@ -2958,6 +2958,8 @@ static int mac80211_hwsim_change_sta_links(struct ieee80211_hw *hw,
 					   struct ieee80211_sta *sta,
 					   u16 old_links, u16 new_links)
 {
+	hwsim_check_sta_magic(sta);
+
 	return 0;
 }
 
