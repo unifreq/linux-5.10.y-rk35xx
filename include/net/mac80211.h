@@ -18,6 +18,7 @@
 #include <linux/if_ether.h>
 #include <linux/skbuff.h>
 #include <linux/ieee80211.h>
+#include <linux/lockdep.h>
 #include <linux/android_kabi.h>
 #include <net/cfg80211.h>
 #include <net/codel.h>
@@ -1917,6 +1918,19 @@ struct ieee80211_vif *wdev_to_ieee80211_vif(struct wireless_dev *wdev);
 struct wireless_dev *ieee80211_vif_to_wdev(struct ieee80211_vif *vif);
 
 /**
+ * lockdep_vif_mutex_held - for lockdep checks on link poiners
+ * @vif: the interface to check
+ */
+static inline bool lockdep_vif_mutex_held(struct ieee80211_vif *vif)
+{
+	return lockdep_is_held(&ieee80211_vif_to_wdev(vif)->mtx);
+}
+
+#define link_conf_dereference_protected(vif, link_id)		\
+	rcu_dereference_protected((vif)->link_conf[link_id],	\
+				  lockdep_vif_mutex_held(vif))
+
+/**
  * enum ieee80211_key_flags - key flags
  *
  * These flags are used for communication about keys between the driver
@@ -2283,13 +2297,24 @@ struct ieee80211_sta {
 	u8 drv_priv[] __aligned(sizeof(void *));
 };
 
-/* FIXME: check the locking correctly */
+#ifdef CONFIG_LOCKDEP
+bool lockdep_sta_mutex_held(struct ieee80211_sta *pubsta);
+#else
+static inline bool lockdep_sta_mutex_held(struct ieee80211_sta *pubsta)
+{
+	return true;
+}
+#endif
+
+#define link_sta_dereference_protected(sta, link_id)		\
+	rcu_dereference_protected((sta)->link[link_id],		\
+				  lockdep_sta_mutex_held(sta))
+
 #define for_each_sta_active_link(vif, sta, link_sta, link_id)			\
 	for (link_id = 0; link_id < ARRAY_SIZE((sta)->link); link_id++)		\
 		if ((!(vif)->active_links ||					\
 		     (vif)->active_links & BIT(link_id)) &&			\
-		    ((link_sta) = rcu_dereference_protected((sta)->link[link_id],\
-							    1)))
+		    ((link_sta) = link_sta_dereference_protected(sta, link_id)))
 
 /**
  * enum sta_notify_cmd - sta notify command
