@@ -885,7 +885,7 @@ static int veth_napi_add(struct net_device *dev)
 	for (i = 0; i < dev->real_num_rx_queues; i++) {
 		struct veth_rq *rq = &priv->rq[i];
 
-		netif_napi_add(dev, &rq->xdp_napi, veth_poll, NAPI_POLL_WEIGHT);
+		netif_napi_add(dev, &rq->xdp_napi, veth_poll);
 		napi_enable(&rq->xdp_napi);
 	}
 

@@ -9470,7 +9470,7 @@ dhd_open(struct net_device *net)
 			dhd->rx_napi_netdev = dhd->iflist[ifidx]->net;
 			memset(&dhd->rx_napi_struct, 0, sizeof(struct napi_struct));
 			netif_napi_add(dhd->rx_napi_netdev, &dhd->rx_napi_struct,
-				dhd_napi_poll, dhd_napi_weight);
+				dhd_napi_poll);
 			DHD_INFO(("%s napi<%p> enabled ifp->net<%p,%s> dhd_napi_weight: %d\n",
 				__FUNCTION__, &dhd->rx_napi_struct, net,
 				net->name, dhd_napi_weight));

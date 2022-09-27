@@ -3351,7 +3351,7 @@ static int gfar_probe(struct platform_device *ofdev)
 	for (i = 0; i < priv->num_grps; i++) {
 		if (priv->poll_mode == GFAR_SQ_POLLING) {
 			netif_napi_add(dev, &priv->gfargrp[i].napi_rx,
-				       gfar_poll_rx_sq, GFAR_DEV_WEIGHT);
+				       gfar_poll_rx_sq);
 			netif_tx_napi_add(dev, &priv->gfargrp[i].napi_tx,
 				       gfar_poll_tx_sq, 2);
 		} else {

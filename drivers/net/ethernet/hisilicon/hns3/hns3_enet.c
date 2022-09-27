@@ -3627,7 +3627,7 @@ static int hns3_nic_init_vector_data(struct hns3_nic_priv *priv)
 			goto map_ring_fail;
 
 		netif_napi_add(priv->netdev, &tqp_vector->napi,
-			       hns3_nic_common_poll, NAPI_POLL_WEIGHT);
+			       hns3_nic_common_poll);
 	}
 
 	return 0;

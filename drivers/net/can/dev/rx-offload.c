@@ -312,7 +312,7 @@ static int can_rx_offload_init_queue(struct net_device *dev,
 	offload->skb_queue_len_max *= 4;
 	skb_queue_head_init(&offload->skb_queue);
 
-	netif_napi_add(dev, &offload->napi, can_rx_offload_napi_poll, weight);
+	netif_napi_add(dev, &offload->napi, can_rx_offload_napi_poll);
 
 	dev_dbg(dev->dev.parent, "%s: skb_queue_len_max=%d\n",
 		__func__, offload->skb_queue_len_max);

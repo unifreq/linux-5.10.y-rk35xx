@@ -2111,8 +2111,7 @@ static int hns_nic_init_ring_data(struct hns_nic_priv *priv)
 		rd->fini_process = is_ver1 ? hns_nic_tx_fini_pro :
 			hns_nic_tx_fini_pro_v2;
 
-		netif_napi_add(priv->netdev, &rd->napi,
-			       hns_nic_common_poll, NAPI_POLL_WEIGHT);
+		netif_napi_add(priv->netdev, &rd->napi, hns_nic_common_poll);
 		rd->ring->irq_init_flag = RCB_IRQ_NOT_INITED;
 	}
 	for (i = h->q_num; i < h->q_num * 2; i++) {
@@ -2124,8 +2123,7 @@ static int hns_nic_init_ring_data(struct hns_nic_priv *priv)
 		rd->fini_process = is_ver1 ? hns_nic_rx_fini_pro :
 			hns_nic_rx_fini_pro_v2;
 
-		netif_napi_add(priv->netdev, &rd->napi,
-			       hns_nic_common_poll, NAPI_POLL_WEIGHT);
+		netif_napi_add(priv->netdev, &rd->napi, hns_nic_common_poll);
 		rd->ring->irq_init_flag = RCB_IRQ_NOT_INITED;
 	}
 

@@ -1205,7 +1205,7 @@ struct net_device *alloc_c_can_dev(void)
 		return NULL;
 
 	priv = netdev_priv(dev);
-	netif_napi_add(dev, &priv->napi, c_can_poll, C_CAN_NAPI_WEIGHT);
+	netif_napi_add(dev, &priv->napi, c_can_poll);
 
 	priv->dev = dev;
 	priv->can.bittiming_const = &c_can_bittiming_const;

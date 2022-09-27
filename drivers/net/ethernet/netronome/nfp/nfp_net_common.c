@@ -2625,7 +2625,7 @@ nfp_net_prepare_vector(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 	/* Setup NAPI */
 	if (nn->dp.netdev)
 		netif_napi_add(nn->dp.netdev, &r_vec->napi,
-			       nfp_net_poll, NAPI_POLL_WEIGHT);
+			       nfp_net_poll);
 	else
 		tasklet_enable(&r_vec->tasklet);
 

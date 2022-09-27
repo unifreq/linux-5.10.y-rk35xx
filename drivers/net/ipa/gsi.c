@@ -1479,7 +1479,7 @@ static int gsi_channel_setup_one(struct gsi *gsi, u32 channel_id,
 				  gsi_channel_poll, NAPI_POLL_WEIGHT);
 	else
 		netif_napi_add(&gsi->dummy_dev, &channel->napi,
-			       gsi_channel_poll, NAPI_POLL_WEIGHT);
+			       gsi_channel_poll);
 
 	return 0;
 

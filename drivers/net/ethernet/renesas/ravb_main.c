@@ -2205,8 +2205,8 @@ static int ravb_probe(struct platform_device *pdev)
 		goto out_dma_free;
 	}
 
-	netif_napi_add(ndev, &priv->napi[RAVB_BE], ravb_poll, 64);
-	netif_napi_add(ndev, &priv->napi[RAVB_NC], ravb_poll, 64);
+	netif_napi_add(ndev, &priv->napi[RAVB_BE], ravb_poll);
+	netif_napi_add(ndev, &priv->napi[RAVB_NC], ravb_poll);
 
 	/* Network device register */
 	error = register_netdev(ndev);

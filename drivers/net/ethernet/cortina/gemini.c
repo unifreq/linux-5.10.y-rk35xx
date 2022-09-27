@@ -2470,8 +2470,7 @@ static int gemini_ethernet_port_probe(struct platform_device *pdev)
 	netdev->max_mtu = 10236 - VLAN_ETH_HLEN;
 
 	port->freeq_refill = 0;
-	netif_napi_add(netdev, &port->napi, gmac_napi_poll,
-		       DEFAULT_NAPI_WEIGHT);
+	netif_napi_add(netdev, &port->napi, gmac_napi_poll);
 
 	if (is_valid_ether_addr((void *)port->mac_addr)) {
 		memcpy(netdev->dev_addr, port->mac_addr, ETH_ALEN);

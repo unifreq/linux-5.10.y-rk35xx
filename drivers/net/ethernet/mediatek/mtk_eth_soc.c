@@ -3325,10 +3325,8 @@ static int mtk_probe(struct platform_device *pdev)
 	init_dummy_netdev(&eth->dummy_dev);
 	eth->dummy_dev.threaded = 1;
 	strcpy(eth->dummy_dev.name, "mtk_eth");
-	netif_napi_add(&eth->dummy_dev, &eth->tx_napi, mtk_napi_tx,
-		       MTK_NAPI_WEIGHT);
-	netif_napi_add(&eth->dummy_dev, &eth->rx_napi, mtk_napi_rx,
-		       MTK_NAPI_WEIGHT);
+	netif_napi_add(&eth->dummy_dev, &eth->tx_napi, mtk_napi_tx);
+	netif_napi_add(&eth->dummy_dev, &eth->rx_napi, mtk_napi_rx);
 
 	platform_set_drvdata(pdev, eth);
 

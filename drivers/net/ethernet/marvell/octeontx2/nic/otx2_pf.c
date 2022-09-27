@@ -1504,7 +1504,7 @@ int otx2_open(struct net_device *netdev)
 				      qidx + pf->hw.rx_queues : CINT_INVALID_CQ;
 		cq_poll->dev = (void *)pf;
 		netif_napi_add(netdev, &cq_poll->napi,
-			       otx2_napi_handler, NAPI_POLL_WEIGHT);
+			       otx2_napi_handler);
 		napi_enable(&cq_poll->napi);
 	}
 
