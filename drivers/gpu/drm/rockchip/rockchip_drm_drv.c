@@ -53,6 +53,36 @@ static bool iommu_reserve_map;
 
 static struct drm_driver rockchip_drm_driver;
 
+static unsigned int drm_debug;
+module_param_named(debug, drm_debug, int, 0600);
+
+static inline bool rockchip_drm_debug_enabled(enum rockchip_drm_debug_category category)
+{
+	return unlikely(drm_debug & category);
+}
+
+__printf(3, 4)
+void rockchip_drm_dbg(const struct device *dev, enum rockchip_drm_debug_category category,
+		      const char *format, ...)
+{
+	struct va_format vaf;
+	va_list args;
+
+	if (!rockchip_drm_debug_enabled(category))
+		return;
+
+	va_start(args, format);
+	vaf.fmt = format;
+	vaf.va = &args;
+
+	if (dev)
+		dev_printk(KERN_DEBUG, dev, "%pV", &vaf);
+	else
+		printk(KERN_DEBUG "%pV", &vaf);
+
+	va_end(args);
+}
+
 /**
  * rockchip_drm_wait_vact_end
  * @crtc: CRTC to enable line flag
@@ -1977,7 +2007,11 @@ static void __exit rockchip_drm_fini(void)
 				    num_rockchip_sub_drivers);
 }
 
+#ifdef CONFIG_VIDEO_REVERSE_IMAGE
+fs_initcall(rockchip_drm_init);
+#else
 module_init(rockchip_drm_init);
+#endif
 module_exit(rockchip_drm_fini);
 
 MODULE_AUTHOR("Mark Yao <mark.yao@rock-chips.com>");

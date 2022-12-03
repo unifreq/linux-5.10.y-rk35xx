@@ -831,7 +831,7 @@ static void *rkvenc2_prepare(struct mpp_dev *mpp, struct mpp_task *mpp_task)
 	core_idle = queue->core_idle;
 	core_id_max = queue->core_id_max;
 
-	for (i = 0; i < core_id_max; i++) {
+	for (i = 0; i <= core_id_max; i++) {
 		struct mpp_dev *mpp = queue->cores[i];
 
 		if (mpp && mpp->disable)
@@ -1184,7 +1184,7 @@ static int rkvenc_isr(struct mpp_dev *mpp)
 	}
 
 	mpp_task = mpp->cur_task;
-	mpp_time_diff(mpp_task, 0);
+	mpp_time_diff(mpp_task);
 	mpp->cur_task = NULL;
 
 	if (mpp_task->mpp && mpp_task->mpp != mpp)
@@ -1200,9 +1200,10 @@ static int rkvenc_isr(struct mpp_dev *mpp)
 
 	if (task->irq_status & enc->hw_info->err_mask) {
 		atomic_inc(&mpp->reset_request);
-		/* dump register */
 
-		mpp_task_dump_hw_reg(mpp);
+		/* dump register */
+		if (mpp_debug_unlikely(DEBUG_DUMP_ERR_REG))
+			mpp_task_dump_hw_reg(mpp);
 	}
 
 	mpp_task_finish(mpp_task->session, mpp_task);

@@ -191,6 +191,7 @@ struct mpp_task;
 struct mpp_session;
 struct mpp_dma_session;
 struct mpp_taskqueue;
+struct iommu_domain;
 
 /* data common struct for parse out */
 struct mpp_request {
@@ -343,6 +344,8 @@ struct mpp_dev {
 	void __iomem *reg_base;
 	struct mpp_grf_info *grf_info;
 	struct mpp_iommu_info *iommu_info;
+	int (*fault_handler)(struct iommu_domain *iommu, struct device *iommu_dev,
+			     unsigned long iova, int status, void *arg);
 
 	atomic_t reset_request;
 	atomic_t session_index;
@@ -678,6 +681,7 @@ int mpp_task_dump_hw_reg(struct mpp_dev *mpp);
 void mpp_task_dump_timing(struct mpp_task *task, s64 time_diff);
 
 void mpp_reg_show(struct mpp_dev *mpp, u32 offset);
+void mpp_reg_show_range(struct mpp_dev *mpp, u32 start, u32 end);
 void mpp_free_task(struct kref *ref);
 
 void mpp_session_deinit(struct mpp_session *session);
@@ -706,7 +710,8 @@ bool mpp_grf_is_changed(struct mpp_grf_info *grf_info);
 int mpp_set_grf(struct mpp_grf_info *grf_info);
 
 int mpp_time_record(struct mpp_task *task);
-int mpp_time_diff(struct mpp_task *task, u32 clk_hz);
+int mpp_time_diff(struct mpp_task *task);
+int mpp_time_diff_with_hw_time(struct mpp_task *task, u32 clk_hz);
 int mpp_time_part_diff(struct mpp_task *task);
 
 int mpp_write_req(struct mpp_dev *mpp, u32 *regs,

@@ -4,6 +4,7 @@
  */
 
 #include <dt-bindings/clock/px30-cru.h>
+#include <dt-bindings/display/media-bus-format.h>
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/interrupt-controller/irq.h>
@@ -673,7 +674,8 @@
 		clocks = <&pmucru SCLK_UART0_PMU>, <&pmucru PCLK_UART0_PMU>;
 		clock-names = "baudclk", "apb_pclk";
 		dmas = <&dmac 0>, <&dmac 1>;
-		dma-names = "tx", "rx";
+		/*You can add it to enable dma*/
+		/*dma-names = "tx", "rx";*/
 		reg-shift = <2>;
 		reg-io-width = <4>;
 		pinctrl-names = "default";
@@ -876,7 +878,8 @@
 		clocks = <&cru SCLK_UART1>, <&cru PCLK_UART1>;
 		clock-names = "baudclk", "apb_pclk";
 		dmas = <&dmac 2>, <&dmac 3>;
-		dma-names = "tx", "rx";
+		/*You can add it to enable dma*/
+		/*dma-names = "tx", "rx";*/
 		reg-shift = <2>;
 		reg-io-width = <4>;
 		pinctrl-names = "default";
@@ -891,7 +894,8 @@
 		clocks = <&cru SCLK_UART2>, <&cru PCLK_UART2>;
 		clock-names = "baudclk", "apb_pclk";
 		dmas = <&dmac 4>, <&dmac 5>;
-		dma-names = "tx", "rx";
+		/*You can add it to enable dma*/
+		/*dma-names = "tx", "rx";*/
 		reg-shift = <2>;
 		reg-io-width = <4>;
 		pinctrl-names = "default";
@@ -906,7 +910,8 @@
 		clocks = <&cru SCLK_UART3>, <&cru PCLK_UART3>;
 		clock-names = "baudclk", "apb_pclk";
 		dmas = <&dmac 6>, <&dmac 7>;
-		dma-names = "tx", "rx";
+		/*You can add it to enable dma*/
+		/*dma-names = "tx", "rx";*/
 		reg-shift = <2>;
 		reg-io-width = <4>;
 		pinctrl-names = "default";
@@ -921,7 +926,8 @@
 		clocks = <&cru SCLK_UART4>, <&cru PCLK_UART4>;
 		clock-names = "baudclk", "apb_pclk";
 		dmas = <&dmac 8>, <&dmac 9>;
-		dma-names = "tx", "rx";
+		/*You can add it to enable dma*/
+		/*dma-names = "tx", "rx";*/
 		reg-shift = <2>;
 		reg-io-width = <4>;
 		pinctrl-names = "default";
@@ -936,7 +942,8 @@
 		clocks = <&cru SCLK_UART5>, <&cru PCLK_UART5>;
 		clock-names = "baudclk", "apb_pclk";
 		dmas = <&dmac 10>, <&dmac 11>;
-		dma-names = "tx", "rx";
+		/*You can add it to enable dma*/
+		/*dma-names = "tx", "rx";*/
 		reg-shift = <2>;
 		reg-io-width = <4>;
 		pinctrl-names = "default";
@@ -1579,6 +1586,7 @@
 		clocks = <&cru ACLK_VPU>, <&cru HCLK_VPU>;
 		clock-names = "aclk", "iface";
 		power-domains = <&power PX30_PD_VPU>;
+		rockchip,shootdown-entire;
 		#iommu-cells = <0>;
 		status = "disabled";
 	};
@@ -1629,6 +1637,7 @@
 		clocks = <&cru ACLK_VPU>, <&cru HCLK_VPU>;
 		clock-names = "aclk", "iface";
 		power-domains = <&power PX30_PD_VPU>;
+		rockchip,shootdown-entire;
 		#iommu-cells = <0>;
 		status = "disabled";
 	};

@@ -455,6 +455,7 @@
 			snps,dis_u2_susphy_quirk;
 			snps,dis-del-phy-power-chg-quirk;
 			snps,dis-tx-ipgap-linecheck-quirk;
+			snps,parkmode-disable-ss-quirk;
 			power-domains = <&power RK3399_PD_USB3>;
 			status = "disabled";
 		};
@@ -491,6 +492,7 @@
 			snps,dis_u2_susphy_quirk;
 			snps,dis-del-phy-power-chg-quirk;
 			snps,dis-tx-ipgap-linecheck-quirk;
+			snps,parkmode-disable-ss-quirk;
 			power-domains = <&power RK3399_PD_USB3>;
 			status = "disabled";
 		};
@@ -2386,6 +2388,11 @@
 			bias-disable;
 		};
 
+		pcfg_pull_none_10ma: pcfg-pull-none-10ma {
+			bias-disable;
+			drive-strength = <10>;
+		};
+
 		pcfg_pull_none_12ma: pcfg-pull-none-12ma {
 			bias-disable;
 			drive-strength = <12>;
@@ -2414,6 +2421,11 @@
 		pcfg_pull_up_8ma: pcfg-pull-up-8ma {
 			bias-pull-up;
 			drive-strength = <8>;
+		};
+
+		pcfg_pull_up_10ma: pcfg-pull-up-10ma {
+			bias-pull-up;
+			drive-strength = <10>;
 		};
 
 		pcfg_pull_up_18ma: pcfg-pull-up-18ma {

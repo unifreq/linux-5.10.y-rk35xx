@@ -806,6 +806,15 @@ static int mpp_task_run(struct mpp_dev *mpp,
 	} else {
 		mpp_set_grf(mpp->grf_info);
 	}
+	/*
+	 * for iommu share hardware, should attach to ensure
+	 * working in current device
+	 */
+	ret = mpp_iommu_attach(mpp->iommu_info);
+	if (ret) {
+		dev_err(mpp->dev, "mpp_iommu_attach failed\n");
+		return -ENODATA;
+	}
 
 	mpp_power_on(mpp);
 	mpp_debug_func(DEBUG_TASK_INFO, "pid %d run %s\n",
@@ -819,6 +828,7 @@ static int mpp_task_run(struct mpp_dev *mpp,
 	 */
 	mpp_reset_down_read(mpp->reset_group);
 
+	mpp_iommu_dev_activate(mpp->iommu_info, mpp);
 	if (mpp->dev_ops->run)
 		mpp->dev_ops->run(mpp, task);
 
@@ -2032,35 +2042,17 @@ int mpp_task_dump_reg(struct mpp_dev *mpp,
 
 int mpp_task_dump_hw_reg(struct mpp_dev *mpp)
 {
-	if (mpp_debug_unlikely(DEBUG_DUMP_ERR_REG)) {
-		u32 i;
-		u32 s = mpp->var->hw_info->reg_start;
-		u32 e = mpp->var->hw_info->reg_end;
+	u32 i;
+	u32 s = mpp->var->hw_info->reg_start;
+	u32 e = mpp->var->hw_info->reg_end;
 
-		mpp_err("--- dump hardware register ---\n");
-		for (i = s; i <= e; i++) {
-			u32 reg = i * sizeof(u32);
+	mpp_err("--- dump hardware register ---\n");
+	for (i = s; i <= e; i++) {
+		u32 reg = i * sizeof(u32);
 
-			mpp_err("reg[%03d]: %04x: 0x%08x\n",
+		mpp_err("reg[%03d]: %04x: 0x%08x\n",
 				i, reg, readl_relaxed(mpp->reg_base + reg));
-		}
 	}
-
-	return 0;
-}
-
-static int mpp_iommu_handle(struct iommu_domain *iommu,
-			    struct device *iommu_dev,
-			    unsigned long iova,
-			    int status, void *arg)
-{
-	struct mpp_dev *mpp = (struct mpp_dev *)arg;
-
-	dev_err(mpp->dev, "fault addr 0x%08lx status %x\n", iova, status);
-	mpp_task_dump_hw_reg(mpp);
-
-	if (mpp->iommu_info->hdl)
-		mpp->iommu_info->hdl(iommu, iommu_dev, iova, status, arg);
 
 	return 0;
 }
@@ -2072,6 +2064,17 @@ void mpp_reg_show(struct mpp_dev *mpp, u32 offset)
 
 	dev_err(mpp->dev, "reg[%03d]: %04x: 0x%08x\n",
 		offset >> 2, offset, mpp_read_relaxed(mpp, offset));
+}
+
+void mpp_reg_show_range(struct mpp_dev *mpp, u32 start, u32 end)
+{
+	u32 offset;
+
+	if (!mpp)
+		return;
+
+	for (offset = start; offset < end; offset += sizeof(u32))
+		mpp_reg_show(mpp, offset);
 }
 
 /* The device will do more probing work after this */
@@ -2167,10 +2170,6 @@ int mpp_dev_probe(struct mpp_dev *mpp,
 		if (ret)
 			goto failed;
 	}
-	/* set iommu fault handler */
-	if (mpp->iommu_info)
-		iommu_set_fault_handler(mpp->iommu_info->domain,
-					mpp_iommu_handle, mpp);
 
 	/* read hardware id */
 	if (hw_info->reg_id >= 0) {
@@ -2270,6 +2269,7 @@ irqreturn_t mpp_dev_irq(int irq, void *param)
 			/* normal condition, set state and wake up isr thread */
 			set_bit(TASK_STATE_IRQ, &task->state);
 		}
+		mpp_iommu_dev_deactivate(mpp->iommu_info, mpp);
 	} else {
 		mpp_debug(DEBUG_IRQ_CHECK, "error, task is null\n");
 	}
@@ -2346,33 +2346,53 @@ int mpp_time_record(struct mpp_task *task)
 
 int mpp_time_part_diff(struct mpp_task *task)
 {
-	ktime_t end;
-	struct mpp_dev *mpp = mpp_get_task_used_device(task, task->session);
+	if (mpp_debug_unlikely(DEBUG_TIMING)) {
+		ktime_t end;
+		struct mpp_dev *mpp = mpp_get_task_used_device(task, task->session);
 
-	end = ktime_get();
-	mpp_debug(DEBUG_PART_TIMING, "%s:%d session %d:%d part time: %lld us\n",
-		  dev_name(mpp->dev), task->core_id, task->session->pid,
-		  task->session->index, ktime_us_delta(end, task->part));
-	task->part = end;
+		end = ktime_get();
+		mpp_debug(DEBUG_PART_TIMING, "%s:%d session %d:%d part time: %lld us\n",
+			dev_name(mpp->dev), task->core_id, task->session->pid,
+			task->session->index, ktime_us_delta(end, task->part));
+		task->part = end;
+	}
 
 	return 0;
 }
 
-int mpp_time_diff(struct mpp_task *task, u32 clk_hz)
+int mpp_time_diff(struct mpp_task *task)
 {
-	ktime_t end;
-	struct mpp_dev *mpp = mpp_get_task_used_device(task, task->session);
+	if (mpp_debug_unlikely(DEBUG_TIMING)) {
+		ktime_t end;
+		struct mpp_dev *mpp = mpp_get_task_used_device(task, task->session);
 
-	end = ktime_get();
-	if (clk_hz)
-		mpp_debug(DEBUG_TIMING, "%s:%d session %d:%d time: %lld us hw %d us\n",
-			dev_name(mpp->dev), task->core_id, task->session->pid,
-			task->session->index, ktime_us_delta(end, task->start),
-			task->hw_cycles / (clk_hz / 1000000));
-	else
+		end = ktime_get();
 		mpp_debug(DEBUG_TIMING, "%s:%d session %d:%d time: %lld us\n",
 			dev_name(mpp->dev), task->core_id, task->session->pid,
 			task->session->index, ktime_us_delta(end, task->start));
+	}
+
+	return 0;
+}
+
+int mpp_time_diff_with_hw_time(struct mpp_task *task, u32 clk_hz)
+{
+	if (mpp_debug_unlikely(DEBUG_TIMING)) {
+		ktime_t end;
+		struct mpp_dev *mpp = mpp_get_task_used_device(task, task->session);
+
+		end = ktime_get();
+
+		if (clk_hz)
+			mpp_debug(DEBUG_TIMING, "%s:%d session %d:%d time: %lld us hw %d us\n",
+				dev_name(mpp->dev), task->core_id, task->session->pid,
+				task->session->index, ktime_us_delta(end, task->start),
+				task->hw_cycles / (clk_hz / 1000000));
+		else
+			mpp_debug(DEBUG_TIMING, "%s:%d session %d:%d time: %lld us\n",
+				dev_name(mpp->dev), task->core_id, task->session->pid,
+				task->session->index, ktime_us_delta(end, task->start));
+	}
 
 	return 0;
 }
