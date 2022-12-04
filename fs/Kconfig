@@ -311,6 +311,7 @@ if NETWORK_FILESYSTEMS
 
 source "fs/nfs/Kconfig"
 source "fs/nfsd/Kconfig"
+source "fs/ksmbd/Kconfig"
 
 config GRACE_PERIOD
 	tristate
