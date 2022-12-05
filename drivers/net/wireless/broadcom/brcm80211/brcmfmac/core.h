@@ -91,6 +91,11 @@ struct brcmf_rev_info {
 	u32 nvramrev;
 };
 
+struct brcmf_chan_stats {
+	u32 freq;
+	int noise;
+};
+
 /* Common structure for module and instance linkage */
 struct brcmf_pub {
 	/* Linkage ponters */
@@ -99,6 +104,9 @@ struct brcmf_pub {
 	struct wiphy *wiphy;
 	struct cfg80211_ops *ops;
 	struct brcmf_cfg80211_info *config;
+
+	int num_chan_stats;
+	struct brcmf_chan_stats *chan_stats;
 
 	/* Internal brcmf items */
 	uint hdrlen;		/* Total BRCMF header length (proto + bus) */
