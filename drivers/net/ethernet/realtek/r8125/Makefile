@@ -4,7 +4,7 @@
 # r8125 is the Linux device driver released for Realtek 2.5Gigabit Ethernet
 # controllers with PCI-Express interface.
 #
-# Copyright(c) 2021 Realtek Semiconductor Corp. All rights reserved.
+# Copyright(c) 2022 Realtek Semiconductor Corp. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the Free
@@ -30,92 +30,91 @@
 #  US6,570,884, US6,115,776, and US6,327,625.
 ################################################################################
 
-CONFIG_SOC_LAN = n
-ENABLE_REALWOW_SUPPORT = n
-ENABLE_DASH_SUPPORT = n
-ENABLE_DASH_PRINTER_SUPPORT = n
-CONFIG_DOWN_SPEED_100 = n
-CONFIG_ASPM = y
-ENABLE_S5WOL = y
-ENABLE_S5_KEEP_CURR_MAC = n
-ENABLE_EEE = n
-ENABLE_S0_MAGIC_PACKET = n
-ENABLE_TX_NO_CLOSE = y
-ENABLE_MULTIPLE_TX_QUEUE = y
-ENABLE_PTP_SUPPORT = n
-ENABLE_PTP_MASTER_MODE = n
-ENABLE_RSS_SUPPORT = y
-ENABLE_LIB_SUPPORT = n
-ENABLE_USE_FIRMWARE_FILE = n
-DISABLE_PM_SUPPORT = n
-DISABLE_MULTI_MSIX_VECTOR = n
+# Modify by flippy (flippy@sina.com) 2022-10-01
 
-obj-m := r8125.o
+obj-$(CONFIG_R8125) := r8125.o
 r8125-objs := r8125_n.o rtl_eeprom.o rtltool.o
 
-ifeq ($(CONFIG_SOC_LAN), y)
+ifeq ($(CONFIG_R8125_SOC_LAN), y)
 	EXTRA_CFLAGS += -DCONFIG_SOC_LAN
 endif
-ifeq ($(ENABLE_REALWOW_SUPPORT), y)
+
+ifeq ($(CONFIG_R8125_REALWOW_SUPPORT), y)
 	r8125-objs += r8125_realwow.o
 	EXTRA_CFLAGS += -DENABLE_REALWOW_SUPPORT
 endif
-ifeq ($(ENABLE_DASH_SUPPORT), y)
+
+ifeq ($(CONFIG_R8125_DASH_SUPPORT), y)
 	r8125-objs += r8125_dash.o
 	EXTRA_CFLAGS += -DENABLE_DASH_SUPPORT
+	ifeq ($(CONFIG_R8125_DASH_PRINT_SUPPORT), y)
+		r8125-objs += r8125_dash.o
+        EXTRA_CFLAGS += -DENABLE_DASH_SUPPORT -DENABLE_DASH_PRINTER_SUPPORT
+	endif	
 endif
-ifeq ($(ENABLE_DASH_PRINTER_SUPPORT), y)
-	r8125-objs += r8125_dash.o
-	EXTRA_CFLAGS += -DENABLE_DASH_SUPPORT -DENABLE_DASH_PRINTER_SUPPORT
-endif
+
 EXTRA_CFLAGS += -DCONFIG_R8125_NAPI
 EXTRA_CFLAGS += -DCONFIG_R8125_VLAN
-ifeq ($(CONFIG_DOWN_SPEED_100), y)
+
+ifeq ($(CONFIG_R8125_DOWN_SPEED_100), y)
 	EXTRA_CFLAGS += -DCONFIG_DOWN_SPEED_100
 endif
-ifeq ($(CONFIG_ASPM), y)
+
+ifeq ($(CONFIG_R8125_ASPM), y)
 	EXTRA_CFLAGS += -DCONFIG_ASPM
 endif
-ifeq ($(ENABLE_S5WOL), y)
+
+ifeq ($(CONFIG_R8125_S5WOL), y)
 	EXTRA_CFLAGS += -DENABLE_S5WOL
 endif
-ifeq ($(ENABLE_S5_KEEP_CURR_MAC), y)
+
+ifeq ($(CONFIG_R8125_S5_KEEP_CURR_MAC), y)
 	EXTRA_CFLAGS += -DENABLE_S5_KEEP_CURR_MAC
 endif
-ifeq ($(ENABLE_EEE), y)
+
+ifeq ($(CONFIG_R8125_EEE), y)
 	EXTRA_CFLAGS += -DENABLE_EEE
 endif
-ifeq ($(ENABLE_S0_MAGIC_PACKET), y)
+
+ifeq ($(CONFIG_R8125_S0_MAGIC_PACKET), y)
 	EXTRA_CFLAGS += -DENABLE_S0_MAGIC_PACKET
 endif
-ifeq ($(ENABLE_TX_NO_CLOSE), y)
+
+ifeq ($(CONFIG_R8125_TX_NO_CLOSE), y)
 	EXTRA_CFLAGS += -DENABLE_TX_NO_CLOSE
 endif
-ifeq ($(ENABLE_MULTIPLE_TX_QUEUE), y)
-	EXTRA_CFLAGS += -DENABLE_MULTIPLE_TX_QUEUE
+
+ifeq ($(CONFIG_R8125_MULTI_MSIX_VECTOR), y)
+	ifeq ($(CONFIG_R8125_MULTIPLE_RX_QUEUE), y)
+		r8125-objs += r8125_rss.o
+		EXTRA_CFLAGS += -DENABLE_RSS_SUPPORT
+	endif
+	ifeq ($(CONFIG_R8125_MULTIPLE_TX_QUEUE), y)
+		EXTRA_CFLAGS += -DENABLE_MULTIPLE_TX_QUEUE
+	endif
+else
+	EXTRA_CFLAGS += -DDISABLE_MULTI_MSIX_VECTOR
 endif
-ifeq ($(ENABLE_PTP_SUPPORT), y)
+
+ifeq ($(CONFIG_R8125_PTP_SUPPORT), y)
 	r8125-objs += r8125_ptp.o
 	EXTRA_CFLAGS += -DENABLE_PTP_SUPPORT
+	ifeq ($(CONFIG_R8125_PTP_MASTER_MODE), y)
+		EXTRA_CFLAGS += -DENABLE_PTP_MASTER_MODE
+	endif
 endif
-ifeq ($(ENABLE_PTP_MASTER_MODE), y)
-	EXTRA_CFLAGS += -DENABLE_PTP_MASTER_MODE
-endif
-ifeq ($(ENABLE_RSS_SUPPORT), y)
-	r8125-objs += r8125_rss.o
-	EXTRA_CFLAGS += -DENABLE_RSS_SUPPORT
-endif
+
+ENABLE_LIB_SUPPORT = n
 ifeq ($(ENABLE_LIB_SUPPORT), y)
 	r8125-objs += r8125_lib.o
 	EXTRA_CFLAGS += -DENABLE_LIB_SUPPORT
 endif
-ifeq ($(ENABLE_USE_FIRMWARE_FILE), y)
+
+ifeq ($(CONFIG_R8125_USE_FIRMWARE_FILE), y)
 	r8125-objs += r8125_firmware.o
 	EXTRA_CFLAGS += -DENABLE_USE_FIRMWARE_FILE
 endif
-ifeq ($(DISABLE_PM_SUPPORT), y)
+
+ifneq ($(CONFIG_R8125_PM_SUPPORT), y)
 	EXTRA_CFLAGS += -DDISABLE_PM_SUPPORT
-endif
-ifeq ($(DISABLE_MULTI_MSIX_VECTOR), y)
-	EXTRA_CFLAGS += -DDISABLE_MULTI_MSIX_VECTOR
 endif
