@@ -142,6 +142,7 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-nvr-demo3-v10.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-nvr-demo3-v10-android.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-rock-5b.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-rock-5b-v11.dtb
+dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-hinlink-h88k.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-toybrick-x0-android.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-toybrick-x0-linux.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-vehicle-evb-v10.dtb
