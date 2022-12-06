@@ -279,6 +279,19 @@
 		pintctrl-0 = <&modem_reset_en>;
 	};
 
+	/* wifi regon support some wifi modules like rtl8723be */
+	wifi_regon: wifi-regon {
+		compatible = "regulator-fixed";
+		enable-active-high;
+		gpio = <&gpio3 RK_PB1 GPIO_ACTIVE_HIGH>;
+		regulator-boot-on;
+		regulator-always-on;
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		regulator-name = "wifi_regon";
+		startup-delay-us = <5000>;
+	};
+
 	es8388_sound: es8388-sound {
 		status = "okay";
 		compatible = "rockchip,multicodecs-card";
