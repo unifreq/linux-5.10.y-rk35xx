@@ -783,8 +783,12 @@ static int platform_drv_remove(struct device *_dev)
 	struct platform_device *dev = to_platform_device(_dev);
 	int ret = 0;
 
-	if (drv->remove)
+	if (drv->remove_new) {
+		drv->remove_new(dev);
+	} else if (drv->remove) {
 		ret = drv->remove(dev);
+	}
+
 	dev_pm_domain_detach(_dev, true);
 
 	return ret;
