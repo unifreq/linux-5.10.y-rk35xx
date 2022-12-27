@@ -106,6 +106,30 @@
 		rockchip,jack-det;
 	};
 
+	vcc3v3_dp: vcc3v3-dp {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc3v3_dp";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		vin-supply = <&vcc5v0_sys>;
+	};
+
+	virtual_pd: virtual-pd {
+		compatible = "linux,extcon-pd-virtual";
+		/* 0: positive, 1: negative*/
+		vpd,init-flip = <0>;
+		/* 0: u2, 1: u3*/
+		vpd,init-ss = <1>;
+		/* 0: dfp, 1: ufp, 2: dp 3: dp/ufp */
+		vpd,init-mode = <2>;
+		hpd-gpios = <&gpio4 RK_PD1 GPIO_ACTIVE_LOW>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&hpd_en>;
+		dp-pwr-supply = <&vcc3v3_dp>;
+	};
+
 	rk809_sound: rk809-sound {
 		compatible = "rockchip,multicodecs-card";
 		rockchip,card-name = "rockchip-rk809";
@@ -158,6 +182,14 @@
 		compatible = "fixed-clock";
 		clock-frequency = <24000000>;
 		clock-output-names = "clk_cam_24m";
+		#clock-cells = <0>;
+	};
+
+	clk_cam_25m: external-camera-clock-25m {
+		status = "disabled";
+		compatible = "fixed-clock";
+		clock-frequency = <25000000>;
+		clock-output-names = "clk_cam_25m";
 		#clock-cells = <0>;
 	};
 };
@@ -653,6 +685,27 @@
 			};
 		};
 	};
+
+	camera_ov5647: camera-ov5647@36 {
+		status = "disabled";
+		compatible = "ovti,ov5647";
+		reg = <0x36>;
+
+		clocks = <&clk_cam_25m>;
+		clock-names = "xclk";
+
+		rockchip,camera-module-index = <0>;
+		rockchip,camera-module-facing = "back";
+		rockchip,camera-module-name = "rpi-camera-v1p3";
+		rockchip,camera-module-lens-name = "default";
+
+		port {
+			ucam_out1: endpoint {
+				remote-endpoint = <&mipi_in_ucam1>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
 };
 
 &spi1 {
@@ -684,10 +737,29 @@
 
 &tcphy0 {
 	status = "okay";
+	extcon = <&virtual_pd>;
 };
 
 &tcphy1 {
 	status = "okay";
+};
+
+&cdn_dp {
+	phys = <&tcphy0_dp>;
+	extcon = <&virtual_pd>;
+	status = "okay";
+};
+
+&tcphy0_dp {
+	status = "okay";
+};
+
+&dp_in_vopl {
+	status = "okay";
+};
+
+&dp_in_vopb {
+	status = "disabled";
 };
 
 &u2phy0 {
@@ -945,6 +1017,12 @@
 				remote-endpoint = <&ucam_out0>;
 				data-lanes = <1 2>;
 			};
+
+			mipi_in_ucam1: endpoint@2 {
+				reg = <2>;
+				remote-endpoint = <&ucam_out1>;
+				data-lanes = <1 2>;
+			};
 		};
 
 		port@1 {
@@ -1020,7 +1098,11 @@
 		};
 	};
 
-
+	hpd {
+		hpd_en: hpd-en {
+			rockchip,pins = <4 RK_PD1 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
 
 	pmic {
 		pmic_int_l: pmic-int-l {
