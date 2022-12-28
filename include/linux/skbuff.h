@@ -4636,7 +4636,7 @@ static inline void skb_reset_redirect(struct sk_buff *skb)
 #endif
 }
 
-#if IS_ENABLED(CONFIG_KCOV) && IS_ENABLED(CONFIG_SKB_EXTENSIONS)
+#ifdef CONFIG_KCOV
 static inline void skb_set_kcov_handle(struct sk_buff *skb,
 				       const u64 kcov_handle)
 {
@@ -4664,7 +4664,7 @@ static inline u64 skb_get_kcov_handle(struct sk_buff *skb)
 static inline void skb_set_kcov_handle(struct sk_buff *skb,
 				       const u64 kcov_handle) { }
 static inline u64 skb_get_kcov_handle(struct sk_buff *skb) { return 0; }
-#endif /* CONFIG_KCOV && CONFIG_SKB_EXTENSIONS */
+#endif /* CONFIG_KCOV */
 
 #endif	/* __KERNEL__ */
 #endif	/* _LINUX_SKBUFF_H */
