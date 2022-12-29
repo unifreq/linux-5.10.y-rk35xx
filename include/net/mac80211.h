@@ -1299,6 +1299,8 @@ ieee80211_tx_info_clear_status(struct ieee80211_tx_info *info)
  *	the "0-length PSDU" field included there.  The value for it is
  *	in &struct ieee80211_rx_status.  Note that if this value isn't
  *	known the frame shouldn't be reported.
+ * @RX_FLAG_8023: the frame has an 802.3 header (decap offload performed by
+ *	hardware or driver)
  */
 enum mac80211_rx_flags {
 	RX_FLAG_MMIC_ERROR		= BIT(0),
@@ -1331,6 +1333,7 @@ enum mac80211_rx_flags {
 	RX_FLAG_RADIOTAP_HE_MU		= BIT(27),
 	RX_FLAG_RADIOTAP_LSIG		= BIT(28),
 	RX_FLAG_NO_PSDU			= BIT(29),
+	RX_FLAG_8023			= BIT(30),
 };
 
 /**
@@ -1654,11 +1657,15 @@ enum ieee80211_vif_flags {
  *	The driver supports sending frames passed as 802.3 frames by mac80211.
  *	It must also support sending 802.11 packets for the same interface.
  * @IEEE80211_OFFLOAD_ENCAP_4ADDR: support 4-address mode encapsulation offload
+ * @IEEE80211_OFFLOAD_DECAP_ENABLED: rx encapsulation offload is enabled
+ *	The driver supports passing received 802.11 frames as 802.3 frames to
+ *	mac80211.
  */
 
 enum ieee80211_offload_flags {
 	IEEE80211_OFFLOAD_ENCAP_ENABLED		= BIT(0),
 	IEEE80211_OFFLOAD_ENCAP_4ADDR		= BIT(1),
+	IEEE80211_OFFLOAD_DECAP_ENABLED		= BIT(2),
 };
 
 /**
@@ -2398,6 +2405,9 @@ struct ieee80211_txq {
  * @IEEE80211_HW_SUPPORTS_TX_ENCAP_OFFLOAD: Hardware supports tx encapsulation
  *	offload
  *
+ * @IEEE80211_HW_SUPPORTS_RX_DECAP_OFFLOAD: Hardware supports rx decapsulation
+ *	offload
+ *
  * @NUM_IEEE80211_HW_FLAGS: number of hardware flags, used for sizing arrays
  */
 enum ieee80211_hw_flags {
@@ -2451,6 +2461,7 @@ enum ieee80211_hw_flags {
 	IEEE80211_HW_SUPPORTS_ONLY_HE_MULTI_BSSID,
 	IEEE80211_HW_AMPDU_KEYBORDER_SUPPORT,
 	IEEE80211_HW_SUPPORTS_TX_ENCAP_OFFLOAD,
+	IEEE80211_HW_SUPPORTS_RX_DECAP_OFFLOAD,
 
 	/* keep last, obviously */
 	NUM_IEEE80211_HW_FLAGS
@@ -3891,6 +3902,8 @@ enum ieee80211_reconfig_type {
  *	This callback may sleep.
  * @sta_set_4addr: Called to notify the driver when a station starts/stops using
  *	4-address mode
+ * @sta_set_decap_offload: Called to notify the driver when a station is allowed
+ *	to use rx decapsulation offload
  */
 struct ieee80211_ops {
 	void (*tx)(struct ieee80211_hw *hw,
@@ -4208,6 +4221,9 @@ struct ieee80211_ops {
 			      struct ieee80211_sta *sta, bool enabled);
 	int (*set_sar_specs)(struct ieee80211_hw *hw,
 			     const struct cfg80211_sar_specs *sar);
+	void (*sta_set_decap_offload)(struct ieee80211_hw *hw,
+				      struct ieee80211_vif *vif,
+				      struct ieee80211_sta *sta, bool enabled);
 
 	ANDROID_KABI_RESERVE(1);
 	ANDROID_KABI_RESERVE(2);
