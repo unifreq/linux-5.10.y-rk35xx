@@ -6898,6 +6898,7 @@ int dev_set_threaded(struct net_device *dev, bool threaded)
 
 	return err;
 }
+EXPORT_SYMBOL(dev_set_threaded);
 
 void netif_napi_add(struct net_device *dev, struct napi_struct *napi,
 		    int (*poll)(struct napi_struct *, int), int weight)
