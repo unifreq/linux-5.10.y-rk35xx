@@ -303,19 +303,6 @@ struct cfg80211_he_bss_color {
 };
 
 /**
- * struct ieee80211_he_bss_color - AP settings for BSS coloring
- *
- * @color: the current color.
- * @disabled: is the feature disabled.
- * @partial: define the AID equation.
- */
-struct ieee80211_he_bss_color {
-	u8 color;
-	bool disabled;
-	bool partial;
-};
-
-/**
  * struct ieee80211_sta_ht_cap - STA's HT capabilities
  *
  * This structure describes most essential parameters needed
@@ -6522,13 +6509,15 @@ void cfg80211_abandon_assoc(struct net_device *dev, struct cfg80211_bss *bss);
  * @dev: network device
  * @buf: 802.11 frame (header + body)
  * @len: length of the frame data
+ * @reconnect: immediate reconnect is desired (include the nl80211 attribute)
  *
  * This function is called whenever deauthentication has been processed in
  * station mode. This includes both received deauthentication frames and
  * locally generated ones. This function may sleep. The caller must hold the
  * corresponding wdev's mutex.
  */
-void cfg80211_tx_mlme_mgmt(struct net_device *dev, const u8 *buf, size_t len);
+void cfg80211_tx_mlme_mgmt(struct net_device *dev, const u8 *buf, size_t len,
+			   bool reconnect);
 
 /**
  * cfg80211_rx_unprot_mlme_mgmt - notification of unprotected mlme mgmt frame
