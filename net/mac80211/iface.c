@@ -1407,6 +1407,19 @@ static void ieee80211_iface_process_skb(struct ieee80211_local *local,
 			WARN_ON(1);
 			break;
 		}
+	} else if (ieee80211_is_action(mgmt->frame_control) &&
+		   mgmt->u.action.category == WLAN_CATEGORY_S1G) {
+		switch (mgmt->u.action.u.s1g.action_code) {
+		case WLAN_S1G_TWT_TEARDOWN:
+		case WLAN_S1G_TWT_SETUP:
+			if (skb->pkt_type == IEEE80211_TX_STATUS_MSG)
+				ieee80211_s1g_status_h_twt(sdata, skb);
+			else
+				ieee80211_s1g_rx_h_twt(sdata, skb);
+			break;
+		default:
+			break;
+		}
 	} else if (ieee80211_is_ext(mgmt->frame_control)) {
 		if (sdata->vif.type == NL80211_IFTYPE_STATION)
 			ieee80211_sta_rx_queued_ext(sdata, skb);
