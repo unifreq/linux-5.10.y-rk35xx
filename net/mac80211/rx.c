@@ -3210,50 +3210,6 @@ ieee80211_rx_h_mgmt_check(struct ieee80211_rx_data *rx)
 }
 
 static ieee80211_rx_result debug_noinline
-ieee80211_rx_h_twt(struct ieee80211_rx_data *rx)
-{
-	struct ieee80211_mgmt *mgmt = (struct ieee80211_mgmt *)rx->skb->data;
-	struct ieee80211_rx_status *status = IEEE80211_SKB_RXCB(rx->skb);
-	struct ieee80211_sub_if_data *sdata = rx->sdata;
-	const struct ieee80211_sband_iftype_data *iftd;
-	struct ieee80211_supported_band *sband;
-
-	/* TWT actions are only supported in AP for the moment */
-	if (sdata->vif.type != NL80211_IFTYPE_AP)
-		return RX_CONTINUE;
-
-	sband = rx->local->hw.wiphy->bands[status->band];
-	iftd = ieee80211_get_sband_iftype_data(sband, sdata->vif.type);
-	if (!iftd)
-		return RX_CONTINUE;
-
-	if (!rx->local->ops->add_twt_setup)
-		return RX_CONTINUE;
-
-	if (!(iftd->he_cap.he_cap_elem.mac_cap_info[0] &
-	      IEEE80211_HE_MAC_CAP0_TWT_RES))
-		return RX_CONTINUE;
-
-	if (!rx->sta)
-		return RX_CONTINUE;
-
-	switch (mgmt->u.action.u.s1g.action_code) {
-	case WLAN_S1G_TWT_SETUP:
-		if (rx->skb->len < IEEE80211_TWT_IND_SETUP_SIZE)
-			break;
-		return RX_QUEUED;
-	case WLAN_S1G_TWT_TEARDOWN:
-		if (rx->skb->len < IEEE80211_MIN_ACTION_SIZE + 2)
-			break;
-		return RX_QUEUED;
-	default:
-		break;
-	}
-
-	return RX_CONTINUE;
-}
-
-static ieee80211_rx_result debug_noinline
 ieee80211_rx_h_action(struct ieee80211_rx_data *rx)
 {
 	struct ieee80211_local *local = rx->local;
@@ -3532,16 +3488,6 @@ ieee80211_rx_h_action(struct ieee80211_rx_data *rx)
 		    !mesh_path_sel_is_hwmp(sdata))
 			break;
 		goto queue;
-	case WLAN_CATEGORY_S1G:
-		switch (mgmt->u.action.u.s1g.action_code) {
-		case WLAN_S1G_TWT_SETUP:
-		case WLAN_S1G_TWT_TEARDOWN:
-			if (ieee80211_rx_h_twt(rx) != RX_CONTINUE)
-				goto queue;
-		default:
-			break;
-		}
-		break;
 	}
 
 	return RX_CONTINUE;

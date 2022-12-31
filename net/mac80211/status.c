@@ -17,33 +17,6 @@
 #include "led.h"
 #include "wme.h"
 
-static struct sk_buff *
-ieee80211_tx_queue_skb(struct ieee80211_hw *hw,
-		       struct ieee80211_tx_status *status,
-		       bool monitor)
-{
-	struct ieee80211_tx_info *info = IEEE80211_SKB_CB(status->skb);
-	struct sk_buff *skb = status->skb;
-	struct sta_info *sta;
-
-	if (!status->sta)
-		goto out;
-
-	if (likely(!ieee80211_s1g_is_twt_setup(skb)))
-		goto out;
-
-	if (info->flags & IEEE80211_TX_STAT_ACK)
-		goto out; /* nothing to do */
-
-	sta = container_of(status->sta, struct sta_info, sta);
-	skb->pkt_type = IEEE80211_TX_STATUS_MSG;
-	skb_queue_tail(&sta->sdata->skb_queue, skb);
-	skb = monitor ? skb_clone(skb, GFP_ATOMIC) : NULL;
-	ieee80211_queue_work(hw, &sta->sdata->work);
-
-out:
-	return skb;
-}
 
 void ieee80211_tx_status_irqsafe(struct ieee80211_hw *hw,
 				 struct sk_buff *skb)
@@ -1059,17 +1032,12 @@ static void __ieee80211_tx_status(struct ieee80211_hw *hw,
 	 * with this test...
 	 */
 	if (!local->monitors && (!send_to_cooked || !local->cooked_mntrs)) {
-		skb = ieee80211_tx_queue_skb(hw, status, false);
-		if (skb && status->free_list)
+		if (status->free_list)
 			list_add_tail(&skb->list, status->free_list);
 		else
 			dev_kfree_skb(skb);
 		return;
 	}
-
-	skb = ieee80211_tx_queue_skb(hw, status, true);
-	if (!skb)
-		return;
 
 	/* send to monitor interfaces */
 	ieee80211_tx_monitor(local, skb, sband, retry_count, shift,
