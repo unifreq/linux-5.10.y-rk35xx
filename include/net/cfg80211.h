@@ -1051,6 +1051,36 @@ struct cfg80211_crypto_settings {
 };
 
 /**
+ * struct cfg80211_mbssid_config - AP settings for multi bssid
+ *
+ * @tx_wdev: pointer to the transmitted interface in the MBSSID set
+ * @index: index of this AP in the multi bssid group.
+ * @ema: set to true if the beacons should be sent out in EMA mode.
+ */
+struct cfg80211_mbssid_config {
+	struct wireless_dev *tx_wdev;
+	u8 index;
+	bool ema;
+};
+
+/**
+ * struct cfg80211_mbssid_elems - Multiple BSSID elements
+ *
+ * @cnt: Number of elements in array %elems.
+ *
+ * @elem: Array of multiple BSSID element(s) to be added into Beacon frames.
+ * @elem.data: Data for multiple BSSID elements.
+ * @elem.len: Length of data.
+ */
+struct cfg80211_mbssid_elems {
+	u8 cnt;
+	struct {
+		u8 *data;
+		size_t len;
+	} elem[];
+};
+
+/**
  * struct cfg80211_beacon_data - beacon data
  * @head: head portion of beacon (before TIM IE)
  *	or %NULL if not changed
@@ -1068,6 +1098,7 @@ struct cfg80211_crypto_settings {
  * @assocresp_ies_len: length of assocresp_ies in octets
  * @probe_resp_len: length of probe response template (@probe_resp)
  * @probe_resp: probe response template (AP mode only)
+ * @mbssid_ies: multiple BSSID elements
  * @ftm_responder: enable FTM responder functionality; -1 for no change
  *	(which also implies no change in LCI/civic location data)
  * @lci: Measurement Report element content, starting with Measurement Token
@@ -1085,6 +1116,7 @@ struct cfg80211_beacon_data {
 	const u8 *probe_resp;
 	const u8 *lci;
 	const u8 *civicloc;
+	struct cfg80211_mbssid_elems *mbssid_ies;
 	s8 ftm_responder;
 
 	size_t head_len, tail_len;
@@ -1200,6 +1232,7 @@ enum cfg80211_ap_settings_flags {
  * @he_oper: HE operation IE (or %NULL if HE isn't enabled)
  * @fils_discovery: FILS discovery transmission parameters
  * @unsol_bcast_probe_resp: Unsolicited broadcast probe response parameters
+ * @mbssid_config: AP settings for multiple bssid
  */
 struct cfg80211_ap_settings {
 	struct cfg80211_chan_def chandef;
@@ -1232,6 +1265,7 @@ struct cfg80211_ap_settings {
 	struct cfg80211_he_bss_color he_bss_color;
 	struct cfg80211_fils_discovery fils_discovery;
 	struct cfg80211_unsol_bcast_probe_resp unsol_bcast_probe_resp;
+	struct cfg80211_mbssid_config mbssid_config;
 
 	ANDROID_KABI_RESERVE(1);
 };
@@ -5163,6 +5197,9 @@ struct wiphy {
 	ANDROID_KABI_RESERVE(1);
 
 	const struct cfg80211_sar_capa *sar_capa;
+
+	u8 mbssid_max_interfaces;
+	u8 ema_max_profile_periodicity;
 
 	char priv[] __aligned(NETDEV_ALIGN);
 };
