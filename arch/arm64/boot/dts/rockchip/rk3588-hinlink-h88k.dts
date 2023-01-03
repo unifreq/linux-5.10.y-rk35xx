@@ -294,38 +294,28 @@
 
 	es8388_sound: es8388-sound {
 		status = "okay";
-		compatible = "rockchip,multicodecs-card";
-		rockchip,card-name = "rockchip-es8388";
-		hp-det-gpio = <&gpio1 RK_PD5 GPIO_ACTIVE_LOW>;
-		io-channels = <&saradc 3>;
-		io-channel-names = "adc-detect";
-		keyup-threshold-microvolt = <1800000>;
-		poll-interval = <100>;
-		rockchip,format = "i2s";
-		rockchip,mclk-fs = <256>;
-		rockchip,cpu = <&i2s0_8ch>;
-		rockchip,codec = <&es8388>;
-		rockchip,audio-routing =
-			"Headphone", "LOUT1",
-			"Headphone", "ROUT1",
-			"Speaker", "LOUT2",
-			"Speaker", "ROUT2",
-			"Headphone", "Headphone Power",
-			"Headphone", "Headphone Power",
-			"Speaker", "Speaker Power",
-			"Speaker", "Speaker Power",
-			"LINPUT1", "Main Mic",
-			"LINPUT2", "Main Mic",
-			"RINPUT1", "Headset Mic",
-			"RINPUT2", "Headset Mic";
+		compatible = "simple-audio-card";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,mclk-fs = <256>;
+		simple-audio-card,name = "rockchip-es8388";
+		simple-audio-card,dai-link@0 {
+			format = "i2s";
+			cpu {
+				sound-dai = <&i2s0_8ch>;
+			};
+			codec {
+				sound-dai = <&es8388>;
+			};
+		};
+	};
+
+	rk_headset: rk-headset {
+		status = "okay";
+		compatible = "rockchip_headset";
+		headset_gpio = <&gpio1 RK_PD5 GPIO_ACTIVE_LOW>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&hp_det>;
-
-		play-pause-key {
-			label = "playpause";
-			linux,code = <KEY_PLAYPAUSE>;
-			press-threshold-microvolt = <2000>;
-		};
+		io-channels = <&saradc 3>;
 	};
 
 	hdmi0_sound: hdmi0-sound {
@@ -349,7 +339,7 @@
 	};
 
 	dp0_sound: dp0-sound {
-		status = "okay";
+		status = "disabled";
 		compatible = "rockchip,hdmi";
 		rockchip,card-name= "rockchip,dp0";
 		rockchip,mclk-fs = <512>;
@@ -658,8 +648,6 @@
 	status = "okay";
 
 	es8388: es8388@11 {
-		status = "okay";
-		#sound-dai-cells = <0>;
 		compatible = "everest,es8388", "everest,es8323";
 		reg = <0x11>;
 		clocks = <&cru I2S0_8CH_MCLKOUT>;
@@ -668,15 +656,20 @@
 		assigned-clock-rates = <12288000>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&i2s0_mclk>;
+		#sound-dai-cells = <0>;
 	};
 };
 
 &i2s0_8ch {
-	pinctrl-0 = <&i2s0_lrck
-		     &i2s0_sclk
-		     &i2s0_sdi0
-		     &i2s0_sdo0>;
 	status = "okay";
+	rockchip,playback-channels = <2>;
+	rockchip,capture-channels = <2>;
+	#sound-dai-cells = <0>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2s0_lrck
+			 &i2s0_sclk
+			 &i2s0_sdi0
+			 &i2s0_sdo0>;
 };
 
 &i2s5_8ch {
@@ -1181,7 +1174,7 @@
 
 	headphone {
 		hp_det: hp-det {
-			rockchip,pins = <1 RK_PD5 RK_FUNC_GPIO &pcfg_pull_up>;
+			rockchip,pins = <1 RK_PD5 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 
