@@ -44,6 +44,7 @@
 #include "smp.h"
 #include "leds.h"
 #include "msft.h"
+#include "aosp.h"
 
 static void hci_rx_work(struct work_struct *work);
 static void hci_cmd_work(struct work_struct *work);
@@ -1586,6 +1587,7 @@ setup_failed:
 		ret = hdev->set_diag(hdev, true);
 
 	msft_do_open(hdev);
+	aosp_do_open(hdev);
 
 	clear_bit(HCI_INIT, &hdev->flags);
 
@@ -3837,6 +3839,7 @@ void hci_unregister_dev(struct hci_dev *hdev)
 		cancel_work_sync(&hdev->suspend_prepare);
 	}
 
+	aosp_do_close(hdev);
 	msft_do_close(hdev);
 
 	hci_dev_do_close(hdev);
