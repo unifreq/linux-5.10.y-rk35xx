@@ -436,4 +436,14 @@ config BT_HCIBTUSB_RTLBTUSB
 	  Say Y here to compile support for Bluetooth USB devices into the
 	  kernel or say M to compile it as module (rtk_btusb).
 
+config BT_VIRTIO
+	tristate "Virtio Bluetooth driver"
+	depends on VIRTIO
+	help
+	  Virtio Bluetooth support driver.
+	  This driver supports Virtio Bluetooth devices.
+
+	  Say Y here to compile support for HCI over Virtio into the
+	  kernel or say M to compile as a module.
+
 endmenu
