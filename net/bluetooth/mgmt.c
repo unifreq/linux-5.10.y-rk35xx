@@ -4311,6 +4311,7 @@ static int __add_adv_patterns_monitor(struct sock *sk, struct hci_dev *hdev,
 		goto unlock;
 	}
 
+	cmd->user_data = m;
 	pending = hci_add_adv_monitor(hdev, m, &err);
 	if (err) {
 		if (err == -ENOSPC || err == -ENOMEM)
@@ -4338,7 +4339,6 @@ static int __add_adv_patterns_monitor(struct sock *sk, struct hci_dev *hdev,
 
 	hci_dev_unlock(hdev);
 
-	cmd->user_data = m;
 	return 0;
 
 unlock:
