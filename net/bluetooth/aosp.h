@@ -10,7 +10,7 @@ void aosp_do_close(struct hci_dev *hdev);
 
 #else
 
-static inline void msft_do_open(struct hci_dev *hdev) {}
-static inline void msft_do_close(struct hci_dev *hdev) {}
+static inline void aosp_do_open(struct hci_dev *hdev) {}
+static inline void aosp_do_close(struct hci_dev *hdev) {}
 
 #endif
