@@ -609,3 +609,8 @@ int msft_set_filter_enable(struct hci_dev *hdev, bool enable)
 
 	return err;
 }
+
+bool msft_curve_validity(struct hci_dev *hdev)
+{
+		return hdev->msft_curve_validity;
+}
