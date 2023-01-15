@@ -14,15 +14,11 @@
 #include "dt-bindings/usb/pd.h"
 #include "rk3588.dtsi"
 #include "rk3588-rk806-single.dtsi"
+#include "rk3588-linux.dtsi"
 
 / {
 	model = "HINLINK OWL H88K Board";
 	compatible = "hinlink,owl-h88k", "rockchip,rk3588";
-
-	aliases {
-		mmc0 = &sdmmc;
-		mmc1 = &sdhci;
-	};
 
 	/* If hdmirx node is disabled, delete the reserved-memory node here. */
 	reserved-memory {
