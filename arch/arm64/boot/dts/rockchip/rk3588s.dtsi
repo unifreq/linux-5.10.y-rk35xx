@@ -87,25 +87,6 @@
 		pwm15 = &pwm15;
 		hdcp0 = &hdcp0;
 		hdcp1 = &hdcp1;
-		pwm0 = &pwm0;
-		pwm1 = &pwm1;
-		pwm2 = &pwm2;
-		pwm3 = &pwm3;
-		pwm4 = &pwm4;
-		pwm5 = &pwm5;
-		pwm6 = &pwm6;
-		pwm7 = &pwm7;
-		pwm8 = &pwm8;
-		pwm9 = &pwm9;
-		pwm10 = &pwm10;
-		pwm11 = &pwm11;
-		pwm12 = &pwm12;
-		pwm13 = &pwm13;
-		pwm14 = &pwm14;
-		pwm15 = &pwm15;
-		mmc0 = &sdmmc;
-		mmc1 = &sdhci;
-		mmc2 = &sdio;
 	};
 
 	clocks {
