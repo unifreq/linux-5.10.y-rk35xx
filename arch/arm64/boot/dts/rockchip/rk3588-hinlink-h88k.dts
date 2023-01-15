@@ -14,13 +14,17 @@
 #include "dt-bindings/usb/pd.h"
 #include "rk3588.dtsi"
 #include "rk3588-rk806-single.dtsi"
-#include "rk3588-linux.dtsi"
 
 / {
 	model = "HINLINK OWL H88K Board";
 	compatible = "hinlink,owl-h88k", "rockchip,rk3588";
 
-	/* If hdmirx node is disabled, delete the reserved-memory node here. */
+	aliases {
+		mmc0 = &sdmmc;
+		mmc1 = &sdhci;
+		mmc2 = &sdio;
+	};
+
 	reserved-memory {
 		#address-cells = <2>;
 		#size-cells = <2>;
@@ -33,10 +37,31 @@
 			reg = <0x0 (256 * 0x100000) 0x0 (256 * 0x100000)>;
 			linux,cma-default;
 		};
+
+		ramoops: ramoops@110000 {
+			compatible = "ramoops";
+			reg = <0x0 0x110000 0x0 0xf0000>;
+			record-size = <0x20000>;
+			console-size = <0x80000>;
+			ftrace-size = <0x00000>;
+			pmsg-size = <0x50000>;
+		};
 	};
 
 	chosen {
 		stdout-path = "serial2:1500000n8";
+	};
+
+	cspmu: cspmu@fd10c000 {
+		compatible = "rockchip,cspmu";
+		reg = <0x0 0xfd10c000 0x0 0x1000>,
+		      <0x0 0xfd10d000 0x0 0x1000>,
+		      <0x0 0xfd10e000 0x0 0x1000>,
+		      <0x0 0xfd10f000 0x0 0x1000>,
+		      <0x0 0xfd12c000 0x0 0x1000>,
+		      <0x0 0xfd12d000 0x0 0x1000>,
+		      <0x0 0xfd12e000 0x0 0x1000>,
+		      <0x0 0xfd12f000 0x0 0x1000>;
 	};
 
 	leds {
@@ -874,7 +899,16 @@
 };
 
 &rockchip_suspend {
-	status = "disabled";
+	status = "okay";
+	rockchip,sleep-mode-config = <
+	       (0
+	       | RKPM_SLP_ARMOFF_DDRPD
+	       | RKPM_SLP_PMU_PMUALIVE_32K
+	       | RKPM_SLP_PMU_DIS_OSC
+	       | RKPM_SLP_32K_EXT
+	       | RKPM_SLP_PMU_DBG
+	       )
+	>;
 };
 
 &tsadc {
