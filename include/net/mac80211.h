@@ -7222,7 +7222,7 @@ struct sk_buff *ieee80211_get_fils_discovery_tmpl(struct ieee80211_hw *hw,
 						  struct ieee80211_vif *vif);
 
 /**
- * ieeee80211_obss_color_collision_notify - notify userland about a BSS color
+ * ieee80211_obss_color_collision_notify - notify userland about a BSS color
  * collision.
  *
  * @vif: &struct ieee80211_vif pointer from the add_interface callback.
@@ -7231,8 +7231,8 @@ struct sk_buff *ieee80211_get_fils_discovery_tmpl(struct ieee80211_hw *hw,
  * @gfp: allocation flags
  */
 void
-ieeee80211_obss_color_collision_notify(struct ieee80211_vif *vif,
-				       u64 color_bitmap, gfp_t gfp);
+ieee80211_obss_color_collision_notify(struct ieee80211_vif *vif,
+				      u64 color_bitmap, gfp_t gfp);
 
 /**
  * ieee80211_get_unsol_bcast_probe_resp_tmpl - Get unsolicited broadcast
