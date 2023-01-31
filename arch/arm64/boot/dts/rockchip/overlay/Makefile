@@ -33,6 +33,7 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
 	rk3588-uart7-m1-ctsn-rtsn.dtbo \
 	rk3588-uart7-m1.dtbo \
 	rk3588-uart7-m2.dtbo \
+	rock-4-okdo-5mp-camera.dtbo \
 	rock-4-rpi-camera-v1p3.dtbo \
 	rock-4-rpi-camera-v2.dtbo \
 	rock-4c-plus-radxa-display-8hd.dtbo \
