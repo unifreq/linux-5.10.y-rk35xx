@@ -894,6 +894,10 @@ static void rk_iommu_zap_iova(struct rk_iommu_domain *rk_domain,
 	struct list_head *pos;
 	unsigned long flags;
 
+	/* Do not zap tlb cache line if shootdown_entire set */
+	if (rk_domain->shootdown_entire)
+		return;
+
 	/* shootdown these iova from all iommus using this domain */
 	spin_lock_irqsave(&rk_domain->iommus_lock, flags);
 	list_for_each(pos, &rk_domain->iommus) {
@@ -1082,9 +1086,7 @@ static int rk_iommu_map_iova(struct rk_iommu_domain *rk_domain, u32 *pte_addr,
 	 * We only zap the first and last iova, since only they could have
 	 * dte or pte shared with an existing mapping.
 	 */
-	/* Do not zap tlb cache line if shootdown_entire set */
-	if (!rk_domain->shootdown_entire)
-		rk_iommu_zap_iova_first_last(rk_domain, iova, size);
+	rk_iommu_zap_iova_first_last(rk_domain, iova, size);
 
 	return 0;
 unwind:
@@ -1132,9 +1134,7 @@ static int rk_iommu_map_iova_v2(struct rk_iommu_domain *rk_domain, u32 *pte_addr
 	 * We only zap the first and last iova, since only they could have
 	 * dte or pte shared with an existing mapping.
 	 */
-	/* Do not zap tlb cache line if shootdown_entire set */
-	if (!rk_domain->shootdown_entire)
-		rk_iommu_zap_iova_first_last(rk_domain, iova, size);
+	rk_iommu_zap_iova_first_last(rk_domain, iova, size);
 
 	return 0;
 unwind:
@@ -1303,9 +1303,7 @@ static size_t rk_iommu_unmap_v2(struct iommu_domain *domain, unsigned long _iova
 	spin_unlock_irqrestore(&rk_domain->dt_lock, flags);
 
 	/* Shootdown iotlb entries for iova range that was just unmapped */
-	/* Do not zap tlb cache line if shootdown_entire set */
-	if (!rk_domain->shootdown_entire)
-		rk_iommu_zap_iova(rk_domain, iova, unmap_size);
+	rk_iommu_zap_iova(rk_domain, iova, unmap_size);
 
 	return unmap_size;
 }
@@ -1960,12 +1958,16 @@ static void rk_iommu_shutdown(struct platform_device *pdev)
 	struct rk_iommu *iommu = platform_get_drvdata(pdev);
 	int i;
 
+	if (iommu->skip_read)
+		goto skip_free_irq;
+
 	for (i = 0; i < iommu->num_irq; i++) {
 		int irq = platform_get_irq(pdev, i);
 
 		devm_free_irq(iommu->dev, irq, iommu);
 	}
 
+skip_free_irq:
 	pm_runtime_force_suspend(&pdev->dev);
 }
 

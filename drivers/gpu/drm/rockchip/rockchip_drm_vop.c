@@ -826,10 +826,21 @@ static void scl_vop_cal_scl_fac(struct vop *vop, const struct vop_win *win,
 	uint16_t lb_mode;
 	uint32_t val;
 	const struct vop_data *vop_data = vop->data;
+	struct drm_display_mode *adjusted_mode = &vop->rockchip_crtc.crtc.state->adjusted_mode;
 	int vskiplines;
 
 	if (!win->phy->scl)
 		return;
+
+	if ((adjusted_mode->flags & DRM_MODE_FLAG_INTERLACE) && vop->version == VOP_VERSION(2, 2)) {
+		VOP_SCL_SET(vop, win, scale_yrgb_x, ((src_w << 12) / dst_w));
+		VOP_SCL_SET(vop, win, scale_yrgb_y, ((src_h << 12) / dst_h));
+		if (is_yuv) {
+			VOP_SCL_SET(vop, win, scale_cbcr_x, ((cbcr_src_w << 12) / dst_w));
+			VOP_SCL_SET(vop, win, scale_cbcr_y, ((cbcr_src_h << 12) / dst_h));
+		}
+		return;
+	}
 
 	if (!(vop_data->feature & VOP_FEATURE_ALPHA_SCALE)) {
 		if (is_alpha_support(pixel_format) &&
@@ -1747,14 +1758,6 @@ static int vop_plane_atomic_check(struct drm_plane *plane,
 	if (WARN_ON(!crtc_state))
 		return -EINVAL;
 
-	src->x1 = state->src_x;
-	src->y1 = state->src_y;
-	src->x2 = state->src_x + state->src_w;
-	src->y2 = state->src_y + state->src_h;
-	dest->x1 = state->crtc_x;
-	dest->y1 = state->crtc_y;
-	dest->x2 = state->crtc_x + state->crtc_w;
-	dest->y2 = state->crtc_y + state->crtc_h;
 	vop_plane_state->zpos = state->zpos;
 	vop_plane_state->blend_mode = state->pixel_blend_mode;
 
@@ -1764,8 +1767,22 @@ static int vop_plane_atomic_check(struct drm_plane *plane,
 	if (ret)
 		return ret;
 
-	if (!state->visible)
+	if (!state->visible) {
+		DRM_ERROR("%s is invisible(src: pos[%d, %d] rect[%d x %d] dst: pos[%d, %d] rect[%d x %d]\n",
+			  plane->name, state->src_x >> 16, state->src_y >> 16, state->src_w >> 16,
+			  state->src_h >> 16, state->crtc_x, state->crtc_y, state->crtc_w,
+			  state->crtc_h);
 		return 0;
+	}
+
+	src->x1 = state->src.x1;
+	src->y1 = state->src.y1;
+	src->x2 = state->src.x2;
+	src->y2 = state->src.y2;
+	dest->x1 = state->dst.x1;
+	dest->y1 = state->dst.y1;
+	dest->x2 = state->dst.x2;
+	dest->y2 = state->dst.y2;
 
 	vop_plane_state->format = vop_convert_format(fb->format->format);
 	if (vop_plane_state->format < 0)
@@ -1774,12 +1791,13 @@ static int vop_plane_atomic_check(struct drm_plane *plane,
 	vop = to_vop(crtc);
 	vop_data = vop->data;
 
-	if (state->src_w >> 16 < 4 || state->src_h >> 16 < 4 ||
-	    state->crtc_w < 4 || state->crtc_h < 4) {
+	if (drm_rect_width(src) >> 16 < 4 || drm_rect_height(src) >> 16 < 4 ||
+	    drm_rect_width(dest) < 4 || drm_rect_width(dest) < 4) {
 		DRM_ERROR("Invalid size: %dx%d->%dx%d, min size is 4x4\n",
-			  state->src_w >> 16, state->src_h >> 16,
-			  state->crtc_w, state->crtc_h);
-		return -EINVAL;
+			  drm_rect_width(src) >> 16, drm_rect_height(src) >> 16,
+			  drm_rect_width(dest), drm_rect_height(dest));
+		state->visible = false;
+		return 0;
 	}
 
 	if (drm_rect_width(src) >> 16 > vop_data->max_input.width ||
@@ -2011,6 +2029,8 @@ static void vop_plane_atomic_update(struct drm_plane *plane,
 			dsp_h = 4;
 		actual_h = dsp_h * actual_h / drm_rect_height(dest);
 	}
+	if ((adjusted_mode->flags & DRM_MODE_FLAG_INTERLACE) && vop->version == VOP_VERSION(2, 2))
+		dsp_h = dsp_h / 2;
 
 	act_info = (actual_h - 1) << 16 | ((actual_w - 1) & 0xffff);
 
@@ -2019,6 +2039,8 @@ static void vop_plane_atomic_update(struct drm_plane *plane,
 
 	dsp_stx = dest->x1 + mode->crtc_htotal - mode->crtc_hsync_start;
 	dsp_sty = dest->y1 + mode->crtc_vtotal - mode->crtc_vsync_start;
+	if ((adjusted_mode->flags & DRM_MODE_FLAG_INTERLACE) && vop->version == VOP_VERSION(2, 2))
+		dsp_sty = dest->y1 / 2 + mode->crtc_vtotal - mode->crtc_vsync_start;
 	dsp_st = dsp_sty << 16 | (dsp_stx & 0xffff);
 
 	s = to_rockchip_crtc_state(crtc->state);
@@ -2046,7 +2068,7 @@ static void vop_plane_atomic_update(struct drm_plane *plane,
 
 	if (win->phy->scl)
 		scl_vop_cal_scl_fac(vop, win, actual_w, actual_h,
-				    drm_rect_width(dest), drm_rect_height(dest),
+				    drm_rect_width(dest), dsp_h,
 				    fb->format->format);
 
 	if (VOP_WIN_SUPPORT(vop, win, color_key))

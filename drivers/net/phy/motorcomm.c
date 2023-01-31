@@ -11,6 +11,8 @@
 #include <linux/phy.h>
 
 #define PHY_ID_YT8511		0x0000010a
+#define PHY_ID_YT8512		0x00000118
+#define PHY_ID_YT8512B		0x00000128
 #define PHY_ID_YT8531S		0x4f51e91a
 #define PHY_ID_YT8531		0x4f51e91b
 
@@ -40,6 +42,33 @@
 #define YT8511_DELAY_GE_TX_DIS	(0x2 << 4)
 #define YT8511_DELAY_FE_TX_EN	(0xf << 12)
 #define YT8511_DELAY_FE_TX_DIS	(0x2 << 12)
+
+#define YT8512_EXTREG_AFE_PLL		0x50
+#define YT8512_EXTREG_EXTEND_COMBO	0x4000
+#define YT8512_EXTREG_LED0		0x40c0
+#define YT8512_EXTREG_LED1		0x40c3
+
+#define YT8512_EXTREG_SLEEP_CONTROL1	0x2027
+
+#define YT_SOFTWARE_RESET		0x8000
+
+#define YT8512_CONFIG_PLL_REFCLK_SEL_EN	0x0040
+#define YT8512_CONTROL1_RMII_EN		0x0001
+#define YT8512_LED0_ACT_BLK_IND		0x1000
+#define YT8512_LED0_DIS_LED_AN_TRY	0x0001
+#define YT8512_LED0_BT_BLK_EN		0x0002
+#define YT8512_LED0_HT_BLK_EN		0x0004
+#define YT8512_LED0_COL_BLK_EN		0x0008
+#define YT8512_LED0_BT_ON_EN		0x0010
+#define YT8512_LED1_BT_ON_EN		0x0010
+#define YT8512_LED1_TXACT_BLK_EN	0x0100
+#define YT8512_LED1_RXACT_BLK_EN	0x0200
+#define YT8512_SPEED_MODE		0xc000
+#define YT8512_DUPLEX			0x2000
+
+#define YT8512_SPEED_MODE_BIT		14
+#define YT8512_DUPLEX_BIT		13
+#define YT8512_EN_SLEEP_SW_BIT		15
 
 /* if system depends on ethernet packet to restore from sleep,
  * please define this macro to 1 otherwise, define it to 0.
@@ -202,6 +231,139 @@ static int ytphy_soft_reset(struct phy_device *phydev)
 		return ret;
 
 	return ret;
+}
+
+static int yt8512_clk_init(struct phy_device *phydev)
+{
+	int ret;
+	int val;
+
+	val = ytphy_read_ext(phydev, YT8512_EXTREG_AFE_PLL);
+	if (val < 0)
+		return val;
+
+	val |= YT8512_CONFIG_PLL_REFCLK_SEL_EN;
+
+	ret = ytphy_write_ext(phydev, YT8512_EXTREG_AFE_PLL, val);
+	if (ret < 0)
+		return ret;
+
+	val = ytphy_read_ext(phydev, YT8512_EXTREG_EXTEND_COMBO);
+	if (val < 0)
+		return val;
+
+	val |= YT8512_CONTROL1_RMII_EN;
+
+	ret = ytphy_write_ext(phydev, YT8512_EXTREG_EXTEND_COMBO, val);
+	if (ret < 0)
+		return ret;
+
+	val = phy_read(phydev, MII_BMCR);
+	if (val < 0)
+		return val;
+
+	val |= YT_SOFTWARE_RESET;
+	ret = phy_write(phydev, MII_BMCR, val);
+
+	return ret;
+}
+
+static int yt8512_led_init(struct phy_device *phydev)
+{
+	int ret;
+	int val;
+	int mask;
+
+	val = ytphy_read_ext(phydev, YT8512_EXTREG_LED0);
+	if (val < 0)
+		return val;
+
+	val |= YT8512_LED0_ACT_BLK_IND;
+
+	mask = YT8512_LED0_DIS_LED_AN_TRY | YT8512_LED0_BT_BLK_EN |
+		YT8512_LED0_HT_BLK_EN | YT8512_LED0_COL_BLK_EN |
+		YT8512_LED0_BT_ON_EN;
+	val &= ~mask;
+
+	ret = ytphy_write_ext(phydev, YT8512_EXTREG_LED0, val);
+	if (ret < 0)
+		return ret;
+
+	val = ytphy_read_ext(phydev, YT8512_EXTREG_LED1);
+	if (val < 0)
+		return val;
+
+	val |= YT8512_LED1_BT_ON_EN;
+
+	mask = YT8512_LED1_TXACT_BLK_EN | YT8512_LED1_RXACT_BLK_EN;
+	val &= ~mask;
+
+	ret = ytphy_write_ext(phydev, YT8512_LED1_BT_ON_EN, val);
+
+	return ret;
+}
+
+static int yt8512_config_init(struct phy_device *phydev)
+{
+	int ret;
+	int val;
+
+	ret = yt8512_clk_init(phydev);
+	if (ret < 0)
+		return ret;
+
+	ret = yt8512_led_init(phydev);
+	if (ret < 0)
+		return ret;
+
+	/* disable auto sleep */
+	val = ytphy_read_ext(phydev, YT8512_EXTREG_SLEEP_CONTROL1);
+	if (val < 0)
+		return val;
+
+	val &= (~BIT(YT8512_EN_SLEEP_SW_BIT));
+
+	ret = ytphy_write_ext(phydev, YT8512_EXTREG_SLEEP_CONTROL1, val);
+	if (ret < 0)
+		return ret;
+
+	return ret;
+}
+
+static int yt8512_read_status(struct phy_device *phydev)
+{
+	int ret;
+	int val;
+	int speed, speed_mode, duplex;
+
+	ret = genphy_update_link(phydev);
+	if (ret)
+		return ret;
+
+	val = phy_read(phydev, REG_PHY_SPEC_STATUS);
+	if (val < 0)
+		return val;
+
+	duplex = (val & YT8512_DUPLEX) >> YT8512_DUPLEX_BIT;
+	speed_mode = (val & YT8512_SPEED_MODE) >> YT8512_SPEED_MODE_BIT;
+	switch (speed_mode) {
+	case 0:
+		speed = SPEED_10;
+		break;
+	case 1:
+		speed = SPEED_100;
+		break;
+	case 2:
+	case 3:
+	default:
+		speed = SPEED_UNKNOWN;
+		break;
+	}
+
+	phydev->speed = speed;
+	phydev->duplex = duplex;
+
+	return 0;
 }
 
 static int yt8521_soft_reset(struct phy_device *phydev)
@@ -563,7 +725,7 @@ static int yt8531S_config_init(struct phy_device *phydev)
 
 static int yt8531_config_init(struct phy_device *phydev)
 {
-	int ret = 0;
+	int ret = 0, val;
 
 #if (YTPHY8531A_XTAL_INIT)
 	ret = yt8531a_xtal_init(phydev);
@@ -588,6 +750,13 @@ static int yt8531_config_init(struct phy_device *phydev)
 	if (ret < 0)
 		return ret;
 
+	/* Change 100M default BGS voltage from 0x294c to 0x274c */
+	val = ytphy_read_ext(phydev, 0x57);
+	val = (val & ~(0xf << 8)) | (7 << 8);
+	ret = ytphy_write_ext(phydev, 0x57, val);
+	if (ret < 0)
+		return ret;
+
 	return ret;
 }
 
@@ -600,6 +769,20 @@ static struct phy_driver motorcomm_phy_drvs[] = {
 		.resume		= genphy_resume,
 		.read_page	= yt8511_read_page,
 		.write_page	= yt8511_write_page,
+	}, {
+		PHY_ID_MATCH_EXACT(PHY_ID_YT8512),
+		.name		= "YT8512 Ethernet",
+		.config_init	= yt8512_config_init,
+		.read_status	= yt8512_read_status,
+		.suspend	= genphy_suspend,
+		.resume		= genphy_resume,
+	}, {
+		PHY_ID_MATCH_EXACT(PHY_ID_YT8512B),
+		.name		= "YT8512B Ethernet",
+		.config_init	= yt8512_config_init,
+		.read_status	= yt8512_read_status,
+		.suspend	= genphy_suspend,
+		.resume		= genphy_resume,
 	}, {
 		/* same as 8521 */
 		PHY_ID_MATCH_EXACT(PHY_ID_YT8531S),
@@ -638,6 +821,8 @@ MODULE_LICENSE("GPL");
 
 static const struct mdio_device_id __maybe_unused motorcomm_tbl[] = {
 	{ PHY_ID_MATCH_EXACT(PHY_ID_YT8511) },
+	{ PHY_ID_MATCH_EXACT(PHY_ID_YT8512) },
+	{ PHY_ID_MATCH_EXACT(PHY_ID_YT8512B) },
 	{ PHY_ID_MATCH_EXACT(PHY_ID_YT8531S) },
 	{ PHY_ID_MATCH_EXACT(PHY_ID_YT8531) },
 	{ /* sentinal */ }

@@ -2062,7 +2062,7 @@ static void rga2_soft_reset(struct rga_scheduler_t *scheduler)
 	u32 iommu_dte_addr;
 
 	if (scheduler->data->mmu == RGA_IOMMU)
-		iommu_dte_addr = rga_read(0xf00, scheduler);
+		iommu_dte_addr = rga_read(RGA_IOMMU_DTE_ADDR, scheduler);
 
 	rga_write(m_RGA2_SYS_CTRL_ACLK_SRESET_P | m_RGA2_SYS_CTRL_CCLK_SRESET_P |
 		  m_RGA2_SYS_CTRL_RST_PROTECT_P,
@@ -2079,13 +2079,16 @@ static void rga2_soft_reset(struct rga_scheduler_t *scheduler)
 	}
 
 	if (scheduler->data->mmu == RGA_IOMMU) {
-		rga_write(iommu_dte_addr, RGA2_MMU_DTE_ADDR, scheduler);
+		rga_write(iommu_dte_addr, RGA_IOMMU_DTE_ADDR, scheduler);
 		/* enable iommu */
-		rga_write(0, RGA2_MMU_COMMAND, scheduler);
+		rga_write(RGA_IOMMU_CMD_ENABLE_PAGING, RGA_IOMMU_COMMAND, scheduler);
 	}
 
 	if (i == RGA_RESET_TIMEOUT)
-		pr_err("soft reset timeout.\n");
+		pr_err("RAG2 soft reset timeout.\n");
+	else
+		pr_info("RGA2 soft reset complete.\n");
+
 }
 
 static int rga2_check_param(const struct rga_hw_data *data, const struct rga2_req *req)
@@ -2546,6 +2549,9 @@ static int rga2_irq(struct rga_scheduler_t *scheduler)
 	if (job == NULL)
 		return IRQ_HANDLED;
 
+	if (test_bit(RGA_JOB_STATE_INTR_ERR, &job->state))
+		return IRQ_WAKE_THREAD;
+
 	job->intr_status = rga_read(RGA2_INT, scheduler);
 	job->hw_status = rga_read(RGA2_STATUS2, scheduler);
 	job->cmd_status = rga_read(RGA2_STATUS1, scheduler);
@@ -2595,6 +2601,11 @@ static int rga2_isr_thread(struct rga_job *job, struct rga_scheduler_t *schedule
 		} else if (job->intr_status & m_RGA2_INT_MMU_INT_FLAG) {
 			pr_err("mmu failed, please check size of the buffer or whether the buffer has been freed.\n");
 			job->ret = -EACCES;
+		}
+
+		if (job->ret == 0) {
+			pr_err("rga intr error[0x%x]!\n", job->intr_status);
+			job->ret = -EFAULT;
 		}
 	}
 

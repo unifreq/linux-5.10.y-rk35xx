@@ -35,6 +35,7 @@ static int rga_mpi_set_channel_buffer(struct dma_buf *dma_buf,
 {
 	struct rga_external_buffer buffer;
 
+	memset(&buffer, 0x0, sizeof(buffer));
 	buffer.memory = (unsigned long)dma_buf;
 	buffer.type = RGA_DMA_BUFFER_PTR;
 	buffer.memory_parm.width = channel_info->vir_w;
@@ -650,8 +651,9 @@ static long rga_ioctl_import_buffer(unsigned long arg, struct rga_session *sessi
 
 		ret = rga_mm_import_buffer(&external_buffer[i], session);
 		if (ret == 0) {
-			pr_err("buffer[%d] mm import buffer failed! memory = 0x%lx, type = 0x%x\n",
+			pr_err("buffer[%d] mm import buffer failed! memory = 0x%lx, type = %s(0x%x)\n",
 			       i, (unsigned long)external_buffer[i].memory,
+			       rga_get_memory_type_str(external_buffer[i].type),
 			       external_buffer[i].type);
 
 			goto err_free_external_buffer;
@@ -721,7 +723,8 @@ static long rga_ioctl_release_buffer(unsigned long arg)
 
 		ret = rga_mm_release_buffer(external_buffer[i].handle);
 		if (ret < 0) {
-			pr_err("buffer[%d] mm release buffer failed!\n", i);
+			pr_err("buffer[%d] mm release buffer failed! handle = %d\n",
+			       i, external_buffer[i].handle);
 
 			goto err_free_external_buffer;
 		}
