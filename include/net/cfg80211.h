@@ -8990,12 +8990,11 @@ void cfg80211_bss_flush(struct wiphy *wiphy);
 /**
  * cfg80211_bss_color_notify - notify about bss color event
  * @dev: network device
- * @gfp: allocation flags
  * @cmd: the actual event we want to notify
  * @count: the number of TBTTs until the color change happens
  * @color_bitmap: representations of the colors that the local BSS is aware of
  */
-int cfg80211_bss_color_notify(struct net_device *dev, gfp_t gfp,
+int cfg80211_bss_color_notify(struct net_device *dev,
 			      enum nl80211_commands cmd, u8 count,
 			      u64 color_bitmap);
 
@@ -9006,10 +9005,9 @@ int cfg80211_bss_color_notify(struct net_device *dev, gfp_t gfp,
  * @gfp: allocation flags
  */
 static inline int cfg80211_obss_color_collision_notify(struct net_device *dev,
-						       u64 color_bitmap, gfp_t gfp)
+						       u64 color_bitmap)
 {
-	return cfg80211_bss_color_notify(dev, gfp,
-					 NL80211_CMD_OBSS_COLOR_COLLISION,
+	return cfg80211_bss_color_notify(dev, NL80211_CMD_OBSS_COLOR_COLLISION,
 					 0, color_bitmap);
 }
 
@@ -9023,8 +9021,7 @@ static inline int cfg80211_obss_color_collision_notify(struct net_device *dev,
 static inline int cfg80211_color_change_started_notify(struct net_device *dev,
 						       u8 count)
 {
-	return cfg80211_bss_color_notify(dev, GFP_KERNEL,
-					 NL80211_CMD_COLOR_CHANGE_STARTED,
+	return cfg80211_bss_color_notify(dev, NL80211_CMD_COLOR_CHANGE_STARTED,
 					 count, 0);
 }
 
@@ -9036,8 +9033,7 @@ static inline int cfg80211_color_change_started_notify(struct net_device *dev,
  */
 static inline int cfg80211_color_change_aborted_notify(struct net_device *dev)
 {
-	return cfg80211_bss_color_notify(dev, GFP_KERNEL,
-					 NL80211_CMD_COLOR_CHANGE_ABORTED,
+	return cfg80211_bss_color_notify(dev, NL80211_CMD_COLOR_CHANGE_ABORTED,
 					 0, 0);
 }
 
@@ -9049,7 +9045,7 @@ static inline int cfg80211_color_change_aborted_notify(struct net_device *dev)
  */
 static inline int cfg80211_color_change_notify(struct net_device *dev)
 {
-	return cfg80211_bss_color_notify(dev, GFP_KERNEL,
+	return cfg80211_bss_color_notify(dev,
 					 NL80211_CMD_COLOR_CHANGE_COMPLETED,
 					 0, 0);
 }
