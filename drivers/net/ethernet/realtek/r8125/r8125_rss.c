@@ -419,6 +419,7 @@ int rtl8125_set_rxfh(struct net_device *dev, const u32 *indir,
         return 0;
 }
 
+#if 0
 static u32 rtl8125_get_rx_desc_hash(struct rtl8125_private *tp,
                                     struct RxDescV3 *descv3)
 {
@@ -449,6 +450,7 @@ void rtl8125_rx_hash(struct rtl8125_private *tp,
                      (RTL8125_RXS_RSS_L4_TYPE_MASK & rss_header_info) ?
                      PKT_HASH_TYPE_L4 : PKT_HASH_TYPE_L3);
 }
+#endif
 
 void rtl8125_disable_rss(struct rtl8125_private *tp)
 {
