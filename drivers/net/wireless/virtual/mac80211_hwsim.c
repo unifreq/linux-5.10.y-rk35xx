@@ -65,10 +65,6 @@ static bool support_p2p_device = true;
 module_param(support_p2p_device, bool, 0444);
 MODULE_PARM_DESC(support_p2p_device, "Support P2P-Device interface type");
 
-static ushort mac_prefix;
-module_param(mac_prefix, ushort, 0444);
-MODULE_PARM_DESC(mac_prefix, "Second and third most significant octets in MAC");
-
 static bool mlo;
 module_param(mlo, bool, 0444);
 MODULE_PARM_DESC(mlo, "Support MLO");
@@ -334,6 +330,12 @@ static struct net_device *hwsim_mon; /* global monitor netdev */
 	.hw_value = (_freq), \
 }
 
+#define CHAN6G(_freq) { \
+	.band = NL80211_BAND_6GHZ, \
+	.center_freq = (_freq), \
+	.hw_value = (_freq), \
+}
+
 static const struct ieee80211_channel hwsim_channels_2ghz[] = {
 	CHAN2G(2412), /* Channel 1 */
 	CHAN2G(2417), /* Channel 2 */
@@ -398,6 +400,68 @@ static const struct ieee80211_channel hwsim_channels_5ghz[] = {
 	CHAN5G(5915), /* Channel 183 */
 	CHAN5G(5920), /* Channel 184 */
 	CHAN5G(5925), /* Channel 185 */
+};
+
+static const struct ieee80211_channel hwsim_channels_6ghz[] = {
+	CHAN6G(5955), /* Channel 1 */
+	CHAN6G(5975), /* Channel 5 */
+	CHAN6G(5995), /* Channel 9 */
+	CHAN6G(6015), /* Channel 13 */
+	CHAN6G(6035), /* Channel 17 */
+	CHAN6G(6055), /* Channel 21 */
+	CHAN6G(6075), /* Channel 25 */
+	CHAN6G(6095), /* Channel 29 */
+	CHAN6G(6115), /* Channel 33 */
+	CHAN6G(6135), /* Channel 37 */
+	CHAN6G(6155), /* Channel 41 */
+	CHAN6G(6175), /* Channel 45 */
+	CHAN6G(6195), /* Channel 49 */
+	CHAN6G(6215), /* Channel 53 */
+	CHAN6G(6235), /* Channel 57 */
+	CHAN6G(6255), /* Channel 61 */
+	CHAN6G(6275), /* Channel 65 */
+	CHAN6G(6295), /* Channel 69 */
+	CHAN6G(6315), /* Channel 73 */
+	CHAN6G(6335), /* Channel 77 */
+	CHAN6G(6355), /* Channel 81 */
+	CHAN6G(6375), /* Channel 85 */
+	CHAN6G(6395), /* Channel 89 */
+	CHAN6G(6415), /* Channel 93 */
+	CHAN6G(6435), /* Channel 97 */
+	CHAN6G(6455), /* Channel 181 */
+	CHAN6G(6475), /* Channel 105 */
+	CHAN6G(6495), /* Channel 109 */
+	CHAN6G(6515), /* Channel 113 */
+	CHAN6G(6535), /* Channel 117 */
+	CHAN6G(6555), /* Channel 121 */
+	CHAN6G(6575), /* Channel 125 */
+	CHAN6G(6595), /* Channel 129 */
+	CHAN6G(6615), /* Channel 133 */
+	CHAN6G(6635), /* Channel 137 */
+	CHAN6G(6655), /* Channel 141 */
+	CHAN6G(6675), /* Channel 145 */
+	CHAN6G(6695), /* Channel 149 */
+	CHAN6G(6715), /* Channel 153 */
+	CHAN6G(6735), /* Channel 157 */
+	CHAN6G(6755), /* Channel 161 */
+	CHAN6G(6775), /* Channel 165 */
+	CHAN6G(6795), /* Channel 169 */
+	CHAN6G(6815), /* Channel 173 */
+	CHAN6G(6835), /* Channel 177 */
+	CHAN6G(6855), /* Channel 181 */
+	CHAN6G(6875), /* Channel 185 */
+	CHAN6G(6895), /* Channel 189 */
+	CHAN6G(6915), /* Channel 193 */
+	CHAN6G(6935), /* Channel 197 */
+	CHAN6G(6955), /* Channel 201 */
+	CHAN6G(6975), /* Channel 205 */
+	CHAN6G(6995), /* Channel 209 */
+	CHAN6G(7015), /* Channel 213 */
+	CHAN6G(7035), /* Channel 217 */
+	CHAN6G(7055), /* Channel 221 */
+	CHAN6G(7075), /* Channel 225 */
+	CHAN6G(7095), /* Channel 229 */
+	CHAN6G(7115), /* Channel 233 */
 };
 
 #define NUM_S1G_CHANS_US 51
@@ -553,7 +617,7 @@ static const struct nl80211_vendor_cmd_info mac80211_hwsim_vendor_events[] = {
 	{ .vendor_id = OUI_QCA, .subcmd = 1 },
 };
 
-static spinlock_t hwsim_radio_lock;
+static DEFINE_SPINLOCK(hwsim_radio_lock);
 static LIST_HEAD(hwsim_radios);
 static struct rhashtable hwsim_radios_rht;
 static int hwsim_radio_idx;
@@ -579,6 +643,7 @@ struct mac80211_hwsim_data {
 	struct ieee80211_supported_band bands[NUM_NL80211_BANDS];
 	struct ieee80211_channel channels_2ghz[ARRAY_SIZE(hwsim_channels_2ghz)];
 	struct ieee80211_channel channels_5ghz[ARRAY_SIZE(hwsim_channels_5ghz)];
+	struct ieee80211_channel channels_6ghz[ARRAY_SIZE(hwsim_channels_6ghz)];
 	struct ieee80211_channel channels_s1g[ARRAY_SIZE(hwsim_channels_s1g)];
 	struct ieee80211_rate rates[ARRAY_SIZE(hwsim_rates)];
 	struct ieee80211_iface_combination if_combination;
@@ -609,7 +674,8 @@ struct mac80211_hwsim_data {
 		struct ieee80211_channel *channel;
 		unsigned long next_start, start, end;
 	} survey_data[ARRAY_SIZE(hwsim_channels_2ghz) +
-		      ARRAY_SIZE(hwsim_channels_5ghz)];
+		      ARRAY_SIZE(hwsim_channels_5ghz) +
+		      ARRAY_SIZE(hwsim_channels_6ghz)];
 
 	struct ieee80211_channel *channel;
 	enum nl80211_chan_width bw;
@@ -729,7 +795,7 @@ static const struct nla_policy hwsim_genl_policy[HWSIM_ATTR_MAX + 1] = {
 /* MAC80211_HWSIM virtio queues */
 static struct virtqueue *hwsim_vqs[HWSIM_NUM_VQS];
 static bool hwsim_virtio_enabled;
-static spinlock_t hwsim_virtio_lock;
+static DEFINE_SPINLOCK(hwsim_virtio_lock);
 
 static void hwsim_virtio_rx_work(struct work_struct *work);
 static DECLARE_WORK(hwsim_virtio_rx, hwsim_virtio_rx_work);
@@ -834,7 +900,7 @@ static void hwsim_send_ps_poll(void *dat, u8 *mac, struct ieee80211_vif *vif)
 
 	rcu_read_lock();
 	mac80211_hwsim_tx_frame(data->hw, skb,
-				rcu_dereference(vif->chanctx_conf)->def.chan);
+				rcu_dereference(vif->bss_conf.chanctx_conf)->def.chan);
 	rcu_read_unlock();
 }
 
@@ -1323,7 +1389,7 @@ static void mac80211_hwsim_tx_frame_nl(struct ieee80211_hw *hw,
 		hdr->frame_control |= cpu_to_le16(IEEE80211_FCTL_PM);
 	/* If the queue contains MAX_QUEUE skb's drop some */
 	if (skb_queue_len(&data->pending) >= MAX_QUEUE) {
-		/* Droping until WARN_QUEUE level */
+		/* Dropping until WARN_QUEUE level */
 		while (skb_queue_len(&data->pending) >= WARN_QUEUE) {
 			ieee80211_free_txskb(hw, skb_dequeue(&data->pending));
 			data->tx_dropped++;
@@ -1468,38 +1534,37 @@ static void mac80211_hwsim_add_vendor_rtap(struct sk_buff *skb)
 	 * the values accordingly.
 	 */
 #ifdef HWSIM_RADIOTAP_OUI
-	struct ieee80211_radiotap_vendor_tlv *rtap;
-	static const char vendor_data[8] = "ABCDEFGH";
-
-	// Make sure no padding is needed
-	BUILD_BUG_ON(sizeof(vendor_data) % 4);
-	/* this is last radiotap info before the mac header, so
-	 * skb_reset_mac_header for mac8022 to know the end of
-	 * the radiotap TLV/beginning of the 802.11 header
-	 */
-	skb_reset_mac_header(skb);
+	struct ieee80211_vendor_radiotap *rtap;
 
 	/*
 	 * Note that this code requires the headroom in the SKB
 	 * that was allocated earlier.
 	 */
-	rtap = skb_push(skb, sizeof(*rtap) + sizeof(vendor_data));
-
-	rtap->len = cpu_to_le16(sizeof(*rtap) -
-				sizeof(struct ieee80211_radiotap_tlv) +
-				sizeof(vendor_data));
-	rtap->type = cpu_to_le16(IEEE80211_RADIOTAP_VENDOR_NAMESPACE);
-
+	rtap = skb_push(skb, sizeof(*rtap) + 8 + 4);
 	rtap->oui[0] = HWSIM_RADIOTAP_OUI[0];
 	rtap->oui[1] = HWSIM_RADIOTAP_OUI[1];
 	rtap->oui[2] = HWSIM_RADIOTAP_OUI[2];
-	rtap->oui_subtype = 127;
-	/* clear reserved field */
-	rtap->reserved = 0;
-	rtap->vendor_type = 0;
-	memcpy(rtap->data, vendor_data, sizeof(vendor_data));
+	rtap->subns = 127;
 
-	IEEE80211_SKB_RXCB(skb)->flag |= RX_FLAG_RADIOTAP_TLV_AT_END;
+	/*
+	 * Radiotap vendor namespaces can (and should) also be
+	 * split into fields by using the standard radiotap
+	 * presence bitmap mechanism. Use just BIT(0) here for
+	 * the presence bitmap.
+	 */
+	rtap->present = BIT(0);
+	/* We have 8 bytes of (dummy) data */
+	rtap->len = 8;
+	/* For testing, also require it to be aligned */
+	rtap->align = 8;
+	/* And also test that padding works, 4 bytes */
+	rtap->pad = 4;
+	/* push the data */
+	memcpy(rtap->data, "ABCDEFGH", 8);
+	/* make sure to clear padding, mac80211 doesn't */
+	memset(rtap->data + 8, 0, 4);
+
+	IEEE80211_SKB_RXCB(skb)->flag |= RX_FLAG_RADIOTAP_VENDOR_DATA;
 #endif
 }
 
@@ -1983,6 +2048,8 @@ static void mac80211_hwsim_tx_frame(struct ieee80211_hw *hw,
 	if (_portid || hwsim_virtio_enabled)
 		return mac80211_hwsim_tx_frame_nl(hw, skb, _portid, chan);
 
+	data->tx_pkts++;
+	data->tx_bytes += skb->len;
 	mac80211_hwsim_tx_frame_no_nl(hw, skb, chan);
 	dev_kfree_skb(skb);
 }
@@ -4228,8 +4295,6 @@ static int mac80211_hwsim_new_radio(struct genl_info *info,
 	if (!param->perm_addr) {
 		eth_zero_addr(addr);
 		addr[0] = 0x02;
-		addr[1] = (mac_prefix >> 8) & 0xFF;
-		addr[2] = mac_prefix & 0xFF;
 		addr[3] = idx >> 8;
 		addr[4] = idx;
 		memcpy(data->addresses[0].addr, addr, ETH_ALEN);
@@ -4381,9 +4446,6 @@ static int mac80211_hwsim_new_radio(struct genl_info *info,
 	wiphy_ext_feature_set(hw->wiphy,
 			      NL80211_EXT_FEATURE_BEACON_RATE_LEGACY);
 
-	wiphy_ext_feature_set(hw->wiphy,
-			      NL80211_EXT_FEATURE_SCAN_MIN_PREQ_CONTENT);
-
 	hw->wiphy->interface_modes = param->iftypes;
 
 	/* ask mac80211 to reserve space for magic */
@@ -4395,6 +4457,8 @@ static int mac80211_hwsim_new_radio(struct genl_info *info,
 		sizeof(hwsim_channels_2ghz));
 	memcpy(data->channels_5ghz, hwsim_channels_5ghz,
 		sizeof(hwsim_channels_5ghz));
+	memcpy(data->channels_6ghz, hwsim_channels_6ghz,
+		sizeof(hwsim_channels_6ghz));
 	memcpy(data->channels_s1g, hwsim_channels_s1g,
 	       sizeof(hwsim_channels_s1g));
 	memcpy(data->rates, hwsim_rates, sizeof(hwsim_rates));
@@ -5009,11 +5073,6 @@ static int hwsim_new_radio_nl(struct sk_buff *msg, struct genl_info *info)
 		return -EINVAL;
 	}
 
-	if (param.channels > CFG80211_MAX_NUM_DIFFERENT_CHANNELS) {
-		GENL_SET_ERR_MSG(info, "too many channels specified");
-		return -EINVAL;
-	}
-
 	if (info->attrs[HWSIM_ATTR_NO_VIF])
 		param.no_vif = true;
 
@@ -5305,6 +5364,7 @@ static struct genl_family hwsim_genl_family __ro_after_init = {
 	.module = THIS_MODULE,
 	.small_ops = hwsim_ops,
 	.n_small_ops = ARRAY_SIZE(hwsim_ops),
+	.resv_start_op = HWSIM_CMD_DEL_MAC_ADDR + 1,
 	.mcgrps = hwsim_mcgrps,
 	.n_mcgrps = ARRAY_SIZE(hwsim_mcgrps),
 };
@@ -5567,7 +5627,7 @@ static void remove_vqs(struct virtio_device *vdev)
 {
 	int i;
 
-	vdev->config->reset(vdev);
+	virtio_reset_device(vdev);
 
 	for (i = 0; i < ARRAY_SIZE(hwsim_vqs); i++) {
 		struct virtqueue *vq = hwsim_vqs[i];
@@ -5640,8 +5700,6 @@ static struct virtio_driver virtio_hwsim = {
 
 static int hwsim_register_virtio_driver(void)
 {
-	spin_lock_init(&hwsim_virtio_lock);
-
 	return register_virtio_driver(&virtio_hwsim);
 }
 
@@ -5669,8 +5727,6 @@ static int __init init_mac80211_hwsim(void)
 
 	if (channels < 1)
 		return -EINVAL;
-
-	spin_lock_init(&hwsim_radio_lock);
 
 	err = rhashtable_init(&hwsim_radios_rht, &hwsim_rht_params);
 	if (err)
