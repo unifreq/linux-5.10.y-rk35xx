@@ -834,8 +834,6 @@
 
 &sdhci {
 	bus-width = <8>;
-	no-sdio;
-	no-sd;
 	non-removable;
 	max-frequency = <200000000>;
 	status = "okay";
