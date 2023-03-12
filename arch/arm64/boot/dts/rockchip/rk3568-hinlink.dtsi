@@ -176,8 +176,10 @@
 };
 
 &gpu {
-	clock-names = "gpu", "bus";
-	interrupt-names = "gpu", "mmu", "job";
+	/* clock-names = "gpu", "bus" for panforst only */
+	//clock-names = "gpu", "bus";
+	/* interrupt-names = "gpu", "mmu", "job" for panforst only */
+	//interrupt-names = "gpu", "mmu", "job";
 	mali-supply = <&vdd_gpu>;
 	status = "okay";
 };
