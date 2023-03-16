@@ -110,27 +110,32 @@
 	};
 
 	hdmi_sound: hdmi-sound {
+		status = "okay";
 		compatible = "simple-audio-card";
 		simple-audio-card,format = "i2s";
 		simple-audio-card,mclk-fs = <128>;
 		simple-audio-card,name = "rockchip,hdmi";
+
 		simple-audio-card,cpu {
 				sound-dai = <&i2s0_8ch>;
 		};
+
 		simple-audio-card,codec {
 				sound-dai = <&hdmi>;
 		};
 	};
 
 	rk809_sound: rk809-sound {
+		status = "okay";
 		compatible = "simple-audio-card";
 		simple-audio-card,format = "i2s";
-		simple-audio-card,name = "rockchip,rk809-codec";
 		simple-audio-card,mclk-fs = <256>;
+		simple-audio-card,name = "rockchip,rk809";
 
 		simple-audio-card,cpu {
 			sound-dai = <&i2s1_8ch>;
 		};
+
 		simple-audio-card,codec {
 			sound-dai = <&rk809_codec>;
 		};
@@ -141,6 +146,7 @@
 		headset_gpio = <&gpio4 RK_PD2 GPIO_ACTIVE_LOW>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&hp_det>;
+		status = "okay";
 	};
 };
 
