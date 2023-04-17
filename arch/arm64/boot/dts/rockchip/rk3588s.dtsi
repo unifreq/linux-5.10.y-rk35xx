@@ -6016,5 +6016,5 @@
 		};
 	};
 };
-
 #include "rk3588s-pinctrl.dtsi"
+#include "rk3588-vccio3-pinctrl.dtsi"
