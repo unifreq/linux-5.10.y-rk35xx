@@ -361,11 +361,13 @@ static int emc2305_set_single_tz(struct device *dev, int idx)
 	if (dev->of_node)
 		data->cdev_data[cdev_idx].cdev =
 			devm_thermal_of_cooling_device_register(dev, dev->of_node,
-								emc2305_fan_name[idx], data,
+								emc2305_fan_name[idx],
+								data,
 								&emc2305_cooling_ops);
 	else
 		data->cdev_data[cdev_idx].cdev =
-			thermal_cooling_device_register(emc2305_fan_name[idx], data,
+			thermal_cooling_device_register(emc2305_fan_name[idx],
+							data,
 							&emc2305_cooling_ops);
 
 	if (IS_ERR(data->cdev_data[cdev_idx].cdev)) {
@@ -418,12 +420,7 @@ static void emc2305_unset_tz(struct device *dev)
 	struct emc2305_data *data = dev_get_drvdata(dev);
 	int i;
 
-	/*
-	 * Unregister cooling device in case they have been registered by
-	 * thermal_cooling_device_register(). Clean-up flow in case they
-	 * have been registered by devm_thermal_of_cooling_device_register()
-	 * will be done automatically, no need in unwind function.
-	 */
+	/* Unregister cooling device. */
 	if (!dev->of_node) {
 		for (i = 0; i < EMC2305_PWM_MAX; i++)
 			if (data->cdev_data[i].cdev)
