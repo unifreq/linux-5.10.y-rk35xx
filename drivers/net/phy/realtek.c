@@ -669,6 +669,17 @@ static struct phy_driver realtek_drvs[] = {
 		.resume		= genphy_resume,
 		.read_page	= rtl821x_read_page,
 		.write_page	= rtl821x_write_page,
+       }, {
+        PHY_ID_MATCH_EXACT(0x001cc878),
+        .name           = "RTL8211F-VD Gigabit Ethernet",
+        .probe          = rtl821x_probe,
+        .config_init    = &rtl8211f_config_init,
+        .ack_interrupt  = &rtl8211f_ack_interrupt,
+        .config_intr    = &rtl8211f_config_intr,
+        .suspend        = genphy_suspend,
+        .resume         = rtl821x_resume,
+        .read_page      = rtl821x_read_page,
+        .write_page     = rtl821x_write_page,
 	}, {
 		PHY_ID_MATCH_EXACT(0x001cc916),
 		.name		= "RTL8211F Gigabit Ethernet",
