@@ -1242,7 +1242,7 @@ dhd_conf_set_path_params(dhd_pub_t *dhd, char *fw_path, char *nv_path)
 	dhd_conf_preinit(dhd);
 
 	if (dhd->conf_path[0] == '\0') {
-		dhd_conf_copy_path(dhd, "config.txt", dhd->conf_path, nv_path);
+		dhd_conf_copy_path(dhd, "ap6275s_config.txt", dhd->conf_path, nv_path);
 	}
 	if (dhd->clm_path[0] == '\0') {
 		dhd_conf_copy_path(dhd, "clm.blob", dhd->clm_path, fw_path);
