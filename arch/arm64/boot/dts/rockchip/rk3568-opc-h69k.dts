@@ -1,0 +1,81 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+// Copyright (c) 2023 Flippy <flippy@sina.com>
+
+/dts-v1/;
+
+#include "rk3568-opc-h68k.dts"
+
+/ {
+	model = "HINLINK OPC-H69K Board";
+	compatible = "hinlink,opc-h69k", "rockchip,rk3568";
+
+	/* m.2 sata power */
+	vcc5v0_sata: vcc5v0-sata {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc5v0_sata";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		regulator-boot-on;
+		regulator-always-on;
+
+		enable-active-high;
+		gpio = <&gpio0 RK_PC5 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&sata_pwr_en>;
+		vin-supply = <&vcc5v0_sys>;
+	};
+
+	/* 5g lte modem power */
+	vcc3v8_lte_modem: vcc3v8-lte-modem {
+		compatible = "regulator-fixed";
+		regulator-min-microvolt = <3800000>;
+		regulator-max-microvolt = <3800000>;
+		regulator-name = "vcc3v8_lte_modem";
+		regulator-boot-on;
+
+		enable-active-high;
+		gpio = <&gpio0 RK_PA5 GPIO_ACTIVE_HIGH>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&lte_modem_pwr_en>;
+		vin-supply = <&vcc5v0_sys>;
+	};
+
+	rfkill_switchs {
+		compatible = "rfkill-gpio";
+
+		modem {
+			label = "lte-modem";
+			radio-type = "wwan";
+			reset-gpios = <&gpio0 RK_PC0 GPIO_ACTIVE_HIGH>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&lte_modem_reset>;
+		};
+	};
+};
+
+&pinctrl {
+	sata {
+		sata_pwr_en: sata-pwr-en {
+			rockchip,pins = <0 RK_PC5 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	modem {
+		lte_modem_pwr_en: lte-modem-pwr-en {
+			rockchip,pins = <0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		lte_modem_reset: lte-modem-reset {
+			rockchip,pins = <0 RK_PC0 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+};
+
+&sata0 {
+	target-supply = <&vcc5v0_sata>;
+};
+
+&i2c5 {
+	status = "okay";
+};

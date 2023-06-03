@@ -116,6 +116,7 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-nvr-demo-v12-linux-spi-nand.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-beelink-ipc-r.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-opc-h66k.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-opc-h68k.dtb
+dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-opc-h69k.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-evb1-lp4-v10.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-evb1-lp4-v10-ipc-6x-linux.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-evb1-lp4-v10-linux.dtb

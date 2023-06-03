@@ -109,6 +109,41 @@
 		pinctrl-0 = <&vcc5v0_otg_en>;
 	};
 
+	/* wifi power
+	   for H68K-MAX & H69K-MAX
+	 */
+	vcc3v3_pcie2: vcc3v3-pcie2-regulator {
+		compatible = "regulator-fixed";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-name = "vcc3v3_pcie2";
+		regulator-boot-on;
+
+		gpio = <&gpio3 RK_PD5 GPIO_ACTIVE_LOW>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&vcc3v3_pcie2_en>;
+		vin-supply = <&vcc3v3_sys>;
+	};
+
+	/* eth 2.5g power
+	   for H66K H69K
+	 */
+	vcc3v3_pcie3: vcc3v3-pcie3-regulator {
+		compatible = "regulator-fixed";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-name = "vcc3v3_pcie3";
+		regulator-boot-on;
+
+		enable-active-high;
+		gpio = <&gpio0 RK_PC4 GPIO_ACTIVE_HIGH>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&vcc3v3_pcie3_en>;
+		vin-supply = <&vcc3v3_sys>;
+	};
+
 	hdmi_sound: hdmi-sound {
 		status = "okay";
 		compatible = "simple-audio-card";
@@ -147,6 +182,21 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&hp_det>;
 		status = "okay";
+	};
+
+	fan: pwm-fan {
+		compatible = "pwm-fan";
+		#cooling-cells = <2>;
+		fan-supply = <&vcc5v0_sys>;
+		pwms = <&pwm0 0 50000 0>;
+		status = "okay";
+
+		cooling-levels = <0 150 200 255>;
+		rockchip,temp-trips = <
+			50000	1
+			55000	2
+			60000	3
+		>;
 	};
 };
 
@@ -529,6 +579,7 @@
 &mpp_srv {
 	status = "okay";
 };
+
 /*
 &nandc0 {
 	#address-cells = <1>;
@@ -544,9 +595,10 @@
 	};
 };
 */
+
 &pcie2x1 {
 	reset-gpios = <&gpio2 RK_PD6 GPIO_ACTIVE_HIGH>;
-	vpcie3v3-supply = <&vcc3v3_sys>;
+	vpcie3v3-supply = <&vcc3v3_pcie2>;
 	status = "okay";
 };
 
@@ -557,7 +609,7 @@
 &pcie3x1 {
 	rockchip,bifurcation;
 	reset-gpios = <&gpio3 RK_PA4 GPIO_ACTIVE_HIGH>;
-	vpcie3v3-supply = <&vcc3v3_sys>;
+	vpcie3v3-supply = <&vcc3v3_pcie3>;
 	status = "okay";
 
 	pcie@0,0 {
@@ -575,6 +627,7 @@
 	rockchip,bifurcation;
 	rockchip,init-delay-ms = <100>;
 	reset-gpios = <&gpio2 RK_PD0 GPIO_ACTIVE_HIGH>;
+	vpcie3v3-supply = <&vcc3v3_pcie3>;
 	status = "okay";
 
 	pcie@0,0 {
@@ -635,6 +688,16 @@
 			rockchip,pins = <0 RK_PB6 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
+
+	pcie {
+		vcc3v3_pcie2_en: vcc3v3_pcie2_en {
+			rockchip,pins = <3 RK_PD5 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		vcc3v3_pcie3_en: vcc3v3_pcie3_en {
+			rockchip,pins = <0 RK_PC4 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
 };
 
 &pmu_io_domains {
@@ -650,6 +713,27 @@
 	vccio7-supply = <&vcc_3v3>;
 };
 
+&pwm0 {
+	status = "okay";
+};
+/*
+&soc_thermal {
+	trips {
+		cpu_hot: cpu_hot {
+			temperature = <45000>;
+			hysteresis = <2000>;
+			type = "active";
+		};
+	};
+
+	cooling-maps {
+		map2 {
+			trip = <&cpu_hot>;
+			cooling-device = <&fan THERMAL_NO_LIMIT 1>;
+		};
+	};
+};
+*/
 &pwm3 {
 	status = "okay";
 
