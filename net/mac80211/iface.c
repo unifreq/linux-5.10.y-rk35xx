@@ -1287,6 +1287,9 @@ int ieee80211_do_open(struct wireless_dev *wdev, bool coming_up)
 	}
 
 	if (local->open_count == 0) {
+		/* here we can consider everything in good order (again) */
+		local->reconfig_failure = false;
+
 		res = drv_start(local);
 		if (res)
 			goto err_del_bss;
