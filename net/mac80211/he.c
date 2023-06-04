@@ -3,7 +3,7 @@
  * HE handling
  *
  * Copyright(c) 2017 Intel Deutschland GmbH
- * Copyright(c) 2019 - 2022 Intel Corporation
+ * Copyright(c) 2019 - 2023 Intel Corporation
  */
 
 #include "ieee80211_i.h"
@@ -116,20 +116,25 @@ ieee80211_he_cap_ie_to_sta_he_cap(struct ieee80211_sub_if_data *sdata,
 				  struct link_sta_info *link_sta)
 {
 	struct ieee80211_sta_he_cap *he_cap = &link_sta->pub->he_cap;
-	struct ieee80211_sta_he_cap own_he_cap = {0};
+	const struct ieee80211_sta_he_cap *own_he_cap_ptr;
+	struct ieee80211_sta_he_cap own_he_cap;
 	struct ieee80211_he_cap_elem *he_cap_ie_elem = (void *)he_cap_ie;
 	u8 he_ppe_size;
 	u8 mcs_nss_size;
 	u8 he_total_size;
 	bool own_160, peer_160, own_80p80, peer_80p80;
-	enum nl80211_iftype iftype = ieee80211_vif_type_p2p(&sdata->vif);
 
 	memset(he_cap, 0, sizeof(*he_cap));
 
-	if (!he_cap_ie || !ieee80211_get_he_iftype_cap(sband, iftype))
+	if (!he_cap_ie)
 		return;
 
-	own_he_cap = sband->iftype_data->he_cap;
+	own_he_cap_ptr =
+		ieee80211_get_he_iftype_cap_vif(sband, &sdata->vif);
+	if (!own_he_cap_ptr)
+		return;
+
+	own_he_cap = *own_he_cap_ptr;
 
 	/* Make sure size is OK */
 	mcs_nss_size = ieee80211_he_mcs_nss_size(he_cap_ie_elem);
@@ -168,10 +173,10 @@ ieee80211_he_cap_ie_to_sta_he_cap(struct ieee80211_sub_if_data *sdata,
 				      &own_he_cap.he_mcs_nss_supp.tx_mcs_80,
 				      &he_cap->he_mcs_nss_supp.tx_mcs_80);
 
-	own_160 = !!(own_he_cap.he_cap_elem.phy_cap_info[0] &
-		  IEEE80211_HE_PHY_CAP0_CHANNEL_WIDTH_SET_160MHZ_IN_5G);
-	peer_160 = !!(he_cap->he_cap_elem.phy_cap_info[0] &
-		  IEEE80211_HE_PHY_CAP0_CHANNEL_WIDTH_SET_160MHZ_IN_5G);
+	own_160 = own_he_cap.he_cap_elem.phy_cap_info[0] &
+		  IEEE80211_HE_PHY_CAP0_CHANNEL_WIDTH_SET_160MHZ_IN_5G;
+	peer_160 = he_cap->he_cap_elem.phy_cap_info[0] &
+		   IEEE80211_HE_PHY_CAP0_CHANNEL_WIDTH_SET_160MHZ_IN_5G;
 
 	if (peer_160 && own_160) {
 		ieee80211_he_mcs_intersection(&own_he_cap.he_mcs_nss_supp.rx_mcs_160,
@@ -185,10 +190,10 @@ ieee80211_he_cap_ie_to_sta_he_cap(struct ieee80211_sub_if_data *sdata,
 			~IEEE80211_HE_PHY_CAP0_CHANNEL_WIDTH_SET_160MHZ_IN_5G;
 	}
 
-	own_80p80 = !!(own_he_cap.he_cap_elem.phy_cap_info[0] &
-		  IEEE80211_HE_PHY_CAP0_CHANNEL_WIDTH_SET_80PLUS80_MHZ_IN_5G);
-	peer_80p80 = !!(he_cap->he_cap_elem.phy_cap_info[0] &
-		  IEEE80211_HE_PHY_CAP0_CHANNEL_WIDTH_SET_80PLUS80_MHZ_IN_5G);
+	own_80p80 = own_he_cap.he_cap_elem.phy_cap_info[0] &
+		    IEEE80211_HE_PHY_CAP0_CHANNEL_WIDTH_SET_80PLUS80_MHZ_IN_5G;
+	peer_80p80 = he_cap->he_cap_elem.phy_cap_info[0] &
+		     IEEE80211_HE_PHY_CAP0_CHANNEL_WIDTH_SET_80PLUS80_MHZ_IN_5G;
 
 	if (peer_80p80 && own_80p80) {
 		ieee80211_he_mcs_intersection(&own_he_cap.he_mcs_nss_supp.rx_mcs_80p80,
