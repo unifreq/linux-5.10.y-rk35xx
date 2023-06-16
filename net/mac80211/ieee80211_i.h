@@ -1758,6 +1758,8 @@ struct ieee802_11_elems {
 
 	/* mult-link element can be de-fragmented and thus u8 is not sufficient */
 	size_t multi_link_len;
+	/* The element in the original IEs */
+	const struct element *multi_link_elem;
 
 	/*
 	 * store the per station profile pointer and length in case that the
