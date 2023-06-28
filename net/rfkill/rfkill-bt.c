@@ -322,8 +322,6 @@ static int proc_rk_set_power(void *data, bool blocked)
 				gpio_direction_output(poweron->io,
 						      poweron->enable);
 				msleep(20);
-				if (gpio_is_valid(wake_host->io))
-					gpio_direction_input(wake_host->io);
 			}
 		}
 
@@ -334,6 +332,11 @@ static int proc_rk_set_power(void *data, bool blocked)
 				msleep(20);
 				gpio_direction_output(reset->io, reset->enable);
 			}
+		}
+
+		if (gpio_is_valid(wake_host->io)) {
+			LOG("%s: set bt wake_host input!\n", __func__);
+			gpio_direction_input(wake_host->io);
 		}
 
 		if (pinctrl && gpio_is_valid(rts->io)) {
