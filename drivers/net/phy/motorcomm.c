@@ -8,6 +8,7 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/netdevice.h>
+#include <linux/of_device.h>
 #include <linux/phy.h>
 
 #define PHY_ID_YT8511		0x0000010a
@@ -235,8 +236,19 @@ static int ytphy_soft_reset(struct phy_device *phydev)
 
 static int yt8512_clk_init(struct phy_device *phydev)
 {
+	struct device_node *node = phydev->mdio.dev.of_node;
+	const char *strings = NULL;
 	int ret;
 	int val;
+
+	if (node && node->parent && node->parent->parent) {
+		ret = of_property_read_string(node->parent->parent,
+					      "clock_in_out", &strings);
+		if (!ret) {
+			if (!strcmp(strings, "input"))
+				return 0;
+		}
+	}
 
 	val = ytphy_read_ext(phydev, YT8512_EXTREG_AFE_PLL);
 	if (val < 0)
@@ -743,10 +755,10 @@ static int yt8531_config_init(struct phy_device *phydev)
 		return ret;
 
 	/* RXC, PHY_CLK_OUT and RXData Drive strength:
-	 * Drive strength of RXC = 4, PHY_CLK_OUT = 3, RXD0 = 4 (default)
-	 * If the io voltage is 3.3v, PHY_CLK_OUT = 2, set 0xa010 = 0x9acf
+	 * Drive strength of RXC = 6, PHY_CLK_OUT = 3, RXD0 = 4 (default 1.8v)
+	 * If the io voltage is 3.3v, PHY_CLK_OUT = 2, set 0xa010 = 0xdacf
 	 */
-	ret = ytphy_write_ext(phydev, 0xa010, 0x9bcf);
+	ret = ytphy_write_ext(phydev, 0xa010, 0xdbcf);
 	if (ret < 0)
 		return ret;
 

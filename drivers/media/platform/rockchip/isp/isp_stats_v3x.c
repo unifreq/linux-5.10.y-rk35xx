@@ -970,6 +970,7 @@ rkisp_stats_send_meas_v3x(struct rkisp_isp_stats_vdev *stats_vdev,
 	struct rkisp3x_isp_stat_buffer *cur_stat_buf = NULL;
 	struct rkisp_stats_ops_v3x *ops =
 		(struct rkisp_stats_ops_v3x *)stats_vdev->priv_ops;
+	struct rkisp_isp_params_vdev *params_vdev = &stats_vdev->dev->params_vdev;
 	int ret = 0;
 	u32 size = sizeof(struct rkisp3x_isp_stat_buffer);
 
@@ -989,6 +990,7 @@ rkisp_stats_send_meas_v3x(struct rkisp_isp_stats_vdev *stats_vdev,
 		cur_stat_buf =
 			(struct rkisp3x_isp_stat_buffer *)(cur_buf->vaddr[0]);
 		cur_stat_buf->frame_id = cur_frame_id;
+		cur_stat_buf->params_id = params_vdev->cur_frame_id;
 	}
 
 	if (meas_work->isp_ris & ISP3X_AFM_SUM_OF)
@@ -1003,11 +1005,9 @@ rkisp_stats_send_meas_v3x(struct rkisp_isp_stats_vdev *stats_vdev,
 		v4l2_warn(stats_vdev->vnode.vdev.v4l2_dev,
 			  "ISP3X_3A_RAWAF_SUM\n");
 
+	ops->get_rawaf_meas(stats_vdev, cur_stat_buf, 0);
 	if (meas_work->isp3a_ris & ISP3X_3A_RAWAWB)
 		ret |= ops->get_rawawb_meas(stats_vdev, cur_stat_buf, 0);
-
-	if (meas_work->isp3a_ris & ISP3X_3A_RAWAF)
-		ret |= ops->get_rawaf_meas(stats_vdev, cur_stat_buf, 0);
 
 	if (meas_work->isp3a_ris & ISP3X_3A_RAWAE_BIG)
 		ret |= ops->get_rawae3_meas(stats_vdev, cur_stat_buf, 0);
@@ -1044,10 +1044,9 @@ rkisp_stats_send_meas_v3x(struct rkisp_isp_stats_vdev *stats_vdev,
 			cur_stat_buf++;
 			cur_stat_buf->frame_id = cur_frame_id;
 		}
+		ops->get_rawaf_meas(stats_vdev, cur_stat_buf, 1);
 		if (meas_work->isp3a_ris & ISP3X_3A_RAWAWB)
 			ret |= ops->get_rawawb_meas(stats_vdev, cur_stat_buf, 1);
-		if (meas_work->isp3a_ris & ISP3X_3A_RAWAF)
-			ret |= ops->get_rawaf_meas(stats_vdev, cur_stat_buf, 1);
 		if (meas_work->isp3a_ris & ISP3X_3A_RAWAE_BIG)
 			ret |= ops->get_rawae3_meas(stats_vdev, cur_stat_buf, 1);
 		if (meas_work->isp3a_ris & ISP3X_3A_RAWHIST_BIG)

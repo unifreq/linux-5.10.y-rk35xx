@@ -3409,7 +3409,7 @@ static int it6616_get_detected_timings(struct v4l2_subdev *sd,
 		bt->il_vsync = bt->vsync + 1;
 	}
 
-	v4l2_dbg(1, debug, sd, "act:%dx%d, total:%dx%d, pixclk:%d, fps:%d\n",
+	v4l2_dbg(1, debug, sd, "act:%dx%d, total:%dx%d, pixclk:%llu, fps:%d\n",
 			bt->width, bt->height, htotal, vtotal, bt->pixelclock, fps);
 	v4l2_dbg(1, debug, sd, "hfp:%d, hs:%d, hbp:%d, vfp:%d, vs:%d, vbp:%d\n",
 			bt->hfrontporch, bt->hsync, bt->hbackporch,
@@ -3776,8 +3776,7 @@ static int it6616_enum_frame_interval(struct v4l2_subdev *sd,
 	if (fie->index >= ARRAY_SIZE(supported_modes))
 		return -EINVAL;
 
-	if (fie->code != IT6616_MEDIA_BUS_FMT)
-		return -EINVAL;
+	fie->code = IT6616_MEDIA_BUS_FMT;
 
 	fie->width = supported_modes[fie->index].width;
 	fie->height = supported_modes[fie->index].height;

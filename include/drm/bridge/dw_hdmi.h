@@ -204,8 +204,7 @@ struct dw_hdmi_plat_data {
 	void *priv_data;
 
 	/* Platform-specific mode validation (optional). */
-	enum drm_mode_status (*mode_valid)(struct drm_connector *connector,
-					   void *data,
+	enum drm_mode_status (*mode_valid)(struct dw_hdmi *hdmi, void *data,
 					   const struct drm_display_info *info,
 					   const struct drm_display_mode *mode);
 
@@ -252,10 +251,19 @@ struct dw_hdmi_plat_data {
 	int (*dclk_set)(void *data, bool enable, int vp_id);
 	int (*link_clk_set)(void *data, bool enable);
 	int (*get_vp_id)(struct drm_crtc_state *crtc_state);
+	void (*update_color_format)(struct drm_connector_state *conn_state, void *data);
+	bool (*check_hdr_color_change)(struct drm_connector_state *conn_state, void *data);
+	void (*set_prev_bus_format)(void *data, unsigned long bus_format);
+	int (*get_colorimetry)(void *data, struct edid *edid);
+	void (*set_ddc_io)(void *data, bool enable);
 
 	/* Vendor Property support */
 	const struct dw_hdmi_property_ops *property_ops;
 	struct drm_connector *connector;
+};
+
+struct dw_hdmi_cec_wake_ops {
+	void (*hpd_wake_up)(struct platform_device *pdev);
 };
 
 struct dw_hdmi *dw_hdmi_probe(struct platform_device *pdev,
@@ -329,5 +337,8 @@ int dw_hdmi_qp_set_plugged_cb(struct dw_hdmi_qp *hdmi, hdmi_codec_plugged_cb fn,
 void dw_hdmi_qp_set_output_type(struct dw_hdmi_qp *hdmi, u64 val);
 bool dw_hdmi_qp_get_output_whether_hdmi(struct dw_hdmi_qp *hdmi);
 int dw_hdmi_qp_get_output_type_cap(struct dw_hdmi_qp *hdmi);
+void dw_hdmi_set_hpd_wake(struct dw_hdmi *hdmi);
+void dw_hdmi_cec_wake_ops_register(struct dw_hdmi *hdmi,
+				   const struct dw_hdmi_cec_wake_ops *cec_ops);
 
 #endif /* __IMX_HDMI_H__ */

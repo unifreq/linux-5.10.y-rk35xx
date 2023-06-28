@@ -18,11 +18,11 @@
 #define STREAM_MAX_SP_RSZ_OUTPUT_WIDTH		1920
 #define STREAM_MAX_SP_RSZ_OUTPUT_HEIGHT		1080
 #define STREAM_MIN_RSZ_OUTPUT_WIDTH		32
-#define STREAM_MIN_RSZ_OUTPUT_HEIGHT		16
+#define STREAM_MIN_RSZ_OUTPUT_HEIGHT		32
 #define STREAM_OUTPUT_STEP_WISE			8
 
-#define STREAM_MIN_MP_SP_INPUT_WIDTH		32
-#define STREAM_MIN_MP_SP_INPUT_HEIGHT		32
+#define STREAM_MIN_MP_SP_INPUT_WIDTH		STREAM_MIN_RSZ_OUTPUT_WIDTH
+#define STREAM_MIN_MP_SP_INPUT_HEIGHT		STREAM_MIN_RSZ_OUTPUT_HEIGHT
 
 static int hdr_dma_frame(struct rkisp_device *dev)
 {
@@ -166,7 +166,7 @@ int hdr_update_dmatx_buf(struct rkisp_device *dev)
 	for (i = RKISP_STREAM_DMATX0; i <= RKISP_STREAM_DMATX2; i++) {
 		dmatx = &dev->cap_dev.stream[i];
 		if (dmatx->ops && dmatx->ops->frame_end)
-			dmatx->ops->frame_end(dmatx);
+			dmatx->ops->frame_end(dmatx, FRAME_INIT);
 	}
 
 	if (dev->dmarx_dev.trigger)
@@ -455,6 +455,26 @@ int rkisp_stream_frame_start(struct rkisp_device *dev, u32 isp_mis)
 	return 0;
 }
 
+void rkisp_stream_buf_done_early(struct rkisp_device *dev)
+{
+	struct rkisp_stream *stream;
+	int i;
+
+	if (!dev->cap_dev.is_done_early)
+		return;
+
+	for (i = 0; i < RKISP_MAX_STREAM; i++) {
+		if (i == RKISP_STREAM_VIR || i == RKISP_STREAM_LUMA ||
+		    i == RKISP_STREAM_DMATX0 || i == RKISP_STREAM_DMATX1 ||
+		    i == RKISP_STREAM_DMATX2 || i == RKISP_STREAM_DMATX3)
+			continue;
+		stream = &dev->cap_dev.stream[i];
+		if (stream->streaming && !stream->stopping &&
+		    stream->ops && stream->ops->frame_end)
+			stream->ops->frame_end(stream, FRAME_WORK);
+	}
+}
+
 struct stream_config rkisp_mp_stream_config = {
 	/* constraints */
 	.max_rsz_width = STREAM_MAX_MP_RSZ_OUTPUT_WIDTH,
@@ -604,8 +624,8 @@ static void restrict_rsz_resolution(struct rkisp_stream *stream,
 	} else if (stream->id == RKISP_STREAM_LUMA) {
 		u32 div = dev->is_bigmode ? 32 : 16;
 
-		max_rsz->width = input_win->width / div;
-		max_rsz->height = input_win->height / div;
+		max_rsz->width = ALIGN(DIV_ROUND_UP(input_win->width, div), 4);
+		max_rsz->height = DIV_ROUND_UP(input_win->height, div);
 	} else if (dev->hw_dev->is_unite) {
 		/* scale down only for unite mode */
 		max_rsz->width = min_t(int, input_win->width, cfg->max_rsz_width);
@@ -676,18 +696,24 @@ static int rkisp_set_fmt(struct rkisp_stream *stream,
 			pixm->height = max_rsz.height;
 		}
 	} else if (stream->id == RKISP_STREAM_VIR) {
-		for (i = RKISP_STREAM_MP; i < RKISP_STREAM_VIR; i++) {
-			struct rkisp_stream *t = &dev->cap_dev.stream[i];
+		struct rkisp_stream *t;
 
-			if (t->out_isp_fmt.fmt_type != FMT_YUV || !t->streaming)
-				continue;
-			if (t->out_fmt.plane_fmt[0].sizeimage > imagsize) {
-				imagsize = t->out_fmt.plane_fmt[0].sizeimage;
-				*pixm = t->out_fmt;
-				stream->conn_id = t->id;
+		if (stream->conn_id != -1) {
+			t = &dev->cap_dev.stream[stream->conn_id];
+			*pixm = t->out_fmt;
+		} else {
+			for (i = RKISP_STREAM_MP; i < RKISP_STREAM_VIR; i++) {
+				t = &dev->cap_dev.stream[i];
+				if (t->out_isp_fmt.fmt_type != FMT_YUV || !t->streaming)
+					continue;
+				if (t->out_fmt.plane_fmt[0].sizeimage > imagsize) {
+					imagsize = t->out_fmt.plane_fmt[0].sizeimage;
+					*pixm = t->out_fmt;
+					stream->conn_id = t->id;
+				}
 			}
 		}
-		if (!imagsize) {
+		if (stream->conn_id == -1) {
 			v4l2_err(&dev->v4l2_dev, "no output stream for iqtool\n");
 			return -EINVAL;
 		}
@@ -739,7 +765,7 @@ static int rkisp_set_fmt(struct rkisp_stream *stream,
 
 		/* 128bit AXI, 16byte align for bytesperline */
 		if ((dev->isp_ver == ISP_V20 && stream->id == RKISP_STREAM_SP) ||
-		    dev->isp_ver == ISP_V30 || dev->isp_ver == ISP_V32)
+		    dev->isp_ver >= ISP_V30)
 			plane_fmt->bytesperline = ALIGN(plane_fmt->bytesperline, 16);
 
 		plane_fmt->sizeimage = plane_fmt->bytesperline * height;
@@ -794,6 +820,9 @@ int rkisp_fh_open(struct file *filp)
 {
 	struct rkisp_stream *stream = video_drvdata(filp);
 	int ret;
+
+	if (!stream->ispdev->is_probe_end)
+		return -EINVAL;
 
 	ret = v4l2_fh_open(filp);
 	if (!ret) {
@@ -1039,6 +1068,7 @@ static int rkisp_set_cmsk(struct rkisp_stream *stream, struct rkisp_cmsk_cfg *cf
 		dev->cmsk_cfg.win[2].mode = mode;
 		break;
 	}
+	dev->cmsk_cfg.mosaic_block = cfg->mosaic_block;
 	spin_unlock_irqrestore(&dev->cmsk_lock, lock_flags);
 	return 0;
 
@@ -1051,10 +1081,11 @@ static int rkisp_get_stream_info(struct rkisp_stream *stream,
 	u32 id = 0;
 
 	rkisp_dmarx_get_frame(stream->ispdev, &id, NULL, NULL, true);
-	info->cur_frame_id = id;
+	info->cur_frame_id = stream->dbg.id;
 	info->input_frame_loss = dev->isp_sdev.dbg.frameloss;
 	info->output_frame_loss = stream->dbg.frameloss;
 	info->stream_on = stream->streaming;
+	info->stream_id = stream->id;
 	return 0;
 }
 
@@ -1091,18 +1122,19 @@ static int rkisp_set_mirror_flip(struct rkisp_stream *stream,
 	return 0;
 }
 
-static int rkisp_get_wrap_line(struct rkisp_stream *stream, int *line)
+static int rkisp_get_wrap_line(struct rkisp_stream *stream, struct rkisp_wrap_info *arg)
 {
 	struct rkisp_device *dev = stream->ispdev;
 
 	if (dev->isp_ver != ISP_V32 && stream->id != RKISP_STREAM_MP)
 		return -EINVAL;
 
-	*line = dev->cap_dev.wrap_line;
+	arg->width = dev->cap_dev.wrap_width;
+	arg->height = dev->cap_dev.wrap_line;
 	return 0;
 }
 
-static int rkisp_set_wrap_line(struct rkisp_stream *stream, int *line)
+static int rkisp_set_wrap_line(struct rkisp_stream *stream, struct rkisp_wrap_info *arg)
 {
 	struct rkisp_device *dev = stream->ispdev;
 
@@ -1113,7 +1145,8 @@ static int rkisp_set_wrap_line(struct rkisp_stream *stream, int *line)
 			 "wrap only support for single sensor and mainpath\n");
 		return -EINVAL;
 	}
-	return stream->ops->set_wrap(stream, *line);
+	dev->cap_dev.wrap_width = arg->width;
+	return stream->ops->set_wrap(stream, arg->height);
 }
 
 static int rkisp_set_fps(struct rkisp_stream *stream, int *fps)
@@ -1162,6 +1195,28 @@ int rkisp_free_tb_stream_buf(struct rkisp_stream *stream)
 	struct v4l2_subdev *sd = &sdev->sd;
 
 	return sd->ops->core->ioctl(sd, RKISP_CMD_FREE_SHARED_BUF, NULL);
+}
+
+static int rkisp_set_iqtool_connect_id(struct rkisp_stream *stream, int stream_id)
+{
+	struct rkisp_device *dev = stream->ispdev;
+
+	if (stream->id != RKISP_STREAM_VIR) {
+		v4l2_err(&dev->v4l2_dev, "only support for iqtool video\n");
+		goto err;
+	}
+
+	if (stream_id != RKISP_STREAM_MP &&
+	    stream_id != RKISP_STREAM_SP &&
+	    stream_id != RKISP_STREAM_BP) {
+		v4l2_err(&dev->v4l2_dev, "invalid connect stream id\n");
+		goto err;
+	}
+
+	stream->conn_id = stream_id;
+	return 0;
+err:
+	return -EINVAL;
 }
 
 static long rkisp_ioctl_default(struct file *file, void *fh,
@@ -1233,6 +1288,9 @@ static long rkisp_ioctl_default(struct file *file, void *fh,
 		break;
 	case RKISP_CMD_FREE_TB_STREAM_BUF:
 		ret = rkisp_free_tb_stream_buf(stream);
+		break;
+	case RKISP_CMD_SET_IQTOOL_CONN_ID:
+		ret = rkisp_set_iqtool_connect_id(stream, *(int *)arg);
 		break;
 	default:
 		ret = -EINVAL;
@@ -1524,7 +1582,12 @@ static void rkisp_buf_done_task(unsigned long arg)
 		buf = list_first_entry(&local_list,
 				       struct rkisp_buffer, queue);
 		list_del(&buf->queue);
-		vb2_buffer_done(&buf->vb.vb2_buf, VB2_BUF_STATE_DONE);
+
+		v4l2_dbg(2, rkisp_debug, &stream->ispdev->v4l2_dev,
+			 "stream:%d seq:%d buf:0x%x done\n",
+			 stream->id, buf->vb.sequence, buf->buff_addr[0]);
+		vb2_buffer_done(&buf->vb.vb2_buf,
+				stream->streaming ? VB2_BUF_STATE_DONE : VB2_BUF_STATE_ERROR);
 	}
 }
 
@@ -1682,6 +1745,13 @@ int rkisp_register_stream_vdevs(struct rkisp_device *dev)
 		st_cfg->max_rsz_width = CIF_ISP_INPUT_W_MAX_V32;
 		st_cfg->max_rsz_height = CIF_ISP_INPUT_H_MAX_V32;
 		ret = rkisp_register_stream_v32(dev);
+	} else if (dev->isp_ver == ISP_V32_L) {
+		st_cfg->max_rsz_width = CIF_ISP_INPUT_W_MAX_V32_L;
+		st_cfg->max_rsz_height = CIF_ISP_INPUT_H_MAX_V32_L;
+		st_cfg = &rkisp_sp_stream_config;
+		st_cfg->max_rsz_width = CIF_ISP_INPUT_W_MAX_V32_L;
+		st_cfg->max_rsz_height = CIF_ISP_INPUT_H_MAX_V32_L;
+		ret = rkisp_register_stream_v32(dev);
 	}
 
 	INIT_WORK(&cap_dev->fast_work, rkisp_stream_fast);
@@ -1698,7 +1768,7 @@ void rkisp_unregister_stream_vdevs(struct rkisp_device *dev)
 		rkisp_unregister_stream_v21(dev);
 	else if (dev->isp_ver == ISP_V30)
 		rkisp_unregister_stream_v30(dev);
-	else if (dev->isp_ver == ISP_V32)
+	else if (dev->isp_ver == ISP_V32 || dev->isp_ver == ISP_V32_L)
 		rkisp_unregister_stream_v32(dev);
 }
 
@@ -1712,6 +1782,6 @@ void rkisp_mi_isr(u32 mis_val, struct rkisp_device *dev)
 		rkisp_mi_v21_isr(mis_val, dev);
 	else if (dev->isp_ver == ISP_V30)
 		rkisp_mi_v30_isr(mis_val, dev);
-	else if (dev->isp_ver == ISP_V32)
+	else if (dev->isp_ver == ISP_V32 || dev->isp_ver == ISP_V32_L)
 		rkisp_mi_v32_isr(mis_val, dev);
 }

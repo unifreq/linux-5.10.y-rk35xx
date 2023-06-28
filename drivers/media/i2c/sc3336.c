@@ -1216,7 +1216,7 @@ static void __sc3336_power_off(struct sc3336 *sc3336)
 	regulator_bulk_disable(SC3336_NUM_SUPPLIES, sc3336->supplies);
 }
 
-static int sc3336_runtime_resume(struct device *dev)
+static int __maybe_unused sc3336_runtime_resume(struct device *dev)
 {
 	struct i2c_client *client = to_i2c_client(dev);
 	struct v4l2_subdev *sd = i2c_get_clientdata(client);
@@ -1225,7 +1225,7 @@ static int sc3336_runtime_resume(struct device *dev)
 	return __sc3336_power_on(sc3336);
 }
 
-static int sc3336_runtime_suspend(struct device *dev)
+static int __maybe_unused sc3336_runtime_suspend(struct device *dev)
 {
 	struct i2c_client *client = to_i2c_client(dev);
 	struct v4l2_subdev *sd = i2c_get_clientdata(client);
@@ -1582,11 +1582,17 @@ static int sc3336_probe(struct i2c_client *client,
 		return -EINVAL;
 	}
 
-	sc3336->reset_gpio = devm_gpiod_get(dev, "reset", GPIOD_ASIS);
+	if (!sc3336->is_thunderboot)
+		sc3336->reset_gpio = devm_gpiod_get(dev, "reset", GPIOD_OUT_LOW);
+	else
+		sc3336->reset_gpio = devm_gpiod_get(dev, "reset", GPIOD_ASIS);
 	if (IS_ERR(sc3336->reset_gpio))
 		dev_warn(dev, "Failed to get reset-gpios\n");
 
-	sc3336->pwdn_gpio = devm_gpiod_get(dev, "pwdn", GPIOD_ASIS);
+	if (!sc3336->is_thunderboot)
+		sc3336->pwdn_gpio = devm_gpiod_get(dev, "pwdn", GPIOD_OUT_LOW);
+	else
+		sc3336->pwdn_gpio = devm_gpiod_get(dev, "pwdn", GPIOD_ASIS);
 	if (IS_ERR(sc3336->pwdn_gpio))
 		dev_warn(dev, "Failed to get pwdn-gpios\n");
 

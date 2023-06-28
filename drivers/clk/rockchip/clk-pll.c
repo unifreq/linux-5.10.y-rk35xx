@@ -578,10 +578,12 @@ static int rockchip_rk3036_pll_set_params(struct rockchip_clk_pll *pll,
 	rockchip_rk3036_pll_get_params(pll, &cur);
 	cur.rate = 0;
 
-	cur_parent = pll_mux_ops->get_parent(&pll_mux->hw);
-	if (cur_parent == PLL_MODE_NORM) {
-		pll_mux_ops->set_parent(&pll_mux->hw, PLL_MODE_SLOW);
-		rate_change_remuxed = 1;
+	if (!(pll->flags & ROCKCHIP_PLL_FIXED_MODE)) {
+		cur_parent = pll_mux_ops->get_parent(&pll_mux->hw);
+		if (cur_parent == PLL_MODE_NORM) {
+			pll_mux_ops->set_parent(&pll_mux->hw, PLL_MODE_SLOW);
+			rate_change_remuxed = 1;
+		}
 	}
 
 	/* update pll values */
@@ -645,10 +647,14 @@ static int rockchip_rk3036_pll_set_rate(struct clk_hw *hw, unsigned long drate,
 static int rockchip_rk3036_pll_enable(struct clk_hw *hw)
 {
 	struct rockchip_clk_pll *pll = to_rockchip_clk_pll(hw);
+	const struct clk_ops *pll_mux_ops = pll->pll_mux_ops;
+	struct clk_mux *pll_mux = &pll->pll_mux;
 
 	writel(HIWORD_UPDATE(0, RK3036_PLLCON1_PWRDOWN, 0),
 	       pll->reg_base + RK3036_PLLCON(1));
 	rockchip_rk3036_pll_wait_lock(pll);
+
+	pll_mux_ops->set_parent(&pll_mux->hw, PLL_MODE_NORM);
 
 	return 0;
 }
@@ -656,6 +662,10 @@ static int rockchip_rk3036_pll_enable(struct clk_hw *hw)
 static void rockchip_rk3036_pll_disable(struct clk_hw *hw)
 {
 	struct rockchip_clk_pll *pll = to_rockchip_clk_pll(hw);
+	const struct clk_ops *pll_mux_ops = pll->pll_mux_ops;
+	struct clk_mux *pll_mux = &pll->pll_mux;
+
+	pll_mux_ops->set_parent(&pll_mux->hw, PLL_MODE_SLOW);
 
 	writel(HIWORD_UPDATE(RK3036_PLLCON1_PWRDOWN,
 			     RK3036_PLLCON1_PWRDOWN, 0),
@@ -1675,8 +1685,11 @@ struct clk *rockchip_clk_register_pll(struct rockchip_clk_provider *ctx,
 	init.name = pll_name;
 
 #ifndef CONFIG_ROCKCHIP_LOW_PERFORMANCE
-	/* keep all plls untouched for now */
-	init.flags = flags | CLK_IGNORE_UNUSED;
+	if (clk_pll_flags & ROCKCHIP_PLL_ALLOW_POWER_DOWN)
+		init.flags = flags;
+	else
+		/* keep all plls untouched for now */
+		init.flags = flags | CLK_IGNORE_UNUSED;
 #else
 	init.flags = flags;
 #endif

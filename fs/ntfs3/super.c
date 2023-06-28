@@ -538,7 +538,7 @@ static int ntfs_show_options(struct seq_file *m, struct dentry *root)
 	struct super_block *sb = root->d_sb;
 	struct ntfs_sb_info *sbi = sb->s_fs_info;
 	struct ntfs_mount_options *opts = &sbi->options;
-	struct user_namespace *user_ns = seq_user_ns(m);
+	//struct user_namespace *user_ns = seq_user_ns(m);
 
 	if (opts->uid)
 		seq_printf(m, ",uid=%u",

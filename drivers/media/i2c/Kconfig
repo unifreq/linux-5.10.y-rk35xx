@@ -511,6 +511,17 @@ config VIDEO_TC35874X
 	  To compile this driver as a module, choose M here: the
 	  module will be called tc35874x.
 
+config VIDEO_TECHPOINT
+	tristate "TechPoint decoder"
+	depends on I2C && VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
+	depends on MEDIA_CAMERA_SUPPORT
+	help
+	  Support for the TechPoint Multichannel digital decode to
+	  MIPI CSI-2 bridge.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called TechPoint.
+
 config VIDEO_THCV244
 	tristate "Thine THCV244 decoder"
 	depends on VIDEO_V4L2 && I2C
@@ -616,6 +627,17 @@ config VIDEO_MAX9286
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called max9286.
+
+config VIDEO_MAX96712
+	tristate "Maxim MAX96712 GMSL deserializer support"
+	depends on I2C && VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
+	depends on MEDIA_CAMERA_SUPPORT
+	select V4L2_FWNODE
+	help
+	  This driver supports the Maxim MAX96712 GMSL deserializer.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called max96712.
 
 config VIDEO_MAX96714
 	tristate "Maxim MAX96714 GMSL deserializer support"
@@ -1407,6 +1429,15 @@ config VIDEO_OV16A10
 	  This is a Video4Linux2 sensor driver for the OmniVision
 	  OV16A10 camera.
 
+config VIDEO_OV16A1Q
+	tristate "OmniVision OV16A1Q sensor support"
+	depends on I2C && VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
+	depends on MEDIA_CAMERA_SUPPORT
+	select V4L2_FWNODE
+	help
+	  This is a Video4Linux2 sensor driver for the OmniVision
+	  OV16A1Q camera.
+
 config VIDEO_OV2640
 	tristate "OmniVision OV2640 sensor support"
 	depends on VIDEO_V4L2 && I2C
@@ -2038,6 +2069,16 @@ config VIDEO_SC500AI
 	  This is a Video4Linux2 sensor driver for the SmartSens
 	  SC500AI camera.
 
+config VIDEO_SC501AI
+	tristate "SmartSens SC501AI sensor support"
+	depends on I2C && VIDEO_V4L2
+	select MEDIA_CONTROLLER
+	select VIDEO_V4L2_SUBDEV_API
+	select V4L2_FWNODE
+	help
+	  This is a Video4Linux2 sensor driver for the SmartSens
+	  SC501AI camera.
+
 config VIDEO_SC530AI
 	tristate "SmartSens SC530AI sensor support"
 	depends on I2C && VIDEO_V4L2
@@ -2047,6 +2088,16 @@ config VIDEO_SC530AI
 	help
 	  This is a Video4Linux2 sensor driver for the SmartSens
 	  SC530AI camera.
+
+config VIDEO_SC850SL
+	tristate "SmartSens SC850SL sensor support"
+	depends on I2C && VIDEO_V4L2
+	select MEDIA_CONTROLLER
+	select VIDEO_V4L2_SUBDEV_API
+	select V4L2_FWNODE
+	help
+	  This is a Video4Linux2 sensor driver for the SmartSens
+	  SC850SL camera.
 
 config VIDEO_SENSOR_ADAPTER
 	tristate "Rockchip sensor driver adapter"
@@ -2228,6 +2279,18 @@ config VIDEO_DW9714
 	help
 	  This is a driver for the DW9714 camera lens voice coil.
 	  DW9714 is a 10 bit DAC with 120mA output current sink
+	  capability. This is designed for linear control of
+	  voice coil motors, controlled via I2C serial interface.
+
+config VIDEO_DW9763
+	tristate "DW9763 lens voice coil support"
+	depends on I2C && VIDEO_V4L2
+	select MEDIA_CONTROLLER
+	select VIDEO_V4L2_SUBDEV_API
+	select V4L2_FWNODE
+	help
+	  This is a driver for the DW9763 camera lens voice coil.
+	  DW9763 is a 10 bit DAC with 120mA output current sink
 	  capability. This is designed for linear control of
 	  voice coil motors, controlled via I2C serial interface.
 

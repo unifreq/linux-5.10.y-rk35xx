@@ -75,6 +75,7 @@ struct rv1106_codec_priv {
 	struct regmap *grf;
 	struct clk *pclk_acodec;
 	struct clk *mclk_acodec;
+	struct clk *mclk_cpu;
 	struct gpio_desc *pa_ctl_gpio;
 	struct snd_soc_component *component;
 
@@ -1050,87 +1051,96 @@ static int rv1106_mute_stream(struct snd_soc_dai *dai, int mute, int stream)
 
 static int rv1106_codec_dac_enable(struct rv1106_codec_priv *rv1106)
 {
-	/* vendor step 1 */
+	/* Step 01 */
 	regmap_update_bits(rv1106->regmap, ACODEC_DAC_ANA_CTL0,
 			   ACODEC_DAC_IBIAS_MSK,
 			   ACODEC_DAC_IBIAS_EN);
-
 	udelay(20);
 
-	/* vendor step 2 */
+	/* Step 02 */
 	regmap_update_bits(rv1106->regmap, ACODEC_DAC_ANA_CTL0,
 			   ACODEC_DAC_L_REF_VOL_BUF_MSK,
 			   ACODEC_DAC_L_REF_VOL_BUF_EN);
-
 	/* Waiting the stable reference voltage */
-	mdelay(1);
+	usleep_range(1000, 2000);
 
-	/* vendor step 7 */
+	/* Step 03 */
 	regmap_update_bits(rv1106->regmap, ACODEC_DAC_ANA_CTL1,
 			   ACODEC_DAC_L_LINEOUT_MSK,
 			   ACODEC_DAC_L_LINEOUT_EN);
-
 	udelay(20);
 
-	/* vendor step 8 */
+	/* Step 04 */
 	regmap_update_bits(rv1106->regmap, ACODEC_DAC_ANA_CTL1,
 			   ACODEC_DAC_L_LINEOUT_SIGNAL_MSK,
 			   ACODEC_DAC_L_LINEOUT_SIGNAL_WORK);
-
 	udelay(20);
 
-	/* vendor step 11 */
+	/* Step 05 */
+	regmap_update_bits(rv1106->regmap, ACODEC_DAC_HPMIX_CTL,
+			   ACODEC_DAC_HPMIX_MSK,
+			   ACODEC_DAC_HPMIX_EN);
+	udelay(20);
+
+	/* Step 06 */
+	regmap_update_bits(rv1106->regmap, ACODEC_DAC_HPMIX_CTL,
+			   ACODEC_DAC_HPMIX_MDL_MSK,
+			   ACODEC_DAC_HPMIX_MDL_WORK);
+	udelay(20);
+
+	/* Step 07 */
+	regmap_update_bits(rv1106->regmap, ACODEC_DAC_HPMIX_CTL,
+			   ACODEC_DAC_HPMIX_SEL_MSK,
+			   ACODEC_DAC_HPMIX_I2S);
+	/* Waiting HPMIX be stable */
+	usleep_range(18000, 20000);
+
+	/* Step 08 */
 	regmap_update_bits(rv1106->regmap, ACODEC_DAC_ANA_CTL0,
 			   ACODEC_DAC_L_REF_VOL_MSK,
 			   ACODEC_DAC_L_REF_VOL_EN);
-
 	udelay(20);
 
-	/* vendor step 12 */
+	/* Step 09 */
 	regmap_update_bits(rv1106->regmap, ACODEC_DAC_ANA_CTL0,
 			   ACODEC_DAC_L_CLK_MSK,
 			   ACODEC_DAC_L_CLK_EN);
-
 	udelay(20);
 
-	/* vendor step 13 */
+	/* Step 10 */
 	regmap_update_bits(rv1106->regmap, ACODEC_DAC_ANA_CTL0,
 			   ACODEC_DAC_SRC_SIGNAL_MSK,
 			   ACODEC_DAC_SRC_SIGNAL_EN);
-
 	udelay(20);
 
-	/* vendor step 14 */
+	/* Step 11 */
 	regmap_update_bits(rv1106->regmap, ACODEC_DAC_ANA_CTL0,
 			   ACODEC_DAC_L_SIGNAL_MSK,
 			   ACODEC_DAC_L_SIGNAL_WORK);
-
 	udelay(20);
 
-	/* vendor step 15 */
+	/* Step 12 */
+	regmap_update_bits(rv1106->regmap, ACODEC_DAC_HPMIX_CTL,
+			   ACODEC_DAC_HPMIX_MUTE_MSK,
+			   ACODEC_DAC_HPMIX_WORK);
+	udelay(20);
+
+	/* Step 13 */
 	regmap_update_bits(rv1106->regmap, ACODEC_DAC_ANA_CTL1,
 			   ACODEC_DAC_L_LINEOUT_MUTE_MSK,
 			   ACODEC_DAC_L_LINEOUT_WORK);
 
-	udelay(20);
-
-	regmap_update_bits(rv1106->regmap, ACODEC_DAC_HPMIX_CTL,
-			   ACODEC_DAC_HPMIX_MSK |
-			   ACODEC_DAC_HPMIX_MDL_MSK |
-			   ACODEC_DAC_HPMIX_MUTE_MSK |
-			   ACODEC_DAC_HPMIX_SEL_MSK,
-			   ACODEC_DAC_HPMIX_EN |
-			   ACODEC_DAC_HPMIX_MDL_WORK |
-			   ACODEC_DAC_HPMIX_WORK |
-			   ACODEC_DAC_HPMIX_I2S);
+	/* Skip setting gains that Step 14/15 */
 
 	rv1106->dac_enable = true;
-
 	return 0;
 }
 
 static int rv1106_codec_dac_disable(struct rv1106_codec_priv *rv1106)
 {
+	/* Step 01 */
+	/* Skip cleaning the gain to GAIN_LINEOUTL */
+
 	/* Step 02 */
 	regmap_update_bits(rv1106->regmap, ACODEC_DAC_ANA_CTL1,
 			   ACODEC_DAC_L_LINEOUT_MUTE_MSK,
@@ -1169,20 +1179,17 @@ static int rv1106_codec_dac_disable(struct rv1106_codec_priv *rv1106)
 	regmap_update_bits(rv1106->regmap, ACODEC_DAC_ANA_CTL0,
 			   ACODEC_DAC_L_REF_VOL_MSK,
 			   ACODEC_DAC_L_REF_VOL_DIS);
-
-	/* Step 11, note: skip handing POP Sound */
-
-	/* Step 12 */
+	/* Step 11 */
 	regmap_update_bits(rv1106->regmap, ACODEC_DAC_ANA_CTL0,
 			   ACODEC_DAC_L_REF_VOL_BUF_MSK,
 			   ACODEC_DAC_L_REF_VOL_BUF_DIS);
 
-	/* Step 13 */
+	/* Step 12 */
 	regmap_update_bits(rv1106->regmap, ACODEC_DAC_ANA_CTL0,
 			   ACODEC_DAC_IBIAS_MSK,
 			   ACODEC_DAC_IBIAS_DIS);
 
-	/* Step 14 */
+	/* Step 13 */
 	regmap_update_bits(rv1106->regmap, ACODEC_DAC_ANA_CTL0,
 			   ACODEC_DAC_L_SIGNAL_MSK,
 			   ACODEC_DAC_L_SIGNAL_INIT);
@@ -1613,29 +1620,11 @@ static void rv1106_pcm_shutdown(struct snd_pcm_substream *substream,
 	regcache_sync(rv1106->regmap);
 }
 
-static int rv1106_set_sysclk(struct snd_soc_dai *dai, int clk_id,
-			     unsigned int freq, int dir)
-{
-	struct snd_soc_component *component = dai->component;
-	struct rv1106_codec_priv *rv1106 = snd_soc_component_get_drvdata(component);
-	int ret;
-
-	if (!freq)
-		return 0;
-
-	ret = clk_set_rate(rv1106->mclk_acodec, freq);
-	if (ret)
-		dev_err(&rv1106->dev, "Failed to set mclk %d\n", ret);
-
-	return ret;
-}
-
 static const struct snd_soc_dai_ops rv1106_dai_ops = {
 	.hw_params = rv1106_hw_params,
 	.set_fmt = rv1106_set_dai_fmt,
 	.mute_stream = rv1106_mute_stream,
 	.shutdown = rv1106_pcm_shutdown,
-	.set_sysclk = rv1106_set_sysclk,
 };
 
 static struct snd_soc_dai_driver rv1106_dai[] = {
@@ -2145,6 +2134,11 @@ static int rv1106_platform_probe(struct platform_device *pdev)
 		return dev_err_probe(&pdev->dev, PTR_ERR(rv1106->mclk_acodec),
 				    "Can't get acodec mclk_acodec\n");
 
+	rv1106->mclk_cpu = devm_clk_get(&pdev->dev, "mclk_cpu");
+	if (IS_ERR(rv1106->mclk_cpu))
+		return dev_err_probe(&pdev->dev, PTR_ERR(rv1106->mclk_cpu),
+				    "Can't get acodec mclk_cpu\n");
+
 	ret = rv1106_codec_sysfs_init(pdev, rv1106);
 	if (ret < 0)
 		return dev_err_probe(&pdev->dev, ret, "Sysfs init failed\n");
@@ -2170,6 +2164,15 @@ static int rv1106_platform_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "Failed to enable acodec mclk_acodec: %d\n", ret);
 		goto failed_1;
 	}
+
+	/**
+	 * In PERICRU_PERICLKSEL_CON08, the mclk_acodec_t/rx_div are div 4
+	 * by default, we need to calibrate once, make the div is 1 and keep
+	 * the rate of mclk_acodec is the same with mclk_i2s.
+	 *
+	 * FIXME: need to handle div dynamically if the DSMAUDIO is enabled.
+	 */
+	clk_set_rate(rv1106->mclk_acodec, clk_get_rate(rv1106->mclk_cpu));
 
 	rv1106_codec_check_micbias(rv1106, np);
 

@@ -353,7 +353,7 @@ static int lt8619c_get_detected_timings(struct v4l2_subdev *sd,
 	bt->pixelclock = pix_clk;
 
 	fps = 0;
-	if (htotal * vtotal)
+	if ((htotal * vtotal) != 0)
 		fps = (pix_clk + (htotal * vtotal) / 2) / (htotal * vtotal);
 
 	/* for interlaced res 1080i 576i 480i */
@@ -1223,8 +1223,7 @@ static int lt8619c_enum_frame_interval(struct v4l2_subdev *sd,
 	if (fie->index >= ARRAY_SIZE(supported_modes))
 		return -EINVAL;
 
-	if (fie->code != MEDIA_BUS_FMT_UYVY8_2X8)
-		return -EINVAL;
+	fie->code = MEDIA_BUS_FMT_UYVY8_2X8;
 
 	fie->width = supported_modes[fie->index].width;
 	fie->height = supported_modes[fie->index].height;

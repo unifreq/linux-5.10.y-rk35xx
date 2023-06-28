@@ -328,6 +328,9 @@ int kbase_device_misc_init(struct kbase_device * const kbdev)
 	kbdev->num_of_atoms_hw_completed = 0;
 #endif
 
+#if MALI_USE_CSF && IS_ENABLED(CONFIG_SYNC_FILE)
+	atomic_set(&kbdev->live_fence_metadata, 0);
+#endif
 	return 0;
 
 term_as:
@@ -351,6 +354,11 @@ void kbase_device_misc_term(struct kbase_device *kbdev)
 
 	if (kbdev->oom_notifier_block.notifier_call)
 		unregister_oom_notifier(&kbdev->oom_notifier_block);
+
+#if MALI_USE_CSF && IS_ENABLED(CONFIG_SYNC_FILE)
+	if (atomic_read(&kbdev->live_fence_metadata) > 0)
+		dev_warn(kbdev->dev, "Terminating Kbase device with live fence metadata!");
+#endif
 }
 
 #if !MALI_USE_CSF
@@ -441,7 +449,6 @@ void kbase_device_vinstr_term(struct kbase_device *kbdev)
 	kbase_vinstr_term(kbdev->vinstr_ctx);
 }
 
-#if defined(CONFIG_DEBUG_FS) && !IS_ENABLED(CONFIG_MALI_BIFROST_NO_MALI)
 int kbase_device_kinstr_prfcnt_init(struct kbase_device *kbdev)
 {
 	return kbase_kinstr_prfcnt_init(kbdev->hwcnt_gpu_virt,
@@ -453,6 +460,7 @@ void kbase_device_kinstr_prfcnt_term(struct kbase_device *kbdev)
 	kbase_kinstr_prfcnt_term(kbdev->kinstr_prfcnt_ctx);
 }
 
+#if defined(CONFIG_DEBUG_FS) && !IS_ENABLED(CONFIG_MALI_BIFROST_NO_MALI)
 int kbase_device_io_history_init(struct kbase_device *kbdev)
 {
 	return kbase_io_history_init(&kbdev->io_history,

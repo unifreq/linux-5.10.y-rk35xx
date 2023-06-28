@@ -1061,14 +1061,6 @@ isp_rawaf_config(struct rkisp_isp_params_vdev *params_vdev,
 				 ISP3X_RAWAF_SIZE_WINA + i * 8, id);
 	}
 
-	var = 0;
-	for (i = 0; i < ISP3X_RAWAF_LINE_NUM; i++) {
-		if (arg->line_en[i])
-			var |= ISP3X_RAWAF_INTLINE0_EN << i;
-		var |= ISP3X_RAWAF_INELINE0(arg->line_num[i]) << 4 * i;
-	}
-	isp3_param_write(params_vdev, var, ISP3X_RAWAF_INT_LINE, id);
-
 	var = isp3_param_read(params_vdev, ISP3X_RAWAF_THRES, id);
 	var &= ~0xFFFF;
 	var |= arg->afm_thres;
@@ -4016,6 +4008,7 @@ void __isp_isr_meas_config(struct rkisp_isp_params_vdev *params_vdev,
 		(struct rkisp_isp_params_ops_v3x *)params_vdev->priv_ops;
 	u64 module_cfg_update = new_params->module_cfg_update;
 
+	params_vdev->cur_frame_id = new_params->frame_id;
 	if (type == RKISP_PARAMS_SHD)
 		return;
 
@@ -4597,7 +4590,7 @@ rkisp_params_get_meshbuf_inf_v3x(struct rkisp_isp_params_vdev *params_vdev,
 	}
 }
 
-static void
+static int
 rkisp_params_set_meshbuf_size_v3x(struct rkisp_isp_params_vdev *params_vdev,
 				  void *size)
 {
@@ -4606,7 +4599,7 @@ rkisp_params_set_meshbuf_size_v3x(struct rkisp_isp_params_vdev *params_vdev,
 	if (!params_vdev->dev->hw_dev->is_unite)
 		meshsize->unite_isp_id = 0;
 	rkisp_deinit_mesh_buf(params_vdev, meshsize->module_id, meshsize->unite_isp_id);
-	rkisp_init_mesh_buf(params_vdev, meshsize);
+	return rkisp_init_mesh_buf(params_vdev, meshsize);
 }
 
 static void

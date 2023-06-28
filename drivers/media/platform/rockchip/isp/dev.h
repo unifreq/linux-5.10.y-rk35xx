@@ -227,7 +227,7 @@ struct rkisp_device {
 	struct rkisp_ispp_buf *cur_fbcgain;
 	struct rkisp_buffer *cur_spbuf;
 
-	struct tasklet_struct rdbk_tasklet;
+	struct work_struct rdbk_work;
 	struct kfifo rdbk_kfifo;
 	spinlock_t rdbk_lock;
 	int rdbk_cnt;
@@ -248,10 +248,12 @@ struct rkisp_device {
 	bool is_rdbk_auto;
 	bool is_pre_on;
 	bool is_first_double;
+	bool is_probe_end;
 
 	struct rkisp_vicap_input vicap_in;
 
 	u8 multi_mode;
 	u8 multi_index;
+	u8 rawaf_irq_cnt;
 };
 #endif

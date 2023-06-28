@@ -161,6 +161,7 @@ config SND_SOC_ALL_CODECS
 	imply SND_SOC_RK3228
 	imply SND_SOC_RK3308
 	imply SND_SOC_RK3328
+	imply SND_SOC_RK3528
 	imply SND_SOC_RK730
 	imply SND_SOC_RK817
 	imply SND_SOC_RT274
@@ -914,7 +915,6 @@ config SND_SOC_MAX98095
 
 config SND_SOC_MAX98357A
 	tristate "Maxim MAX98357A CODEC"
-	depends on GPIOLIB
 
 config SND_SOC_MAX98371
 	tristate
@@ -1102,6 +1102,10 @@ config SND_SOC_RK3328
 	tristate "Rockchip RK3328 audio CODEC"
 	select REGMAP_MMIO
 
+config SND_SOC_RK3528
+	tristate "Rockchip RK3528 audio CODEC"
+	select REGMAP_MMIO
+
 config SND_SOC_RK730
 	tristate "Rockchip RK730 CODEC"
 	select REGMAP_I2C
@@ -1113,6 +1117,9 @@ config SND_SOC_RK817
 
 config SND_SOC_RK_CODEC_DIGITAL
 	tristate "Rockchip Codec Digital Interface"
+
+config SND_SOC_RK_DSM
+	tristate "Rockchip Delta-sigma Digital Converter Interface"
 
 config SND_SOC_RL6231
 	tristate
@@ -1184,7 +1191,6 @@ config SND_SOC_RT1015
 
 config SND_SOC_RT1015P
 	tristate
-	depends on GPIOLIB
 
 config SND_SOC_RT1305
 	tristate
