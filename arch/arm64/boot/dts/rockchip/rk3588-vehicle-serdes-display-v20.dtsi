@@ -5,6 +5,14 @@
  */
 
 / {
+	lt7911d {
+		compatible = "lontium,lt7911d-fb-notifier";
+		reset-gpios = <&gpio0 RK_PD2 GPIO_ACTIVE_LOW>,
+			      <&gpio4 RK_PA7 GPIO_ACTIVE_LOW>,
+			      <&gpio3 RK_PD4 GPIO_ACTIVE_LOW>,
+			      <&gpio3 RK_PD2 GPIO_ACTIVE_LOW>;
+	};
+
 	dsi2lvds_backlight1: dsi2lvds_backlight1 {
 		compatible = "pwm-backlight";
 		brightness-levels = <
@@ -275,10 +283,6 @@
 	dp2lvds_panel0 {
 		compatible = "simple-panel";
 		backlight = <&dp2lvds_backlight0>;
-		prepare-delay-ms = <120>;
-		enable-delay-ms = <120>;
-		unprepare-delay-ms = <120>;
-		disable-delay-ms = <120>;
 		status = "okay";
 
 		panel-timing {
@@ -307,10 +311,6 @@
 	dp2lvds_panel1 {
 		compatible = "simple-panel";
 		backlight = <&dp2lvds_backlight1>;
-		prepare-delay-ms = <120>;
-		enable-delay-ms = <120>;
-		unprepare-delay-ms = <120>;
-		disable-delay-ms = <120>;
 		status = "okay";
 
 		panel-timing {
@@ -339,10 +339,6 @@
 	edp2lvds_panel0 {
 		compatible = "simple-panel";
 		backlight = <&edp2lvds_backlight0>;
-		prepare-delay-ms = <120>;
-		enable-delay-ms = <120>;
-		unprepare-delay-ms = <120>;
-		disable-delay-ms = <120>;
 		status = "okay";
 
 		panel-timing {
@@ -371,10 +367,6 @@
 	edp2lvds_panel1 {
 		compatible = "simple-panel";
 		backlight = <&edp2lvds_backlight1>;
-		prepare-delay-ms = <120>;
-		enable-delay-ms = <120>;
-		unprepare-delay-ms = <120>;
-		disable-delay-ms = <120>;
 		status = "okay";
 
 		panel-timing {
@@ -615,36 +607,6 @@
 	pinctrl-0 = <&bl5_enable_pin>;
 	enable-gpios = <&gpio1 RK_PA6 GPIO_ACTIVE_HIGH>;
 	status = "okay";
-};
-
-&gpio0 {
-	i2c5-serdes-reset {
-		gpio-hog;
-		gpios = <26 GPIO_ACTIVE_HIGH>;
-		output-high;
-	};
-};
-
-&gpio4 {
-	i2c7-serdes-reset {
-		gpio-hog;
-		gpios = <7 GPIO_ACTIVE_HIGH>;
-		output-high;
-	};
-};
-
-&gpio3 {
-	i2c4-serdes-reset {
-		gpio-hog;
-		gpios = <28 GPIO_ACTIVE_HIGH>;
-		output-high;
-	};
-
-	i2c8-serdes-reset {
-		gpio-hog;
-		gpios = <26 GPIO_ACTIVE_HIGH>;
-		output-high;
-	};
 };
 
 &hdmi0 {
@@ -894,8 +856,8 @@
 			0013 001a
 			0014 000a
 			0021 0008
-			0023 0003
-			0024 0003
+			0023 0009
+			0024 0009
 			002a 0018
 			002d 0018
 			0030 0018
@@ -1068,12 +1030,15 @@
 			0013 001a
 			0014 000a
 			0021 0008
-			0023 0003
-			0024 0003
+			0023 0009
+			0024 0009
 			002a 0018
+			002e 0004
 			002d 0018
-			0030 0018
+			0030 0000
 			0033 0018
+			027c 0041
+			027d 0041
 			0045 0080
 			0046 0007
 			004b 0038
@@ -1157,11 +1122,13 @@
 			001d 0008
 			001f 0002
 			0020 0002
+			0031 0041
+			0032 0041
 			0057 0000
 			0058 0002
 			005a 0000
 			005b 0003
-			005d 0000
+			005d 0008
 			005e 0004
 			0060 0000
 			0061 0005
@@ -1194,6 +1161,7 @@
 			0090 0001
 			0091 0003
 			0426 0080
+			042d 0004
 			/* RL82 Pattern Gen Set
 			 * Vertical Gray Scale Color Bar
 			 */
@@ -1226,6 +1194,17 @@
 				};
 			};
 		};
+	};
+
+	ilitek@41 {
+		compatible = "ilitek,ili251x";
+		reg = <0x41>;
+		interrupt-parent = <&gpio0>;
+		interrupts = <RK_PD1 IRQ_TYPE_LEVEL_LOW>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&touch_pin>;
+		reset-gpio = <&gpio0 RK_PD4 GPIO_ACTIVE_LOW>;
+		ilitek,name = "ilitek_i2c";
 	};
 };
 
@@ -1455,8 +1434,8 @@
 			0013 001a
 			0014 000a
 			0021 0008
-			0023 0003
-			0024 0003
+			0023 0009
+			0024 0009
 			002a 0018
 			002d 0018
 			0030 0018
@@ -1631,8 +1610,8 @@
 			0013 001a
 			0014 000a
 			0021 0008
-			0023 0003
-			0024 0003
+			0023 0009
+			0024 0009
 			002a 0018
 			002d 0018
 			0030 0018
@@ -1839,6 +1818,14 @@
 		ser1_rst_pin: ser1-rst-pin {
 			rockchip,pins = <1 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
+	};
+
+	touch {
+		touch_pin: touch-pin {
+			rockchip,pins =
+				<0 RK_PD1 RK_FUNC_GPIO &pcfg_pull_up>,  //INT
+				<0 RK_PD4 RK_FUNC_GPIO &pcfg_pull_up>;  //RST
+			};
 	};
 };
 

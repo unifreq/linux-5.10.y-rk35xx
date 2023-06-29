@@ -206,9 +206,6 @@ static dma_addr_t rga_iommu_dma_alloc_iova(struct iommu_domain *domain,
 	struct rga_iommu_dma_cookie *cookie = domain->iova_cookie;
 	struct iova_domain *iovad = &cookie->iovad;
 	unsigned long shift, iova_len, iova = 0;
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 0))
-	dma_addr_t limit;
-#endif
 
 	shift = iova_shift(iovad);
 	iova_len = size >> shift;
@@ -231,12 +228,13 @@ static dma_addr_t rga_iommu_dma_alloc_iova(struct iommu_domain *domain,
 	if (domain->geometry.force_aperture)
 		dma_limit = min(dma_limit, (u64)domain->geometry.aperture_end);
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0))
-	iova = alloc_iova_fast(iovad, iova_len, dma_limit >> shift, true);
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(4, 19, 111) && \
+     LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 0))
+	iova = alloc_iova_fast(iovad, iova_len,
+			       min_t(dma_addr_t, dma_limit >> shift, iovad->end_pfn),
+			       true);
 #else
-	limit = min_t(dma_addr_t, dma_limit >> shift, iovad->end_pfn);
-
-	iova = alloc_iova_fast(iovad, iova_len, limit, true);
+	iova = alloc_iova_fast(iovad, iova_len, dma_limit >> shift, true);
 #endif
 
 	return (dma_addr_t)iova << shift;
@@ -430,15 +428,15 @@ int rga_dma_map_buf(struct dma_buf *dma_buf, struct rga_dma_buffer *rga_dma_buff
 
 	attach = dma_buf_attach(dma_buf, rga_dev);
 	if (IS_ERR(attach)) {
-		pr_err("Failed to attach dma_buf\n");
-		ret = -EINVAL;
+		ret = PTR_ERR(attach);
+		pr_err("Failed to attach dma_buf, ret[%d]\n", ret);
 		goto err_get_attach;
 	}
 
 	sgt = dma_buf_map_attachment(attach, dir);
 	if (IS_ERR(sgt)) {
-		pr_err("Failed to map attachment\n");
-		ret = -EINVAL;
+		ret = PTR_ERR(sgt);
+		pr_err("Failed to map attachment, ret[%d]\n", ret);
 		goto err_get_sgt;
 	}
 
@@ -474,22 +472,22 @@ int rga_dma_map_fd(int fd, struct rga_dma_buffer *rga_dma_buffer,
 
 	dma_buf = dma_buf_get(fd);
 	if (IS_ERR(dma_buf)) {
-		pr_err("Fail to get dma_buf from fd[%d]\n", fd);
-		ret = -EINVAL;
+		ret = PTR_ERR(dma_buf);
+		pr_err("Fail to get dma_buf from fd[%d], ret[%d]\n", fd, ret);
 		return ret;
 	}
 
 	attach = dma_buf_attach(dma_buf, rga_dev);
 	if (IS_ERR(attach)) {
-		pr_err("Failed to attach dma_buf\n");
-		ret = -EINVAL;
+		ret = PTR_ERR(attach);
+		pr_err("Failed to attach dma_buf, ret[%d]\n", ret);
 		goto err_get_attach;
 	}
 
 	sgt = dma_buf_map_attachment(attach, dir);
 	if (IS_ERR(sgt)) {
-		pr_err("Failed to map attachment\n");
-		ret = -EINVAL;
+		ret = PTR_ERR(sgt);
+		pr_err("Failed to map attachment, ret[%d]\n", ret);
 		goto err_get_sgt;
 	}
 

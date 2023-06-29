@@ -11,6 +11,15 @@ config RK803
 	help
 	  Driver for RK803 which is used for driving porjector and IR flood LED.
 
+source "drivers/misc/rockchip/Kconfig"
+
+config LT7911D_FB_NOTIFIER
+	tristate "Lontium LT7911D FB Notifier"
+	depends on FB
+	help
+	   Enable this configuration option to enable the FB notifier driver
+	   for Lontium LT7911D.
+
 config SENSORS_LIS3LV02D
 	tristate
 	depends on INPUT

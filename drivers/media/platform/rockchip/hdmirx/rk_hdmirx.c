@@ -72,6 +72,8 @@ MODULE_PARM_DESC(debug, "debug level (0-3)");
 #define WAIT_PHY_REG_TIME		50
 #define WAIT_TIMER_LOCK_TIME		50
 #define WAIT_SIGNAL_LOCK_TIME		600 /* if 5V present: 7ms each time */
+#define NO_LOCK_CFG_RETRY_TIME		300
+#define WAIT_LOCK_STABLE_TIME		20
 #define WAIT_AVI_PKT_TIME		300
 
 #define is_validfs(x) (x == 32000 || \
@@ -266,6 +268,7 @@ static void hdmirx_audio_interrupts_setup(struct rk_hdmirx_dev *hdmirx_dev, bool
 static int hdmirx_set_cpu_limit_freq(struct rk_hdmirx_dev *hdmirx_dev);
 static void hdmirx_cancel_cpu_limit_freq(struct rk_hdmirx_dev *hdmirx_dev);
 static void hdmirx_plugout(struct rk_hdmirx_dev *hdmirx_dev);
+static void process_signal_change(struct rk_hdmirx_dev *hdmirx_dev);
 
 static u8 edid_init_data_340M[] = {
 	0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00,
@@ -770,8 +773,6 @@ static void hdmirx_get_timings(struct rk_hdmirx_dev *hdmirx_dev,
 		hact = (hact * 24) / hdmirx_dev->color_depth;
 
 	fps = (bt->pixelclock + (htotal * vtotal) / 2) / (htotal * vtotal);
-	if (hdmirx_dev->pix_fmt == HDMIRX_YUV420)
-		fps *= 2;
 	bt->width = hact;
 	bt->height = vact;
 	bt->hfrontporch = hfp;
@@ -782,10 +783,18 @@ static void hdmirx_get_timings(struct rk_hdmirx_dev *hdmirx_dev,
 	bt->vbackporch = vbp;
 	hdmirx_dev->fps = fps;
 
+	if (bt->interlaced == V4L2_DV_INTERLACED) {
+		bt->height *= 2;
+		bt->il_vfrontporch = bt->vfrontporch;
+		bt->il_vsync = bt->vsync + 1;
+		bt->il_vbackporch = bt->vbackporch;
+	}
+
 	v4l2_dbg(1, debug, v4l2_dev, "get timings from %s\n", from_dma ? "dma" : "ctrl");
 	v4l2_dbg(1, debug, v4l2_dev,
-		 "act:%ux%u, total:%ux%u, fps:%u, pixclk:%llu\n",
-		 bt->width, bt->height, htotal, vtotal, fps, bt->pixelclock);
+		 "act:%ux%u%s, total:%ux%u, fps:%u, pixclk:%llu\n",
+		 bt->width, bt->height, bt->interlaced ? "i" : "p",
+		 htotal, vtotal, fps, bt->pixelclock);
 
 	v4l2_dbg(2, debug, v4l2_dev,
 		 "hfp:%u, hs:%u, hbp:%u, vfp:%u, vs:%u, vbp:%u\n",
@@ -846,12 +855,9 @@ static int hdmirx_get_detected_timings(struct rk_hdmirx_dev *hdmirx_dev,
 	do_div(tmp_data, color_depth);
 	pix_clk = tmp_data;
 	bt->pixelclock = tmds_clk;
-
+	if (hdmirx_dev->pix_fmt == HDMIRX_YUV420)
+		bt->pixelclock *= 2;
 	hdmirx_get_timings(hdmirx_dev, bt, from_dma);
-	if (bt->interlaced == V4L2_DV_INTERLACED) {
-		bt->height *= 2;
-		bt->il_vsync = bt->vsync + 1;
-	}
 
 	v4l2_dbg(2, debug, v4l2_dev, "tmds_clk:%llu, pix_clk:%d\n", tmds_clk, pix_clk);
 	v4l2_dbg(1, debug, v4l2_dev, "interlace:%d, fmt:%d, vic:%d, color:%d, mode:%s\n",
@@ -898,8 +904,10 @@ static int hdmirx_try_to_get_timings(struct rk_hdmirx_dev *hdmirx_dev,
 		usleep_range(10*1000, 10*1100);
 	}
 
-	if (try_cnt > 8 && cnt < 8)
+	if (try_cnt > 8 && cnt < 8) {
 		v4l2_dbg(1, debug, v4l2_dev, "%s: res not stable!\n", __func__);
+		ret = -EINVAL;
+	}
 
 	return ret;
 }
@@ -1473,11 +1481,11 @@ static void hdmirx_set_ddr_store_fmt(struct rk_hdmirx_dev *hdmirx_dev)
 
 static int hdmirx_wait_lock_and_get_timing(struct rk_hdmirx_dev *hdmirx_dev)
 {
-	u32 i;
+	u32 i, j = 0;
 	u32 mu_status, scdc_status, dma_st10, cmu_st;
 	struct v4l2_device *v4l2_dev = &hdmirx_dev->v4l2_dev;
 
-	for (i = 0; i < WAIT_SIGNAL_LOCK_TIME; i++) {
+	for (i = 1; i < WAIT_SIGNAL_LOCK_TIME; i++) {
 		mu_status = hdmirx_readl(hdmirx_dev, MAINUNIT_STATUS);
 		scdc_status = hdmirx_readl(hdmirx_dev, SCDC_REGBANK_STATUS3);
 		dma_st10 = hdmirx_readl(hdmirx_dev, DMA_STATUS10);
@@ -1486,7 +1494,15 @@ static int hdmirx_wait_lock_and_get_timing(struct rk_hdmirx_dev *hdmirx_dev)
 		if ((mu_status & TMDSVALID_STABLE_ST) &&
 				(dma_st10 & HDMIRX_LOCK) &&
 				(cmu_st & TMDSQPCLK_LOCKED_ST))
+			j++;
+		else
+			j = 0;
+
+		if (j > WAIT_LOCK_STABLE_TIME)
 			break;
+
+		if (i % NO_LOCK_CFG_RETRY_TIME == 0)
+			hdmirx_phy_config(hdmirx_dev);
 
 		if (!tx_5v_power_present(hdmirx_dev)) {
 			v4l2_err(v4l2_dev, "%s HDMI pull out, return!\n", __func__);
@@ -2019,6 +2035,12 @@ static int hdmirx_start_streaming(struct vb2_queue *queue, unsigned int count)
 
 	if (!hdmirx_dev->get_timing) {
 		v4l2_err(v4l2_dev, "Err, timing is invalid\n");
+		return 0;
+	}
+
+	if (signal_not_lock(hdmirx_dev)) {
+		v4l2_err(v4l2_dev, "%s: signal is not locked, retry!\n", __func__);
+		process_signal_change(hdmirx_dev);
 		return 0;
 	}
 
@@ -2722,7 +2744,7 @@ static void hdmirx_interrupts_setup(struct rk_hdmirx_dev *hdmirx_dev, bool en)
 	v4l2_dbg(1, debug, &hdmirx_dev->v4l2_dev, "%s: %sable\n",
 			__func__, en ? "en" : "dis");
 
-	if (en && bt->pixelclock > 590000000) {
+	if (en && bt->pixelclock > 590000000 && hdmirx_dev->pix_fmt != HDMIRX_YUV420) {
 		hdmirx_update_bits(hdmirx_dev, VMON_CONTROL,
 				   VMON_IRQ_THR_MASK, VMON_IRQ_THR_MASK);
 		hdmirx_update_bits(hdmirx_dev, VMON_CONTROL2,
@@ -3269,6 +3291,14 @@ static irqreturn_t hdmirx_5v_det_irq_handler(int irq, void *dev_id)
 {
 	struct rk_hdmirx_dev *hdmirx_dev = dev_id;
 	u32 val;
+	u32 dma_cfg6;
+
+	dma_cfg6 = hdmirx_readl(hdmirx_dev, DMA_CONFIG6);
+	if (dma_cfg6 & HDMIRX_DMA_EN) {
+		hdmirx_update_bits(hdmirx_dev, MAINUNIT_2_INT_MASK_N,
+				   TMDSVALID_STABLE_CHG, TMDSVALID_STABLE_CHG);
+		hdmirx_writel(hdmirx_dev, MAINUNIT_2_INT_FORCE, TMDSVALID_STABLE_CHG);
+	}
 
 	val = gpiod_get_value(hdmirx_dev->hdmirx_det_gpio);
 	v4l2_dbg(3, debug, &hdmirx_dev->v4l2_dev, "%s: 5v:%d\n", __func__, val);
@@ -3949,13 +3979,15 @@ static int hdmirx_status_show(struct seq_file *s, void *v)
 	seq_puts(s, "\n");
 
 	htot = bt->width + bt->hfrontporch + bt->hsync + bt->hbackporch;
-	vtot = bt->height + bt->vfrontporch + bt->vsync + bt->vbackporch;
-	if (bt->interlaced)
+	if (bt->interlaced) {
+		vtot = bt->height + bt->vfrontporch + bt->vsync + bt->vbackporch +
+		       bt->il_vfrontporch + bt->il_vsync + bt->il_vbackporch;
 		vtot /= 2;
+	} else {
+		vtot = bt->height + bt->vfrontporch + bt->vsync + bt->vbackporch;
+	}
 
 	fps = (bt->pixelclock + (htot * vtot) / 2) / (htot * vtot);
-	if (hdmirx_dev->pix_fmt == HDMIRX_YUV420)
-		fps *= 2;
 
 	seq_puts(s, "Color Format: ");
 	if (hdmirx_dev->pix_fmt == HDMIRX_RGB888)
@@ -4002,6 +4034,10 @@ static int hdmirx_status_show(struct seq_file *s, void *v)
 		   bt->vfrontporch, bt->vsync, bt->vbackporch);
 	seq_printf(s, "Pixel Clk: %llu\n", bt->pixelclock);
 	seq_printf(s, "Mode: %s\n", hdmirx_dev->is_dvi_mode ? "DVI" : "HDMI");
+
+	hdmirx_get_colordepth(hdmirx_dev);
+	seq_printf(s, "Color Depth: %u bit", hdmirx_dev->color_depth / 3);
+	seq_puts(s, "\n");
 
 	hdmirx_get_color_range(hdmirx_dev);
 	seq_puts(s, "Color Range: ");
@@ -4140,6 +4176,9 @@ static int hdmirx_probe(struct platform_device *pdev)
 			__func__, cpu_aff,
 			hdmirx_dev->bound_cpu,
 			hdmirx_dev->wdt_cfg_bound_cpu);
+	if (hdmirx_dev->bound_cpu != 4)
+		dev_err(dev, "%s: Bound_cpu:%d, expect bound cpu 4!\n",
+			__func__, hdmirx_dev->bound_cpu);
 	cpu_latency_qos_add_request(&hdmirx_dev->pm_qos, PM_QOS_DEFAULT_VALUE);
 
 	mutex_init(&hdmirx_dev->stream_lock);
@@ -4291,7 +4330,7 @@ static int hdmirx_probe(struct platform_device *pdev)
 		hdmirx_dev->cec_notifier = cec_notifier_conn_register(dev, NULL, NULL);
 		if (!hdmirx_dev->cec_notifier) {
 			ret = -ENOMEM;
-			goto err_hdl;
+			goto err_unreg_video_dev;
 		}
 
 		irq = platform_get_irq_byname(pdev, "cec");
@@ -4299,7 +4338,7 @@ static int hdmirx_probe(struct platform_device *pdev)
 			dev_err(dev, "get hdmi cec irq failed!\n");
 			cec_notifier_conn_unregister(hdmirx_dev->cec_notifier);
 			ret = irq;
-			goto err_hdl;
+			goto err_unreg_video_dev;
 		}
 		cpumask_clear(&cpumask);
 		cpumask_set_cpu(hdmirx_dev->bound_cpu, &cpumask);

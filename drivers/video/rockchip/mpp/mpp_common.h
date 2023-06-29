@@ -58,7 +58,7 @@ enum MPP_DEVICE_TYPE {
 	MPP_DEVICE_HEVC_DEC	= 8, /* 0x00000100 */
 	MPP_DEVICE_RKVDEC	= 9, /* 0x00000200 */
 	MPP_DEVICE_AVSPLUS_DEC	= 12, /* 0x00001000 */
-	MPP_DEVICE_JPGDEC	= 13, /* 0x00002000 */
+	MPP_DEVICE_RKJPEGD	= 13, /* 0x00002000 */
 
 	MPP_DEVICE_RKVENC	= 16, /* 0x00010000 */
 	MPP_DEVICE_VEPU1	= 17, /* 0x00020000 */
@@ -692,6 +692,8 @@ void mpp_free_task(struct kref *ref);
 void mpp_session_deinit(struct mpp_session *session);
 void mpp_session_cleanup_detach(struct mpp_taskqueue *queue,
 				struct kthread_work *work);
+
+int mpp_taskqueue_pending_to_run(struct mpp_taskqueue *queue, struct mpp_task *task);
 
 int mpp_dev_probe(struct mpp_dev *mpp,
 		  struct platform_device *pdev);

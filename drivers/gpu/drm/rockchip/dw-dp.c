@@ -2194,13 +2194,29 @@ static int dw_dp_video_set_pixel_mode(struct dw_dp *dp, u8 pixel_mode)
 	return 0;
 }
 
+static bool dw_dp_video_need_vsc_sdp(struct dw_dp *dp)
+{
+	struct dw_dp_link *link = &dp->link;
+	struct dw_dp_video *video = &dp->video;
+
+	if (!link->vsc_sdp_extension_for_colorimetry_supported)
+		return false;
+
+	if (video->color_format == DRM_COLOR_FORMAT_YCRCB420)
+		return true;
+
+	if (dw_dp_is_hdr_eotf(dp->eotf_type))
+		return true;
+
+	return false;
+}
+
 static int dw_dp_video_set_msa(struct dw_dp *dp, u8 color_format, u8 bpc,
 			       u16 vstart, u16 hstart)
 {
-	struct dw_dp_link *link = &dp->link;
 	u16 misc = 0;
 
-	if (link->vsc_sdp_extension_for_colorimetry_supported)
+	if (dw_dp_video_need_vsc_sdp(dp))
 		misc |= DP_MSA_MISC_COLOR_VSC_SDP;
 
 	switch (color_format) {
@@ -2417,7 +2433,7 @@ static int dw_dp_video_enable(struct dw_dp *dp)
 	regmap_update_bits(dp->regmap, DPTX_VSAMPLE_CTRL, VIDEO_STREAM_ENABLE,
 			   FIELD_PREP(VIDEO_STREAM_ENABLE, 1));
 
-	if (link->vsc_sdp_extension_for_colorimetry_supported)
+	if (dw_dp_video_need_vsc_sdp(dp))
 		dw_dp_send_vsc_sdp(dp);
 
 	if (dw_dp_is_hdr_eotf(dp->eotf_type))
@@ -2654,7 +2670,7 @@ static ssize_t dw_dp_aux_transfer(struct drm_dp_aux *aux,
 				  struct drm_dp_aux_msg *msg)
 {
 	struct dw_dp *dp = container_of(aux, struct dw_dp, aux);
-	unsigned long timeout = msecs_to_jiffies(250);
+	unsigned long timeout = msecs_to_jiffies(10);
 	u32 status, value;
 	ssize_t ret = 0;
 
@@ -2686,7 +2702,7 @@ static ssize_t dw_dp_aux_transfer(struct drm_dp_aux *aux,
 
 	status = wait_for_completion_timeout(&dp->complete, timeout);
 	if (!status) {
-		dev_err(dp->dev, "timeout waiting for AUX reply\n");
+		dev_dbg(dp->dev, "timeout waiting for AUX reply\n");
 		return -ETIMEDOUT;
 	}
 
@@ -3129,22 +3145,33 @@ static void dw_dp_bridge_atomic_disable(struct drm_bridge *bridge,
 
 static bool dw_dp_detect_dpcd(struct dw_dp *dp)
 {
+	u8 value;
 	int ret;
 
 	ret = phy_power_on(dp->phy);
 	if (ret)
-		return false;
+		goto fail_power_on;
+
+	ret = drm_dp_dpcd_readb(&dp->aux, DP_DPCD_REV, &value);
+	if (ret < 0) {
+		dev_err(dp->dev, "aux failed to read dpcd: %d\n", ret);
+		goto fail_probe;
+	}
 
 	ret = dw_dp_link_probe(dp);
 	if (ret) {
-		phy_power_off(dp->phy);
 		dev_err(dp->dev, "failed to probe DP link: %d\n", ret);
-		return false;
+		goto fail_probe;
 	}
 
 	phy_power_off(dp->phy);
 
 	return true;
+
+fail_probe:
+	phy_power_off(dp->phy);
+fail_power_on:
+	return false;
 }
 
 static enum drm_connector_status dw_dp_bridge_detect(struct drm_bridge *bridge)
