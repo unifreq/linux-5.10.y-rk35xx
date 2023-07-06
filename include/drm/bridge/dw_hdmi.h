@@ -340,5 +340,7 @@ int dw_hdmi_qp_get_output_type_cap(struct dw_hdmi_qp *hdmi);
 void dw_hdmi_set_hpd_wake(struct dw_hdmi *hdmi);
 void dw_hdmi_cec_wake_ops_register(struct dw_hdmi *hdmi,
 				   const struct dw_hdmi_cec_wake_ops *cec_ops);
+bool dw_hdmi_resolution_within_custom_limit(struct dw_hdmi *dw_hdmi,
+					    unsigned int hdisplay, unsigned int vdisplay);
 
 #endif /* __IMX_HDMI_H__ */

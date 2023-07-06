@@ -330,6 +330,9 @@ struct dw_hdmi {
 	bool logo_plug_out;		/* hdmi is plug out when kernel logo */
 	bool update;
 	bool hdr2sdr;			/* from hdr to sdr */
+
+	unsigned int preset_max_hdisplay;
+	unsigned int preset_max_vdisplay;
 };
 
 #define HDMI_IH_PHY_STAT0_RX_SENSE \
@@ -3080,6 +3083,14 @@ dw_hdmi_update_hdr_property(struct drm_connector *connector)
 	return ret;
 }
 
+bool dw_hdmi_resolution_within_custom_limit(struct dw_hdmi *dw_hdmi,
+					    unsigned int hdisplay, unsigned int vdisplay)
+{
+	return !dw_hdmi->preset_max_hdisplay ||
+	       !dw_hdmi->preset_max_vdisplay ||
+	       hdisplay * vdisplay <= dw_hdmi->preset_max_hdisplay * dw_hdmi->preset_max_vdisplay;
+}
+
 static int dw_hdmi_connector_get_modes(struct drm_connector *connector)
 {
 	struct dw_hdmi *hdmi = container_of(connector, struct dw_hdmi,
@@ -3091,6 +3102,7 @@ static int dw_hdmi_connector_get_modes(struct drm_connector *connector)
 	struct drm_display_info *info = &connector->display_info;
 	void *data = hdmi->plat_data->phy_data;
 	int i,  ret = 0;
+	struct drm_display_mode *preferred_mode = NULL;
 
 	memset(metedata, 0, sizeof(*metedata));
 	edid = dw_hdmi_get_edid(hdmi, connector);
@@ -3142,6 +3154,26 @@ static int dw_hdmi_connector_get_modes(struct drm_connector *connector)
 	}
 	dw_hdmi_update_hdr_property(connector);
 	dw_hdmi_check_output_type_changed(hdmi);
+
+	if ((hdmi->preset_max_hdisplay) && (hdmi->preset_max_vdisplay)) {
+		list_for_each_entry(mode, &connector->probed_modes, head) {
+			if (mode->hdisplay == hdmi->preset_max_hdisplay &&
+				mode->vdisplay == hdmi->preset_max_vdisplay) {
+				preferred_mode?:(preferred_mode = mode);
+				if(!(mode->flags & DRM_MODE_FLAG_INTERLACE)) {
+					if((preferred_mode->flags & DRM_MODE_FLAG_INTERLACE) || (
+					   drm_mode_vrefresh(mode) >
+					   drm_mode_vrefresh(preferred_mode) &&
+					   drm_mode_vrefresh(mode) <= 60)) {
+						preferred_mode = mode;
+					}
+				}
+			}
+		}
+
+		if (preferred_mode)
+			preferred_mode->type |= DRM_MODE_TYPE_PREFERRED;
+	}
 
 	return ret;
 }
@@ -4747,6 +4779,9 @@ struct dw_hdmi *dw_hdmi_probe(struct platform_device *pdev,
 	mutex_init(&hdmi->audio_mutex);
 	mutex_init(&hdmi->cec_notifier_mutex);
 	spin_lock_init(&hdmi->audio_lock);
+
+	of_property_read_u32(np, "preset_max_hdisplay", &hdmi->preset_max_hdisplay);
+	of_property_read_u32(np, "preset_max_vdisplay", &hdmi->preset_max_vdisplay);
 
 	ddc_node = of_parse_phandle(np, "ddc-i2c-bus", 0);
 	if (ddc_node) {
