@@ -1616,6 +1616,9 @@ dw_hdmi_rockchip_mode_valid(struct dw_hdmi *dw_hdmi, void *data,
 
 	hdmi = to_rockchip_hdmi(encoder);
 
+	if (!dw_hdmi_resolution_within_custom_limit(dw_hdmi, mode->hdisplay, mode->vdisplay))
+		return MODE_BAD;
+
 	/*
 	 * If sink max TMDS clock < 340MHz, we should check the mode pixel
 	 * clock > 340MHz is YCbCr420 or not and whether the platform supports
