@@ -13,10 +13,11 @@
 #include <dt-bindings/input/rk-input.h>
 #include <dt-bindings/display/drm_mipi_dsi.h>
 #include <dt-bindings/sensor-dev.h>
+#include <dt-bindings/leds/common.h>
 #include "rk3566.dtsi"
 
 / {
-	compatible = "radxa,rock-3-compute-module", "rockchip,rk3566";
+	compatible = "radxa,rock-3-compute-module-sodimm", "rockchip,rk3566";
 
 	fiq_debugger: fiq-debugger {
 		compatible = "rockchip,fiq-debugger";
@@ -107,30 +108,14 @@
 		reset-gpios = <&gpio2 RK_PB7 GPIO_ACTIVE_LOW>;		//WIFI_REG_ON_H
 	};
 
-	bt_uart1: wireless_bluetooth: wireless-bluetooth {
-		compatible = "bluetooth-platdata";
-		clocks = <&rk817 1>;
-		clock-names = "ext_clock";
-		//wifi-bt-power-toggle;
-		uart_rts_gpios = <&gpio2 RK_PB5 GPIO_ACTIVE_LOW>;
-		pinctrl-names = "default", "rts_gpio";
-		pinctrl-0 = <&uart1m0_rtsn>;
-		pinctrl-1 = <&uart1_gpios>;
-		BT,reset_gpio    = <&gpio2 RK_PC0 GPIO_ACTIVE_HIGH>;    //BT_REG_ON_H
-		BT,wake_gpio     = <&gpio2 RK_PB2 GPIO_ACTIVE_HIGH>;    //HOST_WAKE_BT_H
-		BT,wake_host_irq = <&gpio2 RK_PB1 GPIO_ACTIVE_HIGH>;    //BT_WAKE_HOST_H
-		status = "okay";
-	};
-
 	gpio_leds: gpio-leds {
 		compatible = "gpio-leds";
 		status = "okay";
 
-		user-led {
-			gpios = <&gpio0 6 GPIO_ACTIVE_HIGH>;
+		sodimm-led {
+			gpios = <&gpio0 RK_PA6 GPIO_ACTIVE_HIGH>;
+			pinctrl-0 = <&sodimm_led>;
 			linux,default-trigger = "heartbeat";
-			default-state = "on";
-			pinctrl-0 = <&user_led_set>;
 		};
 	};
 };
@@ -437,38 +422,6 @@
 			};
 		};
 
-		battery {
-			compatible = "rk817,battery";
-			ocv_table = <3400 3513 3578 3687 3734 3752 3763
-				     3766 3771 3784 3804 3836 3885 3925
-				     3962 4005 4063 4114 4169 4227 4303>;
-			design_capacity = <5000>;
-			design_qmax = <5500>;
-			bat_res = <100>;
-			sleep_enter_current = <150>;
-			sleep_exit_current = <180>;
-			sleep_filter_current = <100>;
-			power_off_thresd = <3350>;
-			zero_algorithm_vol = <3850>;
-			max_soc_offset = <60>;
-			monitor_sec = <5>;
-			sample_res = <10>;
-			virtual_power = <0>;
-		};
-
-		charger {
-			compatible = "rk817,charger";
-			min_input_voltage = <4500>;
-			max_input_current = <1500>;
-			max_chrg_current = <2000>;
-			max_chrg_voltage = <4300>;
-			chrg_term_mode = <0>;
-			chrg_finish_cur = <300>;
-			virtual_power = <0>;
-			dc_det_adc = <0>;
-			extcon = <&usb2phy0>;
-		};
-
 		rk817_codec: codec {
 			#sound-dai-cells = <0>;
 			compatible = "rockchip,rk817-codec";
@@ -483,7 +436,7 @@
 			spk-volume = <3>;
 			out-l2spk-r2hp;
 			//spk-ctl-gpios = <&gpio0 RK_PA6 GPIO_ACTIVE_HIGH>;
-			status = "okay";
+			status = "disabled";
 		};
 	};
 };
@@ -589,35 +542,21 @@
 &uart1 {
 	status = "okay";
 	pinctrl-names = "default";
-	pinctrl-0 = <&uart1m0_xfer &uart1m0_ctsn>;
-};
+	pinctrl-0 = <&uart1m0_xfer &uart1m0_ctsn &uart1m0_rtsn>;
 
-&gmac1 {
-	phy-mode = "rgmii";
-	clock_in_out = "input";
-
-	snps,reset-gpio = <&gpio4 RK_PC2 GPIO_ACTIVE_LOW>;
-	snps,reset-active-low;
-	/* Reset time is 20ms, 100ms for rtl8211f */
-	snps,reset-delays-us = <0 20000 100000>;
-
-	assigned-clocks = <&cru SCLK_GMAC1_RX_TX>, <&cru SCLK_GMAC1>;
-	assigned-clock-parents = <&cru SCLK_GMAC1_RGMII_SPEED>, <&gmac1_clkin>;
-	assigned-clock-rates = <0>, <125000000>;
-
-	pinctrl-names = "default";
-	pinctrl-0 = <&gmac1m0_miim
-			 &gmac1m0_tx_bus2
-			 &gmac1m0_rx_bus2
-			 &gmac1m0_rgmii_clk
-			 &gmac1m0_rgmii_bus
-			 &gmac1m0_clkinout>;
-
-	tx_delay = <0x46>;
-	rx_delay = <0x2e>;
-
-	phy-handle = <&rgmii_phy1>;
-	status = "okay";
+	bluetooth {
+		compatible = "brcm,bcm43438-bt";
+		clocks = <&rk817 1>;
+		clock-names = "lpo";
+		device-wakeup-gpios = <&gpio2 RK_PB2 GPIO_ACTIVE_HIGH>;
+		host-wakeup-gpios = <&gpio2 RK_PB1 GPIO_ACTIVE_HIGH>;
+		shutdown-gpios = <&gpio2 RK_PC0 GPIO_ACTIVE_HIGH>;
+		max-speed = <1500000>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&bt_host_wake_l &bt_wake_l &bt_enable_h>;
+		vbat-supply = <&vcc3v3_sys>;
+		vddio-supply = <&vcc_1v8>;
+	};
 };
 
 &mdio1 {
@@ -643,19 +582,7 @@
 	status = "okay";
 };
 
-&u2phy1_host {
-	status = "okay";
-};
-
-&u2phy1_otg {
-	status = "okay";
-};
-
 &usb2phy0 {
-	status = "okay";
-};
-
-&usb2phy1 {
 	status = "okay";
 };
 
@@ -683,26 +610,6 @@
 
 &usbdrd30 {
 	status = "okay";
-};
-
-&usbhost_dwc3 {
-	status = "disabled";
-};
-
-&usbhost30 {
-	status = "disabled";
-};
-
-&combphy1_usq {
-	status = "disabled";
-};
-
-&combphy2_psq {
-	status = "okay";
-};
-
-&pcie2x1 {
-	status = "disabled";
 };
 
 &vdpu {
@@ -750,37 +657,6 @@
 	status = "okay";
 };
 
-&sfc {
-	status = "okay";
-	max-freq = <50000000>;
-	#address-cells = <1>;
-	#size-cells = <0>;
-	pinctrl-names = "default";
-	pinctrl-0 = <&fspi_pins>;
-
-	spi_flash: spi-flash@0 {
-		#address-cells = <1>;
-		#size-cells = <0>;
-		compatible = "jedec,spi-nor";
-		reg = <0x0>;
-		spi-max-frequency = <50000000>;
-		spi-tx-bus-width = <1>;
-		spi-rx-bus-width = <4>;
-		status = "okay";
-
-		partitions {
-			compatible = "fixed-partitions";
-			#address-cells = <1>;
-			#size-cells = <1>;
-
-			loader@0 {
-				label = "loader";
-				reg = <0x0 0x1000000>;
-			};
-		};
-	};
-};
-
 &pinctrl {
 	pmic {
 		pmic_int: pmic_int {
@@ -814,14 +690,22 @@
 		};
 	};
 
-	wireless-bluetooth {
-		uart1_gpios: uart1-gpios {
-			rockchip,pins = <2 RK_PB5 RK_FUNC_GPIO &pcfg_pull_none>;
+	bt {
+		bt_enable_h: bt-enable-h {
+			rockchip,pins = <2 RK_PC0 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		bt_host_wake_l: bt-host-wake-l {
+			rockchip,pins = <2 RK_PB1 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		bt_wake_l: bt-wake-l {
+			rockchip,pins = <2 RK_PB2 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 
 	leds {
-		user_led_set: user-led {
+		sodimm_led: sodimm-led {
 			rockchip,pins = <0 RK_PA6 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};

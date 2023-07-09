@@ -1,0 +1,203 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2020 Rockchip Electronics Co., Ltd.
+ * Copyright (c) 2021 Radxa Limited.
+ *
+ */
+
+/dts-v1/;
+
+#include "rk3566-radxa-rock-3-compute-module.dtsi"
+
+/ {
+	model = "Radxa E23";
+	compatible = "radxa,e23", "rockchip,rk3566";
+
+	vcc5v0_host: vcc5v0-host-regulator {
+		compatible = "regulator-fixed";
+		enable-active-high;
+		gpio = <&gpio4 RK_PC1 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&vcc5v0_host_en>;
+		regulator-name = "vcc5v0_host";
+		regulator-always-on;
+		regulator-boot-on;
+	};
+
+	tf_det: tf-det-regulator {
+		compatible = "regulator-fixed";
+		enable-active-low;
+		gpio = <&gpio0 RK_PD4 GPIO_ACTIVE_LOW>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&tf_det_en>;
+		regulator-name = "tf_det";
+		regulator-always-on;
+		regulator-boot-on;
+    };
+
+	rk_headset: rk-headset {
+		compatible = "rockchip_headset";
+		headset_gpio = <&gpio4 RK_PC6 GPIO_ACTIVE_LOW>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&hp_det>;
+		io-channels = <&saradc 2>;    //HP_HOOK
+	};
+
+	vcc_sdpwr: sdmmc-regulator {
+		compatible="regulator-fixed";
+		gpio = <&gpio0 RK_PA5 GPIO_ACTIVE_LOW>;
+		pinctrl-names="default";
+		pinctrl-0=<&sdpwr_en>;
+		regulator-name="vcc_sdpwr";
+		regulator-min-microvolt=<3300000>;
+		regulator-max-microvolt=<3300000>;
+		startup-delay-us=<100000>;
+		vin-supply=<&vcc3v3_sys>;
+	};
+};
+
+&fiq_debugger {
+	status = "okay";
+};
+
+&pwm0 {
+	pinctrl-0 = <&pwm0m1_pins>;
+	status = "okay";
+};
+
+&pwm3 {
+	status = "okay";
+};
+
+&pwm11 {
+	pinctrl-0 = <&pwm11m1_pins>;
+	status = "okay";
+};
+
+&rk817_sound {
+	status = "okay";
+};
+
+&i2s1_8ch {
+	status = "okay";
+};
+
+&display_subsystem {
+    status = "disabled";
+};
+
+&sdmmc0 {
+	max-frequency = <150000000>;
+	supports-sd;
+	bus-width = <4>;
+	cap-mmc-highspeed;
+	cap-sd-highspeed;
+	disable-wp;
+	//sd-uhs-sdr104;
+	vmmc-supply = <&vcc_sdpwr>;
+	vqmmc-supply = <&vccio_sd>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdmmc0_bus4 &sdmmc0_clk &sdmmc0_cmd &sdmmc0_det>;
+	status = "okay";
+};
+
+&u2phy0_host {
+	phy-supply = <&vcc5v0_host>;
+	status = "okay";
+};
+
+&u2phy0_otg {
+	status = "okay";
+};
+
+&u2phy1_host {
+	status = "okay";
+};
+
+&u2phy1_otg {
+	status = "okay";
+};
+
+&usb2phy0 {
+	status = "okay";
+};
+
+&usb2phy1 {
+	status = "okay";
+};
+
+&usb_host0_ehci {
+	status = "okay";
+};
+
+&usb_host0_ohci {
+	status = "okay";
+};
+
+&usb_host1_ehci {
+	status = "okay";
+};
+
+&usb_host1_ohci {
+	status = "okay";
+};
+
+&usbdrd_dwc3 {
+	extcon=<&usb2phy0>;
+	status="okay";
+};
+
+&usbdrd30 {
+	status = "okay";
+};
+
+&usbhost_dwc3 {
+	status = "okay";
+};
+
+&usbhost30 {
+	status = "okay";
+};
+
+&combphy1_usq {
+	status = "okay";
+};
+
+&pcie2x1 {
+	reset-gpios = <&gpio1 RK_PB2 GPIO_ACTIVE_HIGH>;
+	vpcie3v3-supply = <&vcc3v3_sys>;
+	pinctrl-0 = <&pcie20m2_pins>;
+	status = "okay";
+};
+
+&pinctrl {
+	usb {
+		vcc5v0_host_en: vcc5v0-host-en {
+			rockchip,pins = <4 RK_PC1 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	headphone {
+		hp_det: hp-det {
+			rockchip,pins = <4 RK_PC6 RK_FUNC_GPIO &pcfg_pull_down>;
+		};
+	};
+
+	sdcard {
+		sdpwr_en: sdpwr-en {
+			rockchip,pins = <0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		tf_det_en: tf-det-en {
+			rockchip,pins = <0 RK_PD4 RK_FUNC_GPIO &pcfg_output_low>;
+		};
+	};
+
+	pcie20 {
+		pcie20m2_pins: pcie20m2-pins {
+			rockchip,pins =
+				/* pcie20_clkreqnm2 */
+				<1 RK_PB0 4 &pcfg_pull_none>;
+		};
+	};
+};

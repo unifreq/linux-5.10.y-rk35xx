@@ -1,0 +1,253 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2022 Radxa Limited.
+ *
+ */
+
+/ {
+	compatible = "radxa,radxa-cm3-io", "rockchip,rk3566";
+
+	vcc_avdd: vcc-avdd {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc_avdd";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <2800000>;
+		regulator-max-microvolt = <2800000>;
+	};
+
+	vcc_dovdd: vcc-dovdd {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc_dovdd";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+	};
+
+	vcc_dvdd: vcc-dvdd {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc_dvdd";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <1200000>;
+		regulator-max-microvolt = <1200000>;
+	};
+
+	clk_cam_24m: external-camera-clock-24m {
+			compatible = "fixed-clock";
+			clock-frequency = <24000000>;
+			clock-output-names = "clk_cam_24m";
+			#clock-cells = <0>;
+	};
+};
+
+&i2c0 {
+	gc2053_1: gc2053-1@3f {
+		status = "disabled";
+		compatible = "galaxycore,gc2053";
+		reg = <0x3f>;
+		clocks = <&clk_cam_24m>;
+		clock-names = "xvclk";
+		power-domains = <&power RK3568_PD_VI>;
+		pwdn-gpios = <&gpio4 RK_PC1 GPIO_ACTIVE_LOW>;
+		reset-gpios = <&gpio1 RK_PA4 GPIO_ACTIVE_LOW>;
+		avdd-supply = <&vcc_avdd>;
+		dovdd-supply = <&vcc_dovdd>;
+		dvdd-supply = <&vcc_dvdd>;
+		rockchip,camera-module-index = <0>;
+		rockchip,camera-module-facing = "front";
+		rockchip,camera-module-name = "YT-RV1109-2-V1";
+		rockchip,camera-module-lens-name = "40IR-2MP-F20";
+
+		port {
+			gc2053_1_out: endpoint {
+				remote-endpoint = <&csi2dphy1_ucam0>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
+
+	gc2093_1: gc2093-1@7e {
+		status = "disabled";
+		compatible = "galaxycore,gc2093";
+		reg = <0x7e>;
+		clocks = <&clk_cam_24m>;
+		clock-names = "xvclk";
+		power-domains = <&power RK3568_PD_VI>;
+		pwdn-gpios = <&gpio4 RK_PC1 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&gpio1 RK_PA4 GPIO_ACTIVE_LOW>;
+		avdd-supply = <&vcc_avdd>;
+		dovdd-supply = <&vcc_dovdd>;
+		dvdd-supply = <&vcc_dvdd>;
+		rockchip,camera-module-index = <0>;
+		rockchip,camera-module-facing = "front";
+		rockchip,camera-module-name = "YT-RV1109-2-V1";
+		rockchip,camera-module-lens-name = "40IR-2MP-F20";
+
+		port {
+			gc2093_1_out: endpoint {
+				remote-endpoint = <&csi2dphy1_ucam0>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
+};
+
+&i2c2 {
+	pinctrl-0 = <&i2c2m1_xfer>;
+	status = "disabled";
+
+	gc2053_2: gc2053-2@37 {
+		status = "disabled";
+		compatible = "galaxycore,gc2053";
+		reg = <0x37>;
+		clocks = <&clk_cam_24m>;
+		clock-names = "xvclk";
+		power-domains = <&power RK3568_PD_VI>;
+		pwdn-gpios = <&gpio3 RK_PC3 GPIO_ACTIVE_LOW>;
+		reset-gpios = <&gpio3 RK_PD2 GPIO_ACTIVE_LOW>;
+		avdd-supply = <&vcc_avdd>;
+		dovdd-supply = <&vcc_dovdd>;
+		dvdd-supply = <&vcc_dvdd>;
+		rockchip,camera-module-index = <0>;
+		rockchip,camera-module-facing = "front";
+		rockchip,camera-module-name = "YT-RV1109-2-V1";
+		rockchip,camera-module-lens-name = "40IR-2MP-F20";
+
+		port {
+			gc2053_2_out: endpoint {
+				remote-endpoint = <&csi2dphy2_ucam0>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
+};
+
+&csi2_dphy_hw {
+	status = "disabled";
+};
+
+&csi2_dphy0 {
+	status = "disabled";
+};
+
+&csi2_dphy1 {
+	status = "disabled";
+
+	/*
+	 * dphy1 only used for split mode,
+	 * can be used  concurrently  with dphy2
+	 * full mode and split mode are mutually exclusive
+	 */
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		port@0 {
+			reg = <0>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			csi2dphy1_ucam0: endpoint@1 {
+				reg = <1>;
+				remote-endpoint = <&gc2053_1_out>;
+				data-lanes = <1 2>;
+			};
+		};
+
+		port@1 {
+			reg = <1>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			csi2dphy1_out: endpoint@1 {
+				reg = <1>;
+				remote-endpoint = <&isp0_in>;
+			};
+		};
+	};
+};
+
+&csi2_dphy2 {
+	status = "disabled";
+
+	/*
+	 * dphy2 only used for split mode,
+	 * can be used  concurrently  with dphy1
+	 * full mode and split mode are mutually exclusive
+	 */
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			csi2dphy2_ucam0: endpoint@1 {
+				reg = <1>;
+				remote-endpoint = <&gc2053_2_out>;
+				data-lanes = <1 2>;
+			};
+		};
+
+		port@1 {
+			reg = <1>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			csi2dphy2_out: endpoint@1 {
+				reg = <1>;
+				remote-endpoint = <&isp1_in>;
+			};
+		};
+	};
+};
+
+&rkisp {
+	status = "disabled";
+};
+
+&rkisp_mmu {
+	status = "disabled";
+};
+
+&rkisp_vir0 {
+	status = "disabled";
+
+	port {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		isp0_in: endpoint@0 {
+			reg = <0>;
+			remote-endpoint = <&csi2dphy1_out>;
+		};
+	};
+};
+
+&rkisp_vir1 {
+	status = "disabled";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	port {
+		reg = <0>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		isp1_in: endpoint@0 {
+			reg = <0>;
+			remote-endpoint = <&csi2dphy2_out>;
+		};
+	};
+};
+
+&rkcif_mmu {
+	status = "disabled";
+};
+
+&rkcif {
+	status = "disabled";
+};

@@ -1,24 +1,56 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
  * Copyright (c) 2020 Rockchip Electronics Co., Ltd.
- * Copyright (c) 2022 Radxa Limited.
+ * Copyright (c) 2021 Radxa Limited.
  *
  */
 
 /dts-v1/;
 
 #include "rk3566-radxa-rock-3-compute-module.dtsi"
-#include <dt-bindings/display/rockchip_vop.h>
+#include "radxa-cm3-io-sharp-lq133t1jw01-edp-lcd.dtsi"
+#include "radxa-cm3-io-radxa-10p1inch-display.dtsi"
+#include "radxa-cm3-io-mipi-lcd-hd101boe9365.dtsi"
+#include "rk3566-radxa-cm3-io-cameras.dtsi"
 
 / {
 	model = "Radxa CM3 IO";
 	compatible = "radxa,radxa-cm3-io", "rockchip,rk3566";
 
+	dc_12v: dc-12v-regulator {
+		status = "okay";
+		compatible = "regulator-fixed";
+		regulator-name = "dc_12v";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <12000000>;
+		regulator-max-microvolt = <12000000>;
+	};
+
+	vcc3v3_pcie: vcc3v3-pcie-regulator {
+		status = "okay";
+		compatible = "regulator-fixed";
+		regulator-name = "vcc3v3_pcie";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		vin-supply = <&dc_12v>;
+	};
+
+	pcie_en: pcie-en-regulator {
+		status = "okay";
+		compatible = "regulator-fixed";
+		regulator-name = "pcie_en";
+		enable-active-low;
+		gpio = <&gpio3 RK_PC6 GPIO_ACTIVE_LOW>;
+		regulator-boot-on;
+		regulator-always-on;
+	};
+
 	hdmi_sound: hdmi-sound {
 		compatible = "simple-audio-card";
 		simple-audio-card,format = "i2s";
 		simple-audio-card,mclk-fs = <128>;
-		simple-audio-card,name = "rockchip,hdmi";
+		simple-audio-card,name = "rockchip-hdmi0";
 
 		simple-audio-card,cpu {
 				sound-dai = <&i2s0_8ch>;
@@ -61,6 +93,10 @@
 		regulator-always-on;
 		regulator-boot-on;
 	};
+};
+
+&fiq_debugger {
+	status = "okay";
 };
 
 &gpio_leds {
@@ -108,14 +144,6 @@
 	connect = <&vp0_out_hdmi>;
 };
 
-&vp0 {
-	cursor-win-id = <ROCKCHIP_VOP2_CLUSTER0>;
-};
-
-&vp1 {
-	cursor-win-id = <ROCKCHIP_VOP2_CLUSTER1>;
-};
-
 &sdmmc0 {
 	max-frequency = <150000000>;
 	supports-sd;
@@ -127,6 +155,34 @@
 	vqmmc-supply = <&vccio_sd>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdmmc0_bus4 &sdmmc0_clk &sdmmc0_cmd &sdmmc0_det>;
+	status = "okay";
+};
+
+&gmac1 {
+	phy-mode = "rgmii";
+	clock_in_out = "input";
+
+	snps,reset-gpio = <&gpio4 RK_PC2 GPIO_ACTIVE_LOW>;
+	snps,reset-active-low;
+	/* Reset time is 20ms, 100ms for rtl8211f */
+	snps,reset-delays-us = <0 20000 100000>;
+
+	assigned-clocks = <&cru SCLK_GMAC1_RX_TX>, <&cru SCLK_GMAC1>;
+	assigned-clock-parents = <&cru SCLK_GMAC1_RGMII_SPEED>, <&gmac1_clkin>;
+	assigned-clock-rates = <0>, <125000000>;
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&gmac1m0_miim
+			 &gmac1m0_tx_bus2
+			 &gmac1m0_rx_bus2
+			 &gmac1m0_rgmii_clk
+			 &gmac1m0_rgmii_bus
+			 &gmac1m0_clkinout>;
+
+	tx_delay = <0x46>;
+	rx_delay = <0x2e>;
+
+	phy-handle = <&rgmii_phy1>;
 	status = "okay";
 };
 
@@ -151,10 +207,23 @@
 	status = "okay";
 };
 
+&pcie2x1 {
+	status = "okay";
+	reset-gpios = <&gpio1 RK_PB2 GPIO_ACTIVE_HIGH>;
+	vpcie3v3-supply = <&vcc3v3_pcie>;
+	pinctrl-0 = <&pcie20m2_pins>;
+};
+
 &pinctrl {
 	usb {
 		vcc5v0_usb30_en: vcc5v0-host-en {
 			rockchip,pins = <3 RK_PC2 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	headphone {
+		hp_det: hp-det {
+			rockchip,pins = <4 RK_PC4 RK_FUNC_GPIO &pcfg_pull_up>;
 		};
 	};
 
@@ -165,6 +234,14 @@
 
 		pwr_led: pwr-led{
 			rockchip,pins = <4 RK_PB7 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		sata1_led: sata1-led{
+			rockchip,pins = <4 RK_PC0 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		sata2_led: sata2-led{
+			rockchip,pins = <0 RK_PC2 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 
