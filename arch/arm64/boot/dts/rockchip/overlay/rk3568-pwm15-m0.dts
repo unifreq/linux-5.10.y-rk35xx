@@ -5,10 +5,12 @@
 	compatible = "rockchip,rk3568";
 
 	fragment@0 {
-		target = <&gmac0>;
+		target = <&pwm15>;
 
 		__overlay__ {
-			status = "disabled";
+			status = "okay";
+			pinctrl-names = "active";
+			pinctrl-0 = <&pwm15m0_pins>;
 		};
 	};
 };

@@ -5,10 +5,10 @@
 	compatible = "rockchip,rk3568";
 
 	fragment@0 {
-		target = <&gmac0>;
+		target = <&hdmi>;
 
 		__overlay__ {
-			status = "disabled";
+			pinctrl-0 = <&hdmitx_scl &hdmitx_sda>;
 		};
 	};
 };

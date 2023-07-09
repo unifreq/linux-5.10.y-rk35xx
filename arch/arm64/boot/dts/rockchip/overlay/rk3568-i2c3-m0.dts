@@ -5,10 +5,12 @@
 	compatible = "rockchip,rk3568";
 
 	fragment@0 {
-		target = <&gmac0>;
+		target = <&i2c3>;
 
 		__overlay__ {
-			status = "disabled";
+			status = "okay";
+			pinctrl-names = "default";
+			pinctrl-0 = <&i2c3m0_xfer>;
 		};
 	};
 };

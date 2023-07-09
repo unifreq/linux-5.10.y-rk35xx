@@ -5,10 +5,10 @@
 	compatible = "rockchip,rk3568";
 
 	fragment@0 {
-		target = <&gmac0>;
+		target = <&uart0>;
 
 		__overlay__ {
-			status = "disabled";
+			status = "okay";
 		};
 	};
 };

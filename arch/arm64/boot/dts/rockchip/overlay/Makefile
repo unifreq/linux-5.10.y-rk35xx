@@ -1,5 +1,103 @@
 # SPDX-License-Identifier: GPL-2.0
 dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
+	rk3399-rock-4ab-raspi-7inch-touchscreen.dtbo \
+	rk3399-rock-4c-plus-radxa-display-10fhd.dtbo \
+	rk3399-rock-4c-plus-radxa-display-10hd.dtbo \
+	rk3399-rock-4c-plus-radxa-display-8hd.dtbo \
+	rk3399-rock-4c-plus-raspi-7inch-touchscreen.dtbo \
+	rk3399-rock-4-okdo-5mp-camera.dtbo \
+	rk3399-rock-4-rpi-camera-v1p3.dtbo \
+	rk3399-rock-4-rpi-camera-v2.dtbo \
+	rk3566-cm3-sodimm-io-sata.dtbo \
+	rk3566-radxa-5inch-touchscreen-on-cm3-sodimm-io.dtbo \
+	rk3566-radxa-cm3-io-dual-cameras-gc2053.dtbo \
+	rk3566-radxa-cm3-io-dual-cameras-gc2053-gc2093.dtbo \
+	rk3566-radxa-cm3-io-hd101boe9365-display.dtbo \
+	rk3566-radxa-cm3-io-headphone.dtbo \
+	rk3566-radxa-cm3-io-i2c0-hym8563.dtbo \
+	rk3566-radxa-cm3-io-pcie2x1.dtbo \
+	rk3566-radxa-cm3-io-radxa-10p1inch-display.dtbo \
+	rk3566-radxa-cm3-io-sata1.dtbo \
+	rk3566-radxa-cm3-io-sata2.dtbo \
+	rk3566-radxa-cm3-io-sharp-lq133t1jw01-without-hdmi.dtbo \
+	rk3566-radxa-cm3-raspcm4io-pcie2x1.dtbo \
+	rk3566-radxa-cm3s-io-csi0-okdo-5mp-camera.dtbo \
+	rk3566-radxa-cm3s-io-csi0-rpi-camera-v2.dtbo \
+	rk3566-radxa-cm3s-io-csi1-okdo-5mp-camera.dtbo \
+	rk3566-radxa-cm3s-io-csi1-rpi-camera-v2.dtbo \
+	rk3566-radxa-cm3-sodimm-io-raspberrypi-7inch-touchscreen.dtbo \
+	rk3568-can1-m0.dtbo \
+	rk3568-can1-m1.dtbo \
+	rk3568-disable-gmac0.dtbo \
+	rk3568-disable-gmac1.dtbo \
+	rk3568-disable-npu.dtbo \
+	rk3568-fiq-debugger-uart0.dtbo \
+	rk3568-fiq-debugger-uart2m0.dtbo \
+	rk3568-fiq-debugger-uart3m0.dtbo \
+	rk3568-fiq-debugger-uart5m1.dtbo \
+	rk3568-fiq-debugger-uart7m1.dtbo \
+	rk3568-fiq-debugger-uart8m1.dtbo \
+	rk3568-fiq-debugger-uart9m1.dtbo \
+	rk3568-i2c1.dtbo \
+	rk3568-i2c2-m0.dtbo \
+	rk3568-i2c2-m1.dtbo \
+	rk3568-i2c3-m0.dtbo \
+	rk3568-i2c4-m0.dtbo \
+	rk3568-pwm0-m0.dtbo \
+	rk3568-pwm0-m1.dtbo \
+	rk3568-pwm11-m1.dtbo \
+	rk3568-pwm12-m0.dtbo \
+	rk3568-pwm12-m1.dtbo \
+	rk3568-pwm13-m0.dtbo \
+	rk3568-pwm13-m1.dtbo \
+	rk3568-pwm14-m0.dtbo \
+	rk3568-pwm14-m1.dtbo \
+	rk3568-pwm15-m0.dtbo \
+	rk3568-pwm15-m1.dtbo \
+	rk3568-pwm1-m0.dtbo \
+	rk3568-pwm1-m1.dtbo \
+	rk3568-pwm2-m0.dtbo \
+	rk3568-pwm2-m1.dtbo \
+	rk3568-pwm5.dtbo \
+	rk3568-pwm6.dtbo \
+	rk3568-pwm7.dtbo \
+	rk3568-pwm8-m0-fan.dtbo \
+	rk3568-pwm9-m0.dtbo \
+	rk3568-radxa-5inch-touchscreen-on-rock-3a.dtbo \
+	rk3568-radxa-5inch-touchscreen-on-rock-3b.dtbo \
+	rk3568-radxa-cm3i-gmac1.dtbo \
+	rk3568-rock-3ab-rpi-camera-v1p3-ov5647.dtbo \
+	rk3568-rock-3ab-rpi-camera-v2-imx219.dtbo \
+	rk3568-rock-3a-raspberrypi-7inch-touchscreen.dtbo \
+	rk3568-rock-3a-sata0.dtbo \
+	rk3568-rock-3a-sata1.dtbo \
+	rk3568-rock-3a-sata2.dtbo \
+	rk3568-rock-3b-disable-hdmicec.dtbo \
+	rk3568-rock-3b-em05-modem.dtbo \
+	rk3568-rock-3b-hdmi-and-sharp-lq133t1jw01-edp-lcd.dtbo \
+	rk3568-rock-3b-radxa-10p1inch-display.dtbo \
+	rk3568-rock-3b-sata2.dtbo \
+	rk3568-rock-3c-okdo-5mp-camera.dtbo \
+	rk3568-rock-3c-radxa-5inch-touchscreen.dtbo \
+	rk3568-rock-3c-raspberrypi-7inch-touchscreen.dtbo \
+	rk3568-rock-3c-rpi-camera-v2.dtbo \
+	rk3568-rock-3c-usb-otg.dtbo \
+	rk3568-spi0-m0-cs0-spidev.dtbo \
+	rk3568-spi0-m1-cs0-spidev.dtbo \
+	rk3568-spi1-m1-cs0-spidev.dtbo \
+	rk3568-spi3-m0-cs0-spidev.dtbo \
+	rk3568-spi3m0-mcp2515.dtbo \
+	rk3568-spi3-m1-cs0-spidev.dtbo \
+	rk3568-uart0.dtbo \
+	rk3568-uart2-m0.dtbo \
+	rk3568-uart3-m0.dtbo \
+	rk3568-uart3-m1.dtbo \
+	rk3568-uart5-m1.dtbo \
+	rk3568-uart7-m1.dtbo \
+	rk3568-uart7-m2.dtbo \
+	rk3568-uart8-m1.dtbo \
+	rk3568-uart9-m1.dtbo \
+	rk3568-w1-gpio.dtbo \
 	rk3588-disable-gmac0.dtbo \
 	rk3588-disable-gmac1.dtbo \
 	rk3588-full-cpufreq.dtbo \
@@ -13,14 +111,6 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
 	rk3588-i2c8-m2.dtbo \
 	rk3588-i2c8-m4.dtbo \
 	rk3588-pwm0-m2.dtbo \
-	rk3588-pwm1-m2.dtbo \
-	rk3588-pwm2-m1.dtbo \
-	rk3588-pwm3-m1.dtbo \
-	rk3588-pwm3-m3.dtbo \
-	rk3588-pwm5-m2.dtbo \
-	rk3588-pwm6-m2.dtbo \
-	rk3588-pwm7-m3.dtbo \
-	rk3588-pwm8-m0.dtbo \
 	rk3588-pwm11-m1.dtbo \
 	rk3588-pwm12-m0.dtbo \
 	rk3588-pwm13-m0.dtbo \
@@ -31,6 +121,29 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
 	rk3588-pwm15-m0.dtbo \
 	rk3588-pwm15-m1.dtbo \
 	rk3588-pwm15-m3.dtbo \
+	rk3588-pwm1-m2.dtbo \
+	rk3588-pwm2-m1.dtbo \
+	rk3588-pwm3-m1.dtbo \
+	rk3588-pwm3-m3.dtbo \
+	rk3588-pwm5-m2.dtbo \
+	rk3588-pwm6-m2.dtbo \
+	rk3588-pwm7-m3.dtbo \
+	rk3588-pwm8-m0.dtbo \
+	rk3588-rock-5a-hdmi-8k.dtbo \
+	rk3588-rock-5a-i2c5-rtc-hym8563.dtbo \
+	rk3588-rock-5a-radxa-camera-4k.dtbo \
+	rk3588-rock-5a-radxa-display-10hd.dtbo \
+	rk3588-rock-5a-radxa-display-8hd.dtbo \
+	rk3588-rock-5a-spi-nor-flash.dtbo \
+	rk3588-rock-5a-usb-otg.dtbo \
+	rk3588-rock-5b-hdmi1-8k.dtbo \
+	rk3588-rock-5b-hdmi2-8k.dtbo \
+	rk3588-rock-5b-pd-max-voltage-12v.dtbo \
+	rk3588-rock-5b-radxa-camera-4k.dtbo \
+	rk3588-rock-5b-radxa-display-10hd.dtbo \
+	rk3588-rock-5b-radxa-display-8hd.dtbo \
+	rk3588-rock-5b-rpi-camera-v2.dtbo \
+	rk3588-rock-5b-sata.dtbo \
 	rk3588-spi0-m2-cs0-spidev.dtbo \
 	rk3588-spi0-m2-cs1-spidev.dtbo \
 	rk3588-spi1-m1-cs0-spidev.dtbo \
@@ -43,39 +156,14 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
 	rk3588-uart6-m1.dtbo \
 	rk3588-uart7-m1-ctsn-rtsn.dtbo \
 	rk3588-uart7-m1.dtbo \
-	rk3588-uart8-m0.dtbo \
 	rk3588-uart7-m2.dtbo \
-	rk3568-disable-gmac0.dtbo \
-	rk3568-disable-gmac1.dtbo \
-	rock-4-okdo-5mp-camera.dtbo \
-	rock-4-rpi-camera-v1p3.dtbo \
-	rock-4-rpi-camera-v2.dtbo \
-	rock-4ab-raspi-7inch-touchscreen.dtbo \
-	rock-4c-plus-raspi-7inch-touchscreen.dtbo \
-	rock-4c-plus-radxa-display-8hd.dtbo \
-	rock-4c-plus-radxa-display-10hd.dtbo \
-	rock-4c-plus-radxa-display-10fhd.dtbo \
-	rock-5a-hdmi-8k.dtbo \
-	rock-5a-i2c5-rtc-hym8563.dtbo \
-	rock-5a-radxa-camera-4k.dtbo \
-	rock-5a-radxa-display-8hd.dtbo \
-	rock-5a-radxa-display-10hd.dtbo \
-	rock-5a-spi-nor-flash.dtbo \
-	rock-5a-usb-otg.dtbo \
-	rock-5b-hdmi1-8k.dtbo \
-	rock-5b-hdmi2-8k.dtbo \
-	rock-5b-pd-max-voltage-12v.dtbo \
-	rock-5b-radxa-display-8hd.dtbo \
-	rock-5b-radxa-display-10hd.dtbo \
-	rock-5b-rpi-camera-v2.dtbo \
-	rock-5b-radxa-camera-4k.dtbo \
-	rock-5b-sata.dtbo \
+	rk3588-uart8-m0.dtbo
 
 dtbotxt-$(CONFIG_ARCH_ROCKCHIP) += \
 	README.rockchip-overlays
 
 targets += $(dtbo-y) $(dtbotxt-y)
 
-always-y		:= $(dtbo-y) $(dtbotxt-y)
-clean-files		:= *.dtbo
+always-y	:= $(dtbo-y) $(dtbotxt-y)
+clean-files	:= *.dtbo
 

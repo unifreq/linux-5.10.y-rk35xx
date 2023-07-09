@@ -2,8 +2,11 @@
 /plugin/;
 
 / {
+	compatible = "rockchip,rk3568";
+
 	fragment@0 {
 		target = <&gmac1>;
+
 		__overlay__ {
 			status = "disabled";
 		};
