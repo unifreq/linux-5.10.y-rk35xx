@@ -8763,6 +8763,7 @@ static void vop2_setup_port_mux(struct vop2_video_port *vp)
 	port_mux_cfg = vop2_calc_bg_ovl_and_port_mux(vp);
 	spin_lock(&vop2->reg_lock);
 	if (vop2->port_mux_cfg != port_mux_cfg) {
+		VOP_CTRL_SET(vop2, ovl_cfg_done_port, vp->id);
 		VOP_CTRL_SET(vop2, ovl_port_mux_cfg, port_mux_cfg);
 		vp->skip_vsync = true;
 		vop2_cfg_done(&vp->rockchip_crtc.crtc);

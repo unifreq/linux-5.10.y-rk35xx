@@ -13,16 +13,16 @@
 #include "rk3399.dtsi"
 #include "rk3399-linux.dtsi"
 #include "rk3399-t-opp.dtsi"
-#include "rk3399-rock-4c-plus-display.dtsi"
 
 / {
 	model = "Radxa ROCK 4C+";
 	compatible = "radxa,rock-4c-plus", "rockchip,rk3399";
 
-	aliases {
-		mmc0 = &sdmmc;
-		mmc1 = &sdhci;
-		mmc2 = &sdio0;
+	fan0: pwm-fan {
+		compatible = "pwm-fan";
+		#cooling-cells = <2>;
+		cooling-levels = <0 64 128 192 255>;
+		pwms = <&pwm3 0 40000 0>;
 	};
 
 	fiq_debugger: fiq-debugger {
@@ -106,6 +106,16 @@
 		rockchip,jack-det;
 	};
 
+	dp0_sound: dp0-sound {
+		status = "okay";
+		compatible = "rockchip,hdmi";
+		rockchip,card-name = "rockchip-hdmi1";
+		rockchip,mclk-fs = <512>;
+		rockchip,cpu = <&spdif>;
+		rockchip,codec = <&cdn_dp 1>;
+		rockchip,jack-det;
+	};
+
 	vcc3v3_dp: vcc3v3-dp {
 		compatible = "regulator-fixed";
 		regulator-name = "vcc3v3_dp";
@@ -137,6 +147,16 @@
 		rockchip,mclk-fs = <256>;
 		rockchip,cpu = <&i2s0>;
 		rockchip,codec = <&rk809_codec>;
+		io-channels = <&saradc 2>;
+		io-channel-names = "adc-detect";
+		keyup-threshold-microvolt = <1800000>;
+		poll-interval = <100>;
+		rockchip,audio-routing = "Speaker", "Speaker Power";
+		play-pause-key {
+			label = "playpause";
+			linux,code = <164>;
+			press-threshold-microvolt = <2000>;
+		};
 	};
 
 	sdio_pwrseq: sdio-pwrseq {
@@ -209,7 +229,7 @@
 };
 
 &threshold {
-	temperature = <85000>;
+	temperature = <60000>;
 };
 
 &target {
@@ -218,6 +238,24 @@
 
 &soc_crit {
 	temperature = <105000>;
+};
+
+&soc_thermal {
+	sustainable-power = <5000>; /* milliwatts */
+	cooling-maps {
+		map3 {
+			trip = <&target>;
+			cooling-device =
+				<&fan0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+			contribution = <8192>;
+		};
+		map4 {
+			trip = <&threshold>;
+			cooling-device =
+				<&fan0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+			contribution = <8192>;
+		};
+	};
 };
 
 &tsadc {
@@ -285,11 +323,8 @@
 &sdhci {
 	max-frequency = <150000000>;
 	bus-width = <8>;
-	mmc-hs400-1_8v;
-	no-sdio;
-	no-sd;
+	mmc-hs200-1_8v;
 	non-removable;
-	mmc-hs400-enhanced-strobe;
 	status = "okay";
 };
 
@@ -307,7 +342,13 @@
 
 &i2s2 {
 	status = "okay";
+	dmas = <&dmac_bus 4>;
+	dma-names = "tx";
 	#sound-dai-cells = <0>;
+};
+
+&spdif {
+	status = "okay";
 };
 
 &i2c0 {
@@ -690,6 +731,7 @@
 
 &u2phy0 {
 	status = "okay";
+	wakeup-source;
 
 	u2phy0_otg: otg-port {
 		status = "okay";
@@ -703,6 +745,7 @@
 
 &u2phy1 {
 	status = "okay";
+	wakeup-source;
 
 	u2phy1_otg: otg-port {
 		status = "okay";
@@ -840,6 +883,35 @@
 
 &dmc {
 	status = "okay";
+	center-supply = <&vdd_log>;
+	upthreshold = <40>;
+	downdifferential = <20>;
+	system-status-freq = <
+		/*system status         freq(KHz)*/
+		SYS_STATUS_NORMAL       666000
+		SYS_STATUS_REBOOT       666000
+		SYS_STATUS_SUSPEND      328000
+		SYS_STATUS_VIDEO_1080P  666000
+		SYS_STATUS_VIDEO_4K     666000
+		SYS_STATUS_VIDEO_4K_10B 666000
+		SYS_STATUS_PERFORMANCE  666000
+		SYS_STATUS_BOOST        666000
+		SYS_STATUS_DUALVIEW     666000
+		SYS_STATUS_ISP          666000
+	>;
+	vop-bw-dmc-freq = <
+	/* min_bw(MB/s) max_bw(MB/s) freq(KHz) */
+		0       762      416000
+		763     99999    666000
+	>;
+
+	vop-pn-msch-readlatency = <
+		0	0x20
+		4	0x20
+	>;
+
+	auto-min-freq = <328000>;
+	auto-freq-en = <0>;
 };
 
 &rga {
@@ -907,13 +979,14 @@
 		| RKPM_SLP_DDR_RET
 		| RKPM_SLP_PLLPD
 		| RKPM_SLP_CENTER_PD
-		| RKPM_SLP_AP_PWROFF
 		)
 	>;
 	rockchip,wakeup-config = <
 		(0
 		| RKPM_GPIO_WKUP_EN
 		| RKPM_PWM_WKUP_EN
+		| RKPM_USB_WKUP_EN
+		| RKPM_USB_LINESTATE_WKUP_EN
 		)
 	>;
 	rockchip,pwm-regulator-config = <
@@ -923,7 +996,8 @@
 	>;
 	rockchip,power-ctrl =
 		<&gpio1 17 GPIO_ACTIVE_HIGH>,
-		<&gpio1 14 GPIO_ACTIVE_HIGH>;
+		<&gpio1 14 GPIO_ACTIVE_HIGH>,
+		<&gpio0 3 GPIO_ACTIVE_HIGH>;
 };
 
 &pinctrl {

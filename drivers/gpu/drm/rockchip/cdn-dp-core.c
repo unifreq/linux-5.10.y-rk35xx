@@ -6,7 +6,7 @@
 
 #include <linux/clk.h>
 #include <linux/component.h>
-#include <linux/extcon.h>
+#include <linux/extcon-provider.h>
 #include <linux/firmware.h>
 #include <linux/mfd/syscon.h>
 #include <linux/phy/phy.h>
@@ -42,6 +42,13 @@
 #define CDN_FW_TIMEOUT_MS	(64 * 1000)
 #define CDN_DPCD_TIMEOUT_MS	5000
 #define CDN_DP_FIRMWARE		"rockchip/dptx.bin"
+
+static void cdn_dp_handle_plugged_change(struct cdn_dp_device *dp, bool plugged);
+
+static const unsigned int cdn_dp_cable[] = {
+	EXTCON_DISP_DP,
+	EXTCON_NONE,
+};
 
 struct cdn_dp_data {
 	u8 max_phy;
@@ -640,6 +647,8 @@ static void cdn_dp_encoder_enable(struct drm_encoder *encoder)
 		DRM_DEV_ERROR(dp->dev, "Failed to valid video %d\n", ret);
 		goto out;
 	}
+	extcon_set_state_sync(dp->extcon, EXTCON_DISP_DP, true);
+	cdn_dp_handle_plugged_change(dp, true);
 out:
 	mutex_unlock(&dp->lock);
 }
@@ -658,7 +667,8 @@ static void cdn_dp_encoder_disable(struct drm_encoder *encoder)
 		}
 	}
 	mutex_unlock(&dp->lock);
-
+	extcon_set_state_sync(dp->extcon, EXTCON_DISP_DP, false);
+	cdn_dp_handle_plugged_change(dp, false);
 	/*
 	 * In the following 2 cases, we need to run the event_work to re-enable
 	 * the DP:
@@ -783,7 +793,7 @@ static int cdn_dp_audio_hw_params(struct device *dev,  void *data,
 
 	mutex_lock(&dp->lock);
 	if (!dp->active) {
-		ret = -ENODEV;
+		ret = 0;
 		goto out;
 	}
 
@@ -833,7 +843,7 @@ static int cdn_dp_audio_mute_stream(struct device *dev, void *data,
 
 	mutex_lock(&dp->lock);
 	if (!dp->active) {
-		ret = -ENODEV;
+		ret = 0;
 		goto out;
 	}
 
@@ -842,6 +852,36 @@ static int cdn_dp_audio_mute_stream(struct device *dev, void *data,
 out:
 	mutex_unlock(&dp->lock);
 	return ret;
+}
+
+static bool cdn_dp_detect(struct cdn_dp_device *dp)
+{
+	bool active;
+
+	mutex_lock(&dp->lock);
+	active = dp->active;
+	mutex_unlock(&dp->lock);
+
+	return active;
+}
+
+static void cdn_dp_handle_plugged_change(struct cdn_dp_device *dp, bool plugged)
+{
+	if (dp->plugged_cb && dp->codec_dev)
+		dp->plugged_cb(dp->codec_dev, plugged);
+}
+
+static int cdn_dp_audio_hook_plugged_cb(struct device *dev, void *data,
+				       hdmi_codec_plugged_cb fn,
+				       struct device *codec_dev)
+{
+	struct cdn_dp_device *dp = dev_get_drvdata(dev);
+
+	dp->plugged_cb = fn;
+	dp->codec_dev = codec_dev;
+	cdn_dp_handle_plugged_change(dp, cdn_dp_detect(dp));
+
+	return 0;
 }
 
 static int cdn_dp_audio_get_eld(struct device *dev, void *data,
@@ -860,6 +900,7 @@ static const struct hdmi_codec_ops audio_codec_ops = {
 	.mute_stream = cdn_dp_audio_mute_stream,
 	.get_eld = cdn_dp_audio_get_eld,
 	.no_capture_mute = 1,
+	.hook_plugged_cb = cdn_dp_audio_hook_plugged_cb
 };
 
 static int cdn_dp_audio_codec_init(struct cdn_dp_device *dp,
@@ -1032,7 +1073,7 @@ static int cdn_dp_bind(struct device *dev, struct device *master, void *data)
 
 	encoder = &dp->encoder;
 
-	encoder->possible_crtcs = drm_of_find_possible_crtcs(drm_dev,
+	encoder->possible_crtcs = rockchip_drm_of_find_possible_crtcs(drm_dev,
 							     dev->of_node);
 	DRM_DEBUG_KMS("possible_crtcs = 0x%x\n", encoder->possible_crtcs);
 
@@ -1152,6 +1193,7 @@ static int cdn_dp_probe(struct platform_device *pdev)
 	struct extcon_dev *extcon;
 	struct phy *phy;
 	int i;
+	int ret;
 
 	dp = devm_kzalloc(dev, sizeof(*dp), GFP_KERNEL);
 	if (!dp)
@@ -1191,7 +1233,19 @@ static int cdn_dp_probe(struct platform_device *pdev)
 	mutex_init(&dp->lock);
 	dev_set_drvdata(dev, dp);
 
+	dp->extcon = devm_extcon_dev_allocate(dp->dev, cdn_dp_cable);
+	if (IS_ERR(dp->extcon)) {
+		dev_err(dp->dev, "allocate extcon failed\n");
+		return -ENOMEM;
+	}
+	ret = devm_extcon_dev_register(dp->dev, dp->extcon);
+	if (ret) {
+		dev_err(dp->dev, "failed to register extcon: %d\n", ret);
+		return ret;
+	}
+
 	cdn_dp_audio_codec_init(dp, dev);
+	cdn_dp_handle_plugged_change(dp, false);
 
 	return component_add(dev, &cdn_dp_component_ops);
 }

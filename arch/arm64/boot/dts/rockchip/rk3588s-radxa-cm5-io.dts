@@ -143,17 +143,6 @@
 		regulator-boot-on;
 		regulator-always-on;
 	};
-
-	gpio-leds {
-		compatible = "gpio-leds";
-		pinctrl-names = "default";
-
-		user-led1 {
-			gpios = <&gpio4 RK_PB4 GPIO_ACTIVE_HIGH>;
-			linux,default-trigger = "heartbeat";
-			default-state = "on";
-		};
-	};
 };
 
 &i2c6 {
@@ -271,9 +260,9 @@
 	status = "okay";
 };
 
-&i2c8 {
+&i2c7 {
 	status = "okay";
-	pinctrl-0 = <&i2c8m2_xfer>;
+	pinctrl-0 = <&i2c7m0_xfer>;
 
 	es8316: es8316@11 {
 		compatible = "everest,es8316";

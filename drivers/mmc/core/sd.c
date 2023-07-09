@@ -1421,6 +1421,10 @@ int mmc_attach_sd(struct mmc_host *host)
 	/*
 	 * Detect and init the card.
 	 */
+	#define DELAYED_SD_INIT 600
+	mdelay(DELAYED_SD_INIT);
+	pr_err("%s: delay init for %i ms to enable UHS mode\n", mmc_hostname(host), DELAYED_SD_INIT);
+
 	err = mmc_sd_init_card(host, rocr, NULL);
 	if (err)
 		goto err;

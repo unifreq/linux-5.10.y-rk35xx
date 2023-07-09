@@ -342,6 +342,7 @@ static int vpd_extcon_probe(struct platform_device *pdev)
 	}
 
 	vpd_extcon_init(vpd);
+	spin_lock_init(&vpd->irq_lock);
 	INIT_DELAYED_WORK(&vpd->irq_work, extcon_pd_delay_irq_work);
 
 	vpd->irq=gpiod_to_irq(vpd->gpio_irq);

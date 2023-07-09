@@ -347,6 +347,35 @@ err_disable_clks:
 }
 
 /**
+ * stmmac_mdio_idle
+ * @bus: points to the mii_bus structure
+ * Description: reset the MII bus
+ */
+int stmmac_mdio_idle(struct mii_bus *bus)
+{
+#if IS_ENABLED(CONFIG_STMMAC_PLATFORM)
+	struct net_device *ndev = bus->priv;
+	struct stmmac_priv *priv = netdev_priv(ndev);
+
+#ifdef CONFIG_OF
+	if (priv->device->of_node) {
+		struct gpio_desc *reset_gpio;
+
+		reset_gpio = devm_gpiod_get_optional(priv->device,
+						     "snps,reset",
+						     GPIOD_OUT_LOW);
+		if (IS_ERR(reset_gpio))
+			return PTR_ERR(reset_gpio);
+
+		gpiod_set_value_cansleep(reset_gpio, 1);
+		gpiod_put(reset_gpio);
+	}
+#endif
+#endif
+	return 0;
+}
+
+/**
  * stmmac_mdio_reset
  * @bus: points to the mii_bus structure
  * Description: reset the MII bus
@@ -383,6 +412,8 @@ int stmmac_mdio_reset(struct mii_bus *bus)
 		gpiod_set_value_cansleep(reset_gpio, 0);
 		if (delays[2])
 			msleep(DIV_ROUND_UP(delays[2], 1000));
+
+		gpiod_put(reset_gpio);
 	}
 #endif
 

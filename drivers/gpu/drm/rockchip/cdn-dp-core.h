@@ -60,7 +60,8 @@ struct cdn_dp_port {
 	bool phy_enabled;
 	u8 id;
 };
-
+typedef void (*hdmi_codec_plugged_cb)(struct device *dev,
+				      bool plugged);
 struct cdn_dp_device {
 	struct device *dev;
 	struct drm_device *drm_dev;
@@ -68,6 +69,8 @@ struct cdn_dp_device {
 	struct drm_encoder encoder;
 	struct drm_display_mode mode;
 	struct platform_device *audio_pdev;
+	hdmi_codec_plugged_cb plugged_cb;
+	struct device *codec_dev;
 	struct work_struct event_work;
 	struct edid *edid;
 
@@ -99,6 +102,7 @@ struct cdn_dp_device {
 	u8 lanes;
 	int active_port;
 
+	struct extcon_dev *extcon;
 	u8 dpcd[DP_RECEIVER_CAP_SIZE];
 	bool sink_has_audio;
 };

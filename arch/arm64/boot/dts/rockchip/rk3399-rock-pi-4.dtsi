@@ -9,15 +9,8 @@
 #include <dt-bindings/pwm/pwm.h>
 #include "rk3399.dtsi"
 #include "rk3399-linux.dtsi"
-#include "rk3399-opp.dtsi"
 
 / {
-	aliases {
-		mmc0 = &sdmmc;
-		mmc1 = &sdhci;
-		mmc2 = &sdio0;
-	};
-
 	clkin_gmac: external-gmac-clock {
 		compatible = "fixed-clock";
 		clock-frequency = <125000000>;
@@ -45,29 +38,24 @@
 	};
 
 	es8316_sound: es8316-sound {
-		status = "okay";
-		compatible = "simple-audio-card";
-		simple-audio-card,format = "i2s";
-		simple-audio-card,mclk-fs = <256>;
-		simple-audio-card,name = "rockchip-es8316";
-		simple-audio-card,dai-link@0 {
-			format = "i2s";
-			cpu {
-				sound-dai = <&i2s0>;
-			};
-			codec {
-				sound-dai = <&es8316>;
-			};
-		};
-	};
-
-	rk_headset: rk-headset {
-		status = "okay";
-		compatible = "rockchip_headset";
-		headset_gpio = <&gpio1 RK_PA0 GPIO_ACTIVE_HIGH>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&hp_det>;
+		compatible = "rockchip,multicodecs-card";
+		rockchip,card-name = "rockchip-es8316";
+		rockchip,format = "i2s";
+		rockchip,mclk-fs = <256>;
+		rockchip,cpu = <&i2s0>;
+		rockchip,codec = <&es8316>;
 		io-channels = <&saradc 2>;
+		io-channel-names = "adc-detect";
+		keyup-threshold-microvolt = <1800000>;
+		poll-interval = <100>;
+		pinctrl-0 = <&hp_det>;
+		pinctrl-names = "default";
+		hp-det-gpio = <&gpio1 RK_PA0 GPIO_ACTIVE_HIGH>;
+		play-pause-key {
+			label = "playpause";
+			linux,code = <164>;
+			press-threshold-microvolt = <2000>;
+		};
 	};
 
 	vcc12v_dcin: dc-12v {
@@ -135,7 +123,6 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&vcc5v0_typec_en>;
 		regulator-name = "vcc5v0_typec";
-		regulator-always-on;
 		vin-supply = <&vcc5v0_sys>;
 	};
 
@@ -205,6 +192,40 @@
 
 &cpu_b1 {
 	cpu-supply = <&vdd_cpu_b>;
+};
+
+&dmc {
+	status = "okay";
+	center-supply = <&vdd_log>;
+	upthreshold = <40>;
+	downdifferential = <20>;
+	system-status-freq = <
+		/*system status         freq(KHz)*/
+		SYS_STATUS_NORMAL       856000
+		SYS_STATUS_REBOOT       856000
+		SYS_STATUS_SUSPEND      328000
+		SYS_STATUS_VIDEO_1080P  666000
+		SYS_STATUS_VIDEO_4K     856000
+		SYS_STATUS_VIDEO_4K_10B 856000
+		SYS_STATUS_PERFORMANCE  856000
+		SYS_STATUS_BOOST        856000
+		SYS_STATUS_DUALVIEW     856000
+		SYS_STATUS_ISP          856000
+	>;
+	vop-bw-dmc-freq = <
+	/* min_bw(MB/s) max_bw(MB/s) freq(KHz) */
+		0       762      416000
+		763     3012     666000
+		3013    99999    856000
+	>;
+
+	vop-pn-msch-readlatency = <
+		0	0x20
+		4	0x20
+	>;
+
+	auto-min-freq = <328000>;
+	auto-freq-en = <0>;
 };
 
 &emmc_phy {
@@ -697,8 +718,7 @@
 &sdhci {
 	max-frequency = <150000000>;
 	bus-width = <8>;
-	mmc-hs400-1_8v;
-	mmc-hs400-enhanced-strobe;
+	mmc-hs200-1_8v;
 	non-removable;
 	status = "okay";
 };
@@ -722,8 +742,10 @@
 
 &u2phy0 {
 	status = "okay";
+	wakeup-source;
 
 	u2phy0_otg: otg-port {
+		phy-supply = <&vcc5v0_typec>;
 		status = "okay";
 	};
 
@@ -735,6 +757,7 @@
 
 &u2phy1 {
 	status = "okay";
+	wakeup-source;
 
 	u2phy1_otg: otg-port {
 		status = "okay";
@@ -746,13 +769,40 @@
 	};
 };
 
+&rockchip_suspend {
+	status = "okay";
+	rockchip,sleep-debug-en = <1>;
+	rockchip,sleep-mode-config = <
+		(0
+		| RKPM_SLP_ARMPD
+		| RKPM_SLP_PERILPPD
+		| RKPM_SLP_DDR_RET
+		| RKPM_SLP_PLLPD
+		| RKPM_SLP_CENTER_PD
+		)
+	>;
+	rockchip,wakeup-config = <
+		(0
+		| RKPM_GPIO_WKUP_EN
+		| RKPM_PWM_WKUP_EN
+		| RKPM_USB_WKUP_EN
+		| RKPM_USB_LINESTATE_WKUP_EN
+		)
+	>;
+	rockchip,pwm-regulator-config = <
+		(0
+		| PWM2_REGULATOR_EN
+		)
+	>;
+	rockchip,power-ctrl =
+		<&gpio1 17 GPIO_ACTIVE_HIGH>,
+		<&gpio1 14 GPIO_ACTIVE_HIGH>,
+		<&gpio0 3 GPIO_ACTIVE_HIGH>;
+};
+
 &uart0 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&uart0_xfer &uart0_cts &uart0_rts>;
-};
-
-&uart2 {
-	status = "okay";
 };
 
 &usb_host0_ehci {
@@ -777,6 +827,7 @@
 
 &usbdrd_dwc3_0 {
 	status = "okay";
+	extcon = <&u2phy0>;
 	dr_mode = "otg";
 };
 
