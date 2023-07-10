@@ -644,7 +644,7 @@ CY_FW_DEF(43362, "cyfmac43362-sdio");
 CY_FW_DEF(4339, "cyfmac4339-sdio");
 BRCMF_FW_DEF(43430A0, "brcmfmac43430a0-sdio");
 /* Note the names are not postfixed with a1 for backward compatibility */
-CY_FW_DEF(43430A1, "cyfmac43430-sdio");
+BRCMF_FW_DEF(43430A1, "brcmfmac43430-sdio");
 CY_FW_DEF(43439, "cyfmac43439-sdio");
 CY_FW_DEF(43455, "cyfmac43455-sdio");
 BRCMF_FW_DEF(43456, "brcmfmac43456-sdio");
