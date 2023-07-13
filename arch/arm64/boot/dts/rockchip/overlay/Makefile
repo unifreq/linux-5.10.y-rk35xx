@@ -144,6 +144,8 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
 	rk3588-rock-5b-radxa-display-8hd.dtbo \
 	rk3588-rock-5b-rpi-camera-v2.dtbo \
 	rk3588-rock-5b-sata.dtbo \
+	rk3588-sdio-uhs.dtbo \
+	rk3588-sdhci-hs400.dtbo \
 	rk3588-spi0-m2-cs0-spidev.dtbo \
 	rk3588-spi0-m2-cs1-spidev.dtbo \
 	rk3588-spi1-m1-cs0-spidev.dtbo \

@@ -1,0 +1,15 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target = <&sdio>;
+
+		__overlay__ {
+			max-frequency = <200000000>;
+			sd-uhs-ddr50;
+			sd-uhs-sdr50;
+			sd-uhs-sdr104;
+		};
+	};
+};
