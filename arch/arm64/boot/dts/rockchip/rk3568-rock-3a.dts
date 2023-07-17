@@ -13,6 +13,13 @@
 	model = "Radxa ROCK3 Model A";
 	compatible = "radxa,rock3a", "rockchip,rk3568";
 
+	fan0: pwm-fan {
+		compatible = "pwm-fan";
+		#cooling-cells = <2>;
+		cooling-levels = <0 64 128 192 255>;
+		pwms = <&pwm8 0 10000 0>;
+	};
+
 	fiq_debugger: fiq-debugger {
 		compatible = "rockchip,fiq-debugger";
 		rockchip,serial-id = <2>;
@@ -707,6 +714,12 @@
 	vccio7-supply = <&vcc_3v3>;
 };
 
+&pwm8 {
+	pinctrl-names = "active";
+	pinctrl-0 = <&pwm8m0_pins>;
+	status = "okay";
+};
+
 &rk_rga {
 	status = "okay";
 };
@@ -794,6 +807,28 @@
 
 &sfc {
 	status = "okay";
+};
+
+&soc_thermal {
+	sustainable-power = <5000>; /* milliwatts */
+	cooling-maps {
+		map3 {
+			trip = <&target>;
+			cooling-device =
+				<&fan0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+			contribution = <8192>;
+		};
+		map4 {
+			trip = <&threshold>;
+			cooling-device =
+				<&fan0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+			contribution = <8192>;
+		};
+	};
+};
+
+&threshold {
+	temperature = <60000>;
 };
 
 &tsadc {
