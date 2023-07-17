@@ -199,6 +199,7 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-pcie-ep-demo-v11-linux.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-rock-5b.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-rock-5b-v11.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-hinlink-h88k.dtb
+dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-hinlink-h88k-v3.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-toybrick-x0-android.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-toybrick-x0-linux.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-vehicle-evb-v10.dtb
