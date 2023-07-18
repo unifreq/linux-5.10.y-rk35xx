@@ -3142,6 +3142,18 @@ vop2_wb_connector_mode_valid(struct drm_connector *connector,
 	return MODE_OK;
 }
 
+static inline bool
+vop2_wb_connector_changed_only(struct drm_crtc_state *cstate, struct drm_connector *conn)
+{
+	struct drm_crtc_state *old_state;
+	u32 changed_connectors;
+
+	old_state = drm_atomic_get_old_crtc_state(cstate->state, cstate->crtc);
+	changed_connectors = cstate->connector_mask ^ old_state->connector_mask;
+
+	return BIT(drm_connector_index(conn)) == changed_connectors;
+}
+
 static int vop2_wb_encoder_atomic_check(struct drm_encoder *encoder,
 			       struct drm_crtc_state *cstate,
 			       struct drm_connector_state *conn_state)
@@ -3153,8 +3165,15 @@ static int vop2_wb_encoder_atomic_check(struct drm_encoder *encoder,
 	struct drm_gem_object *obj, *uv_obj;
 	struct rockchip_gem_object *rk_obj, *rk_uv_obj;
 
-
-
+	/*
+	 * No need for a full modested when the only connector changed is the
+	 * writeback connector.
+	 */
+	if (cstate->connectors_changed &&
+	    vop2_wb_connector_changed_only(cstate, conn_state->connector)) {
+		cstate->connectors_changed = false;
+		DRM_DEBUG("VP%d force change connectors_changed to false when only wb changed\n", vp->id);
+	}
 	if (!conn_state->writeback_job || !conn_state->writeback_job->fb)
 		return 0;
 
@@ -3505,7 +3524,6 @@ static int vop2_crtc_atomic_gamma_set(struct drm_crtc *crtc,
 	return 0;
 }
 
-#if defined(CONFIG_ROCKCHIP_DRM_CUBIC_LUT)
 static int vop2_crtc_atomic_cubic_lut_set(struct drm_crtc *crtc,
 					  struct drm_crtc_state *old_state)
 {
@@ -3578,18 +3596,12 @@ static int vop2_crtc_atomic_cubic_lut_set(struct drm_crtc *crtc,
 	return 0;
 }
 
-static void drm_crtc_enable_cubic_lut(struct drm_crtc *crtc, unsigned int cubic_lut_size)
+static void vop2_attach_cubic_lut_prop(struct drm_crtc *crtc, unsigned int cubic_lut_size)
 {
-	struct drm_device *dev = crtc->dev;
-	struct drm_mode_config *config = &dev->mode_config;
+	struct rockchip_drm_private *private = crtc->dev->dev_private;
 
-	if (cubic_lut_size) {
-		drm_object_attach_property(&crtc->base,
-					   config->cubic_lut_property, 0);
-		drm_object_attach_property(&crtc->base,
-					   config->cubic_lut_size_property,
-					   cubic_lut_size);
-	}
+	drm_object_attach_property(&crtc->base, private->cubic_lut_prop, 0);
+	drm_object_attach_property(&crtc->base, private->cubic_lut_size_prop, cubic_lut_size);
 }
 
 static void vop2_cubic_lut_init(struct vop2 *vop2)
@@ -3609,12 +3621,9 @@ static void vop2_cubic_lut_init(struct vop2 *vop2)
 		vp->cubic_lut_len = vp_data->cubic_lut_len;
 
 		if (vp->cubic_lut_len)
-			drm_crtc_enable_cubic_lut(crtc, vp->cubic_lut_len);
+			vop2_attach_cubic_lut_prop(crtc, vp->cubic_lut_len);
 	}
 }
-#else
-static void vop2_cubic_lut_init(struct vop2 *vop2) { }
-#endif
 
 static int vop2_core_clks_prepare_enable(struct vop2 *vop2)
 {
@@ -3839,10 +3848,13 @@ static void vop2_initial(struct drm_crtc *crtc)
 		VOP_CTRL_SET(vop2, if_ctrl_cfg_done_imd, 1);
 
 		/* Close dynamic turn on/off rk3588 PD_ESMART and keep esmart pd on when enable */
-		if (!vp->loader_protect && vop2->version == VOP_VERSION_RK3588) {
+		if (vop2->version == VOP_VERSION_RK3588) {
 			struct vop2_power_domain *esmart_pd = vop2_find_pd_by_id(vop2, VOP2_PD_ESMART);
 
-			vop2_power_domain_on(esmart_pd);
+			if (vop2_power_domain_status(esmart_pd))
+				esmart_pd->on = true;
+			else
+				vop2_power_domain_on(esmart_pd);
 		}
 		vop2_layer_map_initial(vop2, current_vp_id);
 		vop2_axi_irqs_enable(vop2);
@@ -4979,19 +4991,19 @@ static void vop2_win_atomic_update(struct vop2_win *win, struct drm_rect *src, s
 		}
 	}
 
-	if (dst->x1 + dsp_w > adjusted_mode->hdisplay) {
+	if (dst->x1 + dsp_w > adjusted_mode->crtc_hdisplay) {
 		DRM_ERROR("vp%d %s dest->x1[%d] + dsp_w[%d] exceed mode hdisplay[%d]\n",
-			  vp->id, win->name, dst->x1, dsp_w, adjusted_mode->hdisplay);
-		dsp_w = adjusted_mode->hdisplay - dst->x1;
+			  vp->id, win->name, dst->x1, dsp_w, adjusted_mode->crtc_hdisplay);
+		dsp_w = adjusted_mode->crtc_hdisplay - dst->x1;
 		if (dsp_w < 4)
 			dsp_w = 4;
 		actual_w = dsp_w * actual_w / drm_rect_width(dst);
 	}
 	dsp_h = drm_rect_height(dst);
-	if (dst->y1 + dsp_h > adjusted_mode->vdisplay) {
+	if (dst->y1 + dsp_h > adjusted_mode->crtc_vdisplay) {
 		DRM_ERROR("vp%d %s dest->y1[%d] + dsp_h[%d] exceed mode vdisplay[%d]\n",
-			  vp->id, win->name, dst->y1, dsp_h, adjusted_mode->vdisplay);
-		dsp_h = adjusted_mode->vdisplay - dst->y1;
+			  vp->id, win->name, dst->y1, dsp_h, adjusted_mode->crtc_vdisplay);
+		dsp_h = adjusted_mode->crtc_vdisplay - dst->y1;
 		if (dsp_h < 4)
 			dsp_h = 4;
 		actual_h = dsp_h * actual_h / drm_rect_height(dst);
@@ -6225,6 +6237,7 @@ static int vop2_crtc_debugfs_init(struct drm_minor *minor, struct drm_crtc *crtc
 	}
 #if defined(CONFIG_ROCKCHIP_DRM_DEBUG)
 	rockchip_drm_add_dump_buffer(crtc, vop2->debugfs);
+	rockchip_drm_debugfs_add_color_bar(crtc, vop2->debugfs);
 #endif
 	for (i = 0; i < ARRAY_SIZE(vop2_debugfs_files); i++)
 		vop2->debugfs_files[i].data = vop2;
@@ -6482,6 +6495,44 @@ static void vop2_crtc_te_handler(struct drm_crtc *crtc)
 	VOP_MODULE_SET(vop2, vp, edpi_wms_fs, 1);
 }
 
+static int vop2_crtc_set_color_bar(struct drm_crtc *crtc, enum rockchip_color_bar_mode mode)
+{
+	struct vop2_video_port *vp = to_vop2_video_port(crtc);
+	struct vop2 *vop2 = vp->vop2;
+	int ret = 0;
+
+	if (!crtc->state->active) {
+		DRM_INFO("Video port%d disabled\n", vp->id);
+		return -EINVAL;
+	}
+
+	switch (mode) {
+	case ROCKCHIP_COLOR_BAR_OFF:
+		DRM_INFO("disable color bar in VP%d\n", vp->id);
+		VOP_MODULE_SET(vop2, vp, color_bar_en, 0);
+		vop2_cfg_done(crtc);
+		break;
+	case ROCKCHIP_COLOR_BAR_HORIZONTAL:
+		DRM_INFO("enable horizontal color bar in VP%d\n", vp->id);
+		VOP_MODULE_SET(vop2, vp, color_bar_mode, 0);
+		VOP_MODULE_SET(vop2, vp, color_bar_en, 1);
+		vop2_cfg_done(crtc);
+		break;
+	case ROCKCHIP_COLOR_BAR_VERTICAL:
+		DRM_INFO("enable vertical color bar in VP%d\n", vp->id);
+		VOP_MODULE_SET(vop2, vp, color_bar_mode, 1);
+		VOP_MODULE_SET(vop2, vp, color_bar_en, 1);
+		vop2_cfg_done(crtc);
+		break;
+	default:
+		DRM_INFO("Unsupported color bar mode\n");
+		ret = -EINVAL;
+		break;
+	}
+
+	return ret;
+}
+
 static const struct rockchip_crtc_funcs private_crtc_funcs = {
 	.loader_protect = vop2_crtc_loader_protect,
 	.cancel_pending_vblank = vop2_crtc_cancel_pending_vblank,
@@ -6495,6 +6546,7 @@ static const struct rockchip_crtc_funcs private_crtc_funcs = {
 	.crtc_send_mcu_cmd = vop3_crtc_send_mcu_cmd,
 	.wait_vact_end = vop2_crtc_wait_vact_end,
 	.crtc_standby = vop2_crtc_standby,
+	.crtc_set_color_bar = vop2_crtc_set_color_bar,
 };
 
 static bool vop2_crtc_mode_fixup(struct drm_crtc *crtc,
@@ -9694,13 +9746,11 @@ static void vop2_crtc_atomic_flush(struct drm_crtc *crtc, struct drm_crtc_state 
 				vp->gamma_lut = crtc->state->gamma_lut->data;
 			vop2_crtc_atomic_gamma_set(crtc, crtc->state);
 		}
-#if defined(CONFIG_ROCKCHIP_DRM_CUBIC_LUT)
-		if (crtc->state->cubic_lut || vp->cubic_lut) {
-			if (crtc->state->cubic_lut)
-				vp->cubic_lut = crtc->state->cubic_lut->data;
+		if (vcstate->cubic_lut_data || vp->cubic_lut) {
+			if (vcstate->cubic_lut_data)
+				vp->cubic_lut = vcstate->cubic_lut_data->data;
 			vop2_crtc_atomic_cubic_lut_set(crtc, crtc->state);
 		}
-#endif
 	} else {
 		VOP_MODULE_SET(vop2, vp, cubic_lut_update_en, 0);
 	}
@@ -9813,6 +9863,8 @@ static struct drm_crtc_state *vop2_crtc_duplicate_state(struct drm_crtc *crtc)
 		drm_property_blob_get(vcstate->acm_lut_data);
 	if (vcstate->post_csc_data)
 		drm_property_blob_get(vcstate->post_csc_data);
+	if (vcstate->cubic_lut_data)
+		drm_property_blob_get(vcstate->cubic_lut_data);
 
 	__drm_atomic_helper_crtc_duplicate_state(crtc, &vcstate->base);
 	return &vcstate->base;
@@ -9827,6 +9879,7 @@ static void vop2_crtc_destroy_state(struct drm_crtc *crtc,
 	drm_property_blob_put(vcstate->hdr_ext_data);
 	drm_property_blob_put(vcstate->acm_lut_data);
 	drm_property_blob_put(vcstate->post_csc_data);
+	drm_property_blob_put(vcstate->cubic_lut_data);
 	kfree(vcstate);
 }
 
@@ -9973,6 +10026,11 @@ static int vop2_crtc_atomic_get_property(struct drm_crtc *crtc,
 		return 0;
 	}
 
+	if (property == private->cubic_lut_prop) {
+		*val = (vcstate->cubic_lut_data) ? vcstate->cubic_lut_data->base.id : 0;
+		return 0;
+	}
+
 	DRM_ERROR("failed to get vop2 crtc property: %s\n", property->name);
 
 	return -EINVAL;
@@ -10095,6 +10153,16 @@ static int vop2_crtc_atomic_set_property(struct drm_crtc *crtc,
 								val,
 								sizeof(struct post_csc), -1,
 								&replaced);
+		return ret;
+	}
+
+	if (property == private->cubic_lut_prop) {
+		ret = vop2_atomic_replace_property_blob_from_id(drm_dev,
+								&vcstate->cubic_lut_data,
+								val,
+								-1, sizeof(struct drm_color_lut),
+								&replaced);
+		state->color_mgmt_changed |= replaced;
 		return ret;
 	}
 

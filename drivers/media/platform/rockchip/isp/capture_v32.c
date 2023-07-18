@@ -702,7 +702,8 @@ static int mp_config_mi(struct rkisp_stream *stream)
 		height = dev->cap_dev.wrap_line;
 	val = out_fmt->plane_fmt[0].bytesperline;
 	/* in bytes for isp32 */
-	if (dev->isp_ver == ISP_V32)
+	if (dev->isp_ver == ISP_V32 &&
+	    stream->out_isp_fmt.write_format != MI_CTRL_MP_WRITE_YUVINT)
 		rkisp_write(dev, ISP3X_MI_MP_WR_Y_LLENGTH, val, false);
 	val /= DIV_ROUND_UP(fmt->bpp[0], 8);
 	/* in pixels for isp32 lite */
@@ -861,8 +862,13 @@ static int bp_config_mi(struct rkisp_stream *stream)
 	* memory plane formats, so calculate the size explicitly.
 	*/
 	val = out_fmt->plane_fmt[0].bytesperline;
-	rkisp_write(dev, ISP3X_MI_BP_WR_Y_LLENGTH, val, false);
+	/* in bytes */
+	if (stream->out_isp_fmt.write_format != ISP3X_BP_FORMAT_INT)
+		rkisp_write(dev, ISP3X_MI_BP_WR_Y_LLENGTH, val, false);
 	val /= DIV_ROUND_UP(fmt->bpp[0], 8);
+	/* in pixels */
+	if (stream->out_isp_fmt.write_format == ISP3X_BP_FORMAT_INT)
+		rkisp_write(dev, ISP3X_MI_BP_WR_Y_LLENGTH, val, false);
 	val *= out_fmt->height;
 	rkisp_write(dev, stream->config->mi.y_pic_size, val, false);
 	val = out_fmt->plane_fmt[0].bytesperline * out_fmt->height;
@@ -899,8 +905,11 @@ static int ds_config_mi(struct rkisp_stream *stream)
 	u32 val;
 
 	val = out_fmt->plane_fmt[0].bytesperline;
-	rkisp_write(dev, stream->config->mi.length, val, false);
+	if (stream->out_isp_fmt.write_format != ISP3X_BP_FORMAT_INT)
+		rkisp_write(dev, stream->config->mi.length, val, false);
 	val /= DIV_ROUND_UP(fmt->bpp[0], 8);
+	if (stream->out_isp_fmt.write_format == ISP3X_BP_FORMAT_INT)
+		rkisp_write(dev, stream->config->mi.length, val, false);
 	val *= out_fmt->height;
 	rkisp_write(dev, stream->config->mi.y_pic_size, val, false);
 	val = out_fmt->plane_fmt[0].bytesperline * out_fmt->height;
@@ -1052,15 +1061,24 @@ static void update_mi(struct rkisp_stream *stream)
 				/* isp no start and mi close, force to enable it */
 				if (!ISP3X_ISP_OUT_LINE(rkisp_read(dev, ISP3X_ISP_DEBUG2, true))) {
 					stream->ops->enable_mi(stream);
-					stream->is_pause = false;
 					stream_self_update(stream);
 					if (!stream->curr_buf) {
 						stream->curr_buf = stream->next_buf;
 						stream->next_buf = NULL;
 					}
+					/* maybe no next buf to preclose mi */
+					stream->ops->disable_mi(stream);
+				} else if (stream->is_pause) {
+					/* isp working and mi closed
+					 * config buf and enable mi, capture at next frame
+					 */
+					stream->ops->enable_mi(stream);
+					stream->is_pause = false;
 				}
-			}
-			if (stream->is_pause) {
+			} else if (stream->is_pause) {
+				/* isp working and mi no to close
+				 * config buf will auto update at frame end
+				 */
 				stream->ops->enable_mi(stream);
 				stream->is_pause = false;
 			}
@@ -1098,6 +1116,7 @@ static void update_mi(struct rkisp_stream *stream)
 			dev->tb_addr_idx++;
 	} else if (!stream->is_pause) {
 		stream->is_pause = true;
+		/* no next buf to preclose mi */
 		stream->ops->disable_mi(stream);
 		/* no buf, force to close mi */
 		if (!stream->curr_buf)
