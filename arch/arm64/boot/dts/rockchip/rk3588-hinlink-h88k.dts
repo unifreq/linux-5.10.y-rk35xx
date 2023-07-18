@@ -258,18 +258,6 @@
 		vin-supply = <&vcc12v_dcin>;
 	};
 
-	/* can't work */
-	/*
-	rk_modem: rk-Modem {
-		compatible="4g-modem-platdata";
-		pinctrl-names = "modem-power", "modem-reset";
-		pinctrl-0 = <&modem_power_en>, <&modem_reset_en>;
-		4G,power-gpio = <&gpio4 RK_PA3 GPIO_ACTIVE_HIGH>;
-		4G,reset-gpio = <&gpio4 RK_PC6 GPIO_ACTIVE_HIGH>;
-		status = "okay";
-	};
-	*/
-
 	vcc3v3_modem: vcc3v3-modem {
 		compatible = "regulator-fixed";
 		enable-active-high;
@@ -284,20 +272,14 @@
 		vin-supply = <&vcc_3v3_s3>;
 	};
 
-	/* it's modem reset pin */
-	modem_enable: modem-enable {
-		compatible = "regulator-fixed";
-		enable-active-high;
-		regulator-always-on;
-		regulator-boot-on;
-		gpios = <&gpio4 RK_PC6 GPIO_ACTIVE_HIGH>;
-		regulator-min-microvolt = <3300000>;
-		regulator-max-microvolt = <3300000>;
-		regulator-name = "modem-enable";
-		vin-supply = <&vcc_3v3_s3>;
-		startup-delay-us = <500000>;
+	rfkill_modem: rfkill-modem {
+		compatible = "rfkill-gpio";
+		label = "rfkill-modem";
+		type = "wwan";
+		reset-gpios = <&gpio4 RK_PC6 GPIO_ACTIVE_HIGH>;
+
 		pinctrl-names = "default";
-		pintctrl-0 = <&modem_reset_en>;
+		pinctrl-0 = <&modem_reset_en>;
 	};
 
 	/* wifi regon support some wifi modules like rtl8723be */
