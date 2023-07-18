@@ -31,7 +31,7 @@
 		ranges;
 
 		/* Reserve 256MB memory for hdmirx-controller@fdee0000 */
-		cma {
+		cma_hdmirx: cma-hdmirx {
 			compatible = "shared-dma-pool";
 			reusable;
 			reg = <0x0 (256 * 0x100000) 0x0 (256 * 0x100000)>;
@@ -504,6 +504,7 @@
 /* Should work with at least 128MB cma reserved above. */
 &hdmirx_ctrler {
 	status = "okay";
+	memory-region = <&cma_hdmirx>;
 
 	#sound-dai-cells = <1>;
 	/* Effective level used to trigger HPD: 0-low, 1-high */
