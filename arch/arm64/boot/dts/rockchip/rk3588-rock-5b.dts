@@ -218,8 +218,7 @@
 		cma_hdmirx: cma-hdmirx {
 			compatible = "shared-dma-pool";
 			reusable;
-			reg = <0x0 (256 * 0x100000) 0x0 (256 * 0x100000)>;
-			linux,cma-default;
+			size = <0x0 (256 * 0x100000)>;
 		};
 	};
 
