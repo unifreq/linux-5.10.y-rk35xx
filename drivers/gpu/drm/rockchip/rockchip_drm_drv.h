@@ -101,12 +101,6 @@ enum rockchip_hdcp_encrypted {
 	RK_IF_HDCP_ENCRYPTED_LEVEL2,
 };
 
-enum rockchip_color_bar_mode {
-	ROCKCHIP_COLOR_BAR_OFF = 0,
-	ROCKCHIP_COLOR_BAR_HORIZONTAL = 1,
-	ROCKCHIP_COLOR_BAR_VERTICAL = 2,
-};
-
 struct rockchip_drm_sub_dev {
 	struct list_head list;
 	struct drm_connector *connector;
@@ -255,7 +249,6 @@ struct rockchip_crtc_state {
 	struct drm_property_blob *hdr_ext_data;
 	struct drm_property_blob *acm_lut_data;
 	struct drm_property_blob *post_csc_data;
-	struct drm_property_blob *cubic_lut_data;
 
 	int request_refresh_rate;
 	int max_refresh_rate;
@@ -420,7 +413,6 @@ struct rockchip_crtc_funcs {
 	void (*te_handler)(struct drm_crtc *crtc);
 	int (*wait_vact_end)(struct drm_crtc *crtc, unsigned int mstimeout);
 	void (*crtc_standby)(struct drm_crtc *crtc, bool standby);
-	int (*crtc_set_color_bar)(struct drm_crtc *crtc, enum rockchip_color_bar_mode mode);
 };
 
 struct rockchip_dclk_pll {
@@ -453,8 +445,6 @@ struct rockchip_drm_private {
 	struct drm_property *aclk_prop;
 	struct drm_property *bg_prop;
 	struct drm_property *line_flag_prop;
-	struct drm_property *cubic_lut_prop;
-	struct drm_property *cubic_lut_size_prop;
 
 	/* private plane prop */
 	struct drm_property *eotf_prop;

@@ -51,7 +51,7 @@
 static struct devfreq_simple_ondemand_data ondemand_data;
 
 static struct monitor_dev_profile mali_mdevp = {
-	.type = MONITOR_TYPE_DEV,
+	.type = MONITOR_TPYE_DEV,
 	.low_temp_adjust = rockchip_monitor_dev_low_temp_adjust,
 	.high_temp_adjust = rockchip_monitor_dev_high_temp_adjust,
 };
@@ -241,24 +241,16 @@ static int kbase_devfreq_init_freq_table(struct kbase_device *kbdev,
 
 static void kbase_devfreq_term_freq_table(struct kbase_device *kbdev)
 {
-	struct devfreq_dev_profile *dp = &kbdev->devfreq_profile;
+	struct devfreq_dev_profile *dp = kbdev->devfreq->profile;
 
 	kfree(dp->freq_table);
-	dp->freq_table = NULL;
-}
-
-static void kbase_devfreq_term_core_mask_table(struct kbase_device *kbdev)
-{
-	kfree(kbdev->opp_table);
-	kbdev->opp_table = NULL;
 }
 
 static void kbase_devfreq_exit(struct device *dev)
 {
 	struct kbase_device *kbdev = dev_get_drvdata(dev);
 
-	if (kbdev)
-		kbase_devfreq_term_freq_table(kbdev);
+	kbase_devfreq_term_freq_table(kbdev);
 }
 
 static int kbase_devfreq_init_core_mask_table(struct kbase_device *kbdev)
@@ -366,7 +358,7 @@ int kbase_devfreq_init(struct kbase_device *kbdev)
 
 	err = kbase_devfreq_init_core_mask_table(kbdev);
 	if (err)
-		goto init_core_mask_table_failed;
+		return err;
 
 	of_property_read_u32(np, "upthreshold",
 			     &ondemand_data.upthreshold);
@@ -376,10 +368,8 @@ int kbase_devfreq_init(struct kbase_device *kbdev)
 	kbdev->devfreq = devfreq_add_device(kbdev->dev, dp,
 				"simple_ondemand", &ondemand_data);
 	if (IS_ERR(kbdev->devfreq)) {
-		err = PTR_ERR(kbdev->devfreq);
-		kbdev->devfreq = NULL;
-		dev_err(kbdev->dev, "Fail to add devfreq device(%d)", err);
-		goto devfreq_add_dev_failed;
+		kbase_devfreq_term_freq_table(kbdev);
+		return PTR_ERR(kbdev->devfreq);
 	}
 
 	/* devfreq_add_device only copies a few of kbdev->dev's fields, so
@@ -439,12 +429,6 @@ opp_notifier_failed:
 	else
 		kbdev->devfreq = NULL;
 
-devfreq_add_dev_failed:
-	kbase_devfreq_term_core_mask_table(kbdev);
-
-init_core_mask_table_failed:
-	kbase_devfreq_term_freq_table(kbdev);
-
 	return err;
 }
 
@@ -470,5 +454,5 @@ void kbase_devfreq_term(struct kbase_device *kbdev)
 	else
 		kbdev->devfreq = NULL;
 
-	kbase_devfreq_term_core_mask_table(kbdev);
+	kfree(kbdev->opp_table);
 }

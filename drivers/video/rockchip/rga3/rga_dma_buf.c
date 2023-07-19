@@ -203,14 +203,12 @@ static dma_addr_t rga_iommu_dma_alloc_iova(struct iommu_domain *domain,
 					    size_t size, u64 dma_limit,
 					    struct device *dev)
 {
-	struct rga_iommu_dma_cookie *cookie = (void *)domain->iova_cookie;
+	struct rga_iommu_dma_cookie *cookie = domain->iova_cookie;
 	struct iova_domain *iovad = &cookie->iovad;
 	unsigned long shift, iova_len, iova = 0;
 
 	shift = iova_shift(iovad);
 	iova_len = size >> shift;
-
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 1, 0))
 	/*
 	 * Freeing non-power-of-two-sized allocations back into the IOVA caches
 	 * will come back to bite us badly, so we have to waste a bit of space
@@ -219,7 +217,6 @@ static dma_addr_t rga_iommu_dma_alloc_iova(struct iommu_domain *domain,
 	 */
 	if (iova_len < (1 << (IOVA_RANGE_CACHE_MAX_SIZE - 1)))
 		iova_len = roundup_pow_of_two(iova_len);
-#endif
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 	dma_limit = min_not_zero(dma_limit, dev->bus_dma_limit);
@@ -246,7 +243,7 @@ static dma_addr_t rga_iommu_dma_alloc_iova(struct iommu_domain *domain,
 static void rga_iommu_dma_free_iova(struct iommu_domain *domain,
 				    dma_addr_t iova, size_t size)
 {
-	struct rga_iommu_dma_cookie *cookie = (void *)domain->iova_cookie;
+	struct rga_iommu_dma_cookie *cookie = domain->iova_cookie;
 	struct iova_domain *iovad = &cookie->iovad;
 
 	free_iova_fast(iovad, iova_pfn(iovad, iova), size >> iova_shift(iovad));
@@ -285,7 +282,7 @@ int rga_iommu_map_sgt(struct sg_table *sgt, size_t size,
 	}
 
 	domain = rga_iommu_get_dma_domain(rga_dev);
-	cookie = (void *)domain->iova_cookie;
+	cookie = domain->iova_cookie;
 	iovad = &cookie->iovad;
 	align_size = iova_align(iovad, size);
 
@@ -330,7 +327,7 @@ int rga_iommu_map(phys_addr_t paddr, size_t size,
 	}
 
 	domain = rga_iommu_get_dma_domain(rga_dev);
-	cookie = (void *)domain->iova_cookie;
+	cookie = domain->iova_cookie;
 	iovad = &cookie->iovad;
 	align_size = iova_align(iovad, size);
 
@@ -394,20 +391,12 @@ int rga_dma_memory_check(struct rga_dma_buffer *rga_dma_buffer, struct rga_img_i
 {
 	int ret = 0;
 	void *vaddr;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
-	struct iosys_map map;
-#endif
 	struct dma_buf *dma_buf;
 
 	dma_buf = rga_dma_buffer->dma_buf;
 
 	if (!IS_ERR_OR_NULL(dma_buf)) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
-		ret = dma_buf_vmap(dma_buf, &map);
-		vaddr = ret ? NULL : map.vaddr;
-#else
 		vaddr = dma_buf_vmap(dma_buf);
-#endif
 		if (vaddr) {
 			ret = rga_virtual_memory_check(vaddr, img->vir_w,
 				img->vir_h, img->format, img->yrgb_addr);
@@ -415,11 +404,8 @@ int rga_dma_memory_check(struct rga_dma_buffer *rga_dma_buffer, struct rga_img_i
 			pr_err("can't vmap the dma buffer!\n");
 			return -EINVAL;
 		}
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
-		dma_buf_vunmap(dma_buf, &map);
-#else
+
 		dma_buf_vunmap(dma_buf, vaddr);
-#endif
 	}
 
 	return ret;

@@ -141,27 +141,6 @@
 		default-brightness-level = <200>;
 	};
 
-	bt_sco: bt-sco {
-		status = "disabled";
-		compatible = "delta,dfbmcs320";
-		#sound-dai-cells = <1>;
-	};
-
-	bt_sound: bt-sound {
-		status = "disabled";
-		compatible = "simple-audio-card";
-		simple-audio-card,format = "dsp_a";
-		simple-audio-card,bitclock-inversion = <0>;
-		simple-audio-card,mclk-fs = <256>;
-		simple-audio-card,name = "rockchip,bt";
-		simple-audio-card,cpu {
-			sound-dai = <&i2s3_2ch>;
-		};
-		simple-audio-card,codec {
-			sound-dai = <&bt_sco 1>;
-		};
-	};
-
 	dc_12v: dc-12v {
 		compatible = "regulator-fixed";
 		regulator-name = "dc_12v";
@@ -1118,6 +1097,7 @@
 		regulator-min-microvolt = <712500>;
 		regulator-max-microvolt = <1390000>;
 		regulator-init-microvolt = <900000>;
+		regulator-initial-mode = <1>;
 		regulator-ramp-delay = <2300>;
 		fcs,suspend-voltage-selector = <1>;
 		regulator-boot-on;
@@ -1435,12 +1415,6 @@
 		     &i2s1m0_lrcktx
 		     &i2s1m0_sdi0
 		     &i2s1m0_sdo0>;
-};
-
-&i2s3_2ch {
-	pinctrl-0 = <&i2s3m0_sclk &i2s3m0_lrck &i2s3m0_sdi &i2s3m0_sdo>;
-	rockchip,bclk-fs = <32>;
-	status = "disabled";
 };
 
 &iep {

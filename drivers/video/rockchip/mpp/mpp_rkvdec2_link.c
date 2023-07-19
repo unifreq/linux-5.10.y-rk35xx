@@ -1356,8 +1356,7 @@ int rkvdec2_attach_ccu(struct device *dev, struct rkvdec2_dev *dec)
 		/* set the ccu-domain for current device */
 		ccu_info = queue->cores[0]->iommu_info;
 		cur_info = dec->mpp.iommu_info;
-		if (cur_info)
-			cur_info->domain = ccu_info->domain;
+		cur_info->domain = ccu_info->domain;
 		mpp_iommu_attach(cur_info);
 	}
 

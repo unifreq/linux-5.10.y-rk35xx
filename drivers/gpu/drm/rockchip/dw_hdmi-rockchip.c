@@ -785,11 +785,8 @@ static int hdmi_bus_fmt_to_color_format(unsigned int bus_format)
 		return RK_IF_FORMAT_YCBCR444;
 
 	case MEDIA_BUS_FMT_UYVY8_1X16:
-	case MEDIA_BUS_FMT_YUYV8_1X16:
 	case MEDIA_BUS_FMT_UYVY10_1X20:
-	case MEDIA_BUS_FMT_YUYV10_1X20:
 	case MEDIA_BUS_FMT_UYVY12_1X24:
-	case MEDIA_BUS_FMT_YVYU12_1X24:
 		return RK_IF_FORMAT_YCBCR422;
 
 	case MEDIA_BUS_FMT_RGB888_1X24:
@@ -2769,7 +2766,7 @@ dw_hdmi_rockchip_attach_properties(struct drm_connector *connector,
 	}
 
 	prop = connector->dev->mode_config.hdr_output_metadata_property;
-	if (hdmi->is_hdmi_qp)
+	if (version >= 0x211a || hdmi->is_hdmi_qp)
 		drm_object_attach_property(&connector->base, prop, 0);
 
 	if (!drm_mode_create_hdmi_colorspace_property(connector))

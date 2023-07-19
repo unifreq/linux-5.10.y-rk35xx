@@ -408,11 +408,12 @@ static int hannstar_hsd123jpw3_a15_prepare(struct max96752f *max96752f)
 {
 	maxim_deserializer_write(max96752f, 0x0002, 0x43);
 	maxim_deserializer_write(max96752f, 0x0140, 0x20);
-	maxim_deserializer_write(max96752f, 0x01ce, 0x5e);
 
-	maxim_deserializer_write(max96752f, 0x0203, 0x83);	/* GPIO1  <- TP_INT */
-	maxim_deserializer_write(max96752f, 0x0206, 0x84);      /* GPIO2  -> TP_RST */
-	maxim_deserializer_write(max96752f, 0x0224, 0x84);	/* GPIO12 -> LCD_BL_PWM */
+	maxim_deserializer_write(max96752f, 0x01ce, 0x5e);	/* oldi */
+	maxim_deserializer_write(max96752f, 0x0226, 0x40);	/* bl_pwm */
+	maxim_deserializer_write(max96752f, 0x0224, 0x84);
+	maxim_deserializer_write(max96752f, 0x0204, 0xa1);	/* tp_int */
+	maxim_deserializer_write(max96752f, 0x0203, 0x83);
 
 	return 0;
 }
@@ -424,7 +425,8 @@ static int hannstar_hsd123jpw3_a15_unprepare(struct max96752f *max96752f)
 
 static int hannstar_hsd123jpw3_a15_enable(struct max96752f *max96752f)
 {
-	maxim_deserializer_write(max96752f, 0x0221, 0x90);	/* GPIO11 -> LCD_RESET */
+	maxim_deserializer_write(max96752f, 0x0221, 0x90);	/* lcd_rst */
+	maxim_deserializer_write(max96752f, 0x0206, 0x90);	/* tp_rst */
 	msleep(20);
 
 	return 0;
@@ -432,7 +434,8 @@ static int hannstar_hsd123jpw3_a15_enable(struct max96752f *max96752f)
 
 static int hannstar_hsd123jpw3_a15_disable(struct max96752f *max96752f)
 {
-	maxim_deserializer_write(max96752f, 0x0221, 0x80);	/* GPIO11 -> LCD_RESET */
+	maxim_deserializer_write(max96752f, 0x0206, 0x80);      /* tp_rst */
+	maxim_deserializer_write(max96752f, 0x0227, 0x80);	/* lcd_rst */
 	msleep(20);
 
 	return 0;
@@ -448,38 +451,9 @@ static const struct panel_desc hannstar_hsd123jpw3_a15 = {
 	.disable		= hannstar_hsd123jpw3_a15_disable,
 };
 
-static int ogm_101fhbllm01_prepare(struct max96752f *max96752f)
-{
-	maxim_deserializer_write(max96752f, 0x01ce, 0x5e);
-
-	maxim_deserializer_write(max96752f, 0x0203, 0x84);	/* GPIO1 -> BL_PWM */
-	maxim_deserializer_write(max96752f, 0x0206, 0x84);	/* GPIO2 -> TP_RST */
-	maxim_deserializer_write(max96752f, 0x0209, 0x83);	/* GPIO3 <- TP_INT */
-
-	maxim_deserializer_write(max96752f, 0x0001, 0x02);
-
-	return 0;
-}
-
-static int ogm_101fhbllm01_unprepare(struct max96752f *max96752f)
-{
-	maxim_deserializer_write(max96752f, 0x0001, 0x01);
-
-	return 0;
-}
-
-static const struct panel_desc ogm_101fhbllm01 = {
-	.name			= "ogm,101fhbllm01",
-	.width_mm		= 126,
-	.height_mm		= 223,
-	.prepare		= ogm_101fhbllm01_prepare,
-	.unprepare		= ogm_101fhbllm01_unprepare,
-};
-
 static const struct of_device_id max96752f_of_match[] = {
 	{ .compatible = "boe,av156fht-l83", &boe_av156fht_l83 },
 	{ .compatible = "hannstar,hsd123jpw3-a15", &hannstar_hsd123jpw3_a15 },
-	{ .compatible = "ogm,101fhbllm01", &ogm_101fhbllm01 },
 	{ }
 };
 MODULE_DEVICE_TABLE(of, max96752f_of_match);

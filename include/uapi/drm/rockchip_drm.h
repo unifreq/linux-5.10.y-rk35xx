@@ -15,13 +15,8 @@
 #ifndef _UAPI_ROCKCHIP_DRM_H
 #define _UAPI_ROCKCHIP_DRM_H
 
-#ifdef __KERNEL__
-#include <linux/types.h>
-#else
-#include <stdint.h>
-#endif
-
 #include <drm/drm.h>
+#include <drm/drm_file.h>
 
 /*
  * Send vcnt event instead of blocking,
@@ -108,6 +103,10 @@ enum rockchip_cabc_mode {
 	ROCKCHIP_DRM_CABC_MODE_NORMAL,
 	ROCKCHIP_DRM_CABC_MODE_LOWPOWER,
 	ROCKCHIP_DRM_CABC_MODE_USERSPACE,
+};
+
+struct drm_rockchip_vcnt_event {
+	struct drm_pending_event	base;
 };
 
 #define DRM_ROCKCHIP_GEM_CREATE		0x00

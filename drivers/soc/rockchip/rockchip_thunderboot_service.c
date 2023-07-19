@@ -97,6 +97,7 @@ static void do_mcu_done(struct rk_tb_serv *serv)
 			return;
 		}
 
+		atomic_set(&mcu_done, 1);
 		list_for_each_entry_safe(client, client_s, &clients_list, node) {
 			spin_unlock(&lock);
 			if (client->cb)
@@ -104,7 +105,6 @@ static void do_mcu_done(struct rk_tb_serv *serv)
 			spin_lock(&lock);
 			list_del(&client->node);
 		}
-		atomic_set(&mcu_done, 1);
 		spin_unlock(&lock);
 	}
 }

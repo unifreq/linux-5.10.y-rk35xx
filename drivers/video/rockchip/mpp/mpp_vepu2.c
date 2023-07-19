@@ -1050,8 +1050,7 @@ static int vepu_attach_ccu(struct device *dev, struct vepu_dev *enc)
 		ccu_info = ccu->main_core->iommu_info;
 		cur_info = enc->mpp.iommu_info;
 
-		if (cur_info)
-			cur_info->domain = ccu_info->domain;
+		cur_info->domain = ccu_info->domain;
 		mpp_iommu_attach(cur_info);
 	}
 	enc->ccu = ccu;
