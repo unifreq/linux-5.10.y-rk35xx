@@ -68,7 +68,7 @@
 		cma {
 			compatible = "shared-dma-pool";
 			reusable;
-			size = <0x0 (8 * 0x100000)>;
+			size = <0x0 (256 * 0x100000)>;
 			linux,cma-default;
 		};
 
@@ -110,4 +110,9 @@
 
 &rng {
 	status = "okay";
+};
+
+/* Assign VOP_ACLK to 750MHZ for 8K */
+&vop {
+	assigned-clock-rates = <750000000>;
 };
