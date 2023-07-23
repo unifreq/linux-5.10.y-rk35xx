@@ -10499,7 +10499,7 @@ static void wl_notify_regd(struct wiphy *wiphy, char *country_code)
 		regulatory_set_wiphy_regd_sync(wiphy, regd_copy);
 		wiphy_unlock(wiphy);
 #else
-		regulatory_set_wiphy_regd_sync_rtnl(wiphy, regd_copy);
+		regulatory_set_wiphy_regd_sync(wiphy, regd_copy);
 #endif /* LINUX_VERSION > 5.12.0 */
 	} else {
 		regulatory_set_wiphy_regd(wiphy, regd_copy);

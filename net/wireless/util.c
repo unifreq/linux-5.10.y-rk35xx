@@ -1252,7 +1252,7 @@ static u32 cfg80211_calculate_bitrate_edmg(struct rate_info *rate)
 
 static u32 cfg80211_calculate_bitrate_vht(struct rate_info *rate)
 {
-	static const u32 base[4][10] = {
+	static const u32 base[4][12] = {
 		{   6500000,
 		   13000000,
 		   19500000,

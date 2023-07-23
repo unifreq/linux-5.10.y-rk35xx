@@ -228,7 +228,7 @@ void rtw_update_wiphy_regd(struct wiphy *wiphy, struct get_chplan_resp *chplan, 
 	#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0))
 	ret = regulatory_set_wiphy_regd_sync(wiphy, regd);
 	#else
-	ret = regulatory_set_wiphy_regd_sync_rtnl(wiphy, regd);
+	ret = regulatory_set_wiphy_regd_sync(wiphy, regd);
 	#endif
 
 	rtw_regd_disable_no_20mhz_chs(wiphy);
@@ -237,7 +237,7 @@ void rtw_update_wiphy_regd(struct wiphy *wiphy, struct get_chplan_resp *chplan, 
 		rtnl_unlock();
 
 	if (ret != 0)
-		RTW_INFO(FUNC_WIPHY_FMT" regulatory_set_wiphy_regd_sync_rtnl return %d\n", FUNC_WIPHY_ARG(wiphy), ret);
+		RTW_INFO(FUNC_WIPHY_FMT" regulatory_set_wiphy_regd_sync return %d\n", FUNC_WIPHY_ARG(wiphy), ret);
 
 free_regd:
 	rtw_mfree(regd, sizeof(*regd) + sizeof(struct ieee80211_reg_rule) * regd->n_reg_rules);
