@@ -2051,6 +2051,7 @@ bool ieee80211_parse_tx_radiotap(struct sk_buff *skb,
 	u16 vht_known;
 	u8 vht_mcs = 0, vht_nss = 0;
 	int i;
+	int stbc;
 
 	if (!ieee80211_validate_radiotap_len(skb))
 		return false;
@@ -2134,6 +2135,12 @@ bool ieee80211_parse_tx_radiotap(struct sk_buff *skb,
 			if (mcs_known & IEEE80211_RADIOTAP_MCS_HAVE_BW &&
 			    mcs_bw == IEEE80211_RADIOTAP_MCS_BW_40)
 				rate_flags |= IEEE80211_TX_RC_40_MHZ_WIDTH;
+
+			if (mcs_known & IEEE80211_RADIOTAP_MCS_HAVE_STBC) {
+				stbc = mcs_flags & IEEE80211_RADIOTAP_MCS_STBC_MASK;
+				stbc = stbc >> IEEE80211_RADIOTAP_MCS_STBC_SHIFT;
+				info->flags |= stbc << IEEE80211_TX_CTL_STBC_SHIFT;
+			}
 
 			if (mcs_known & IEEE80211_RADIOTAP_MCS_HAVE_FEC &&
 			    mcs_flags & IEEE80211_RADIOTAP_MCS_FEC_LDPC)
