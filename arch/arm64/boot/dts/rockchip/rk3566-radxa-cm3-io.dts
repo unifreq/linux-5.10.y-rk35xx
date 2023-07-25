@@ -93,6 +93,28 @@
 		regulator-always-on;
 		regulator-boot-on;
 	};
+
+	rk817_sound: rk817-sound {
+		status = "okay";
+		compatible = "rockchip,multicodecs-card";
+		rockchip,card-name = "rockchip-rk817";
+		rockchip,format = "i2s";
+		rockchip,mclk-fs = <256>;
+		rockchip,cpu = <&i2s1_8ch>;
+		rockchip,codec = <&rk817_codec>;
+		poll-interval = <100>;
+		io-channels = <&saradc 2>;
+		io-channel-names = "adc-detect";
+		keyup-threshold-microvolt = <1800000>;
+		pinctrl-0 = <&hp_det>;
+		pinctrl-names = "default";
+		hp-det-gpio = <&gpio4 RK_PC4 GPIO_ACTIVE_HIGH>;
+		play-pause-key {
+			label = "playpause";
+			linux,code = <164>;
+			press-threshold-microvolt = <2000>;
+		};
+	};
 };
 
 &fiq_debugger {
@@ -116,6 +138,14 @@
 };
 
 &i2s0_8ch {
+	status = "okay";
+};
+
+&i2s1_8ch {
+	pinctrl-0 = <&i2s1m0_sclktx
+		     &i2s1m0_lrcktx
+		     &i2s1m0_sdi0
+		     &i2s1m0_sdo0>;
 	status = "okay";
 };
 
@@ -215,6 +245,12 @@
 };
 
 &pinctrl {
+	headphone {
+		hp_det: hp-det {
+			rockchip,pins = <4 RK_PC4 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+
 	usb {
 		vcc5v0_usb30_en: vcc5v0-host-en {
 			rockchip,pins = <3 RK_PC2 RK_FUNC_GPIO &pcfg_pull_none>;
