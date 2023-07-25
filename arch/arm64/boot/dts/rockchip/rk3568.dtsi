@@ -169,16 +169,19 @@
 		opp-408000000 {
 			opp-hz = /bits/ 64 <408000000>;
 			opp-microvolt = <850000 850000 1150000>;
+			opp-microvolt-L3 = <900000 900000 1150000>;
 			clock-latency-ns = <40000>;
 		};
 		opp-600000000 {
 			opp-hz = /bits/ 64 <600000000>;
 			opp-microvolt = <850000 850000 1150000>;
+			opp-microvolt-L3 = <900000 900000 1150000>;
 			clock-latency-ns = <40000>;
 		};
 		opp-816000000 {
 			opp-hz = /bits/ 64 <816000000>;
 			opp-microvolt = <850000 850000 1150000>;
+			opp-microvolt-L3 = <900000 900000 1150000>;
 			clock-latency-ns = <40000>;
 			opp-suspend;
 		};
@@ -188,7 +191,7 @@
 			opp-microvolt-L0 = <900000 900000 1150000>;
 			opp-microvolt-L1 = <850000 850000 1150000>;
 			opp-microvolt-L2 = <850000 850000 1150000>;
-			opp-microvolt-L3 = <850000 850000 1150000>;
+			opp-microvolt-L3 = <900000 900000 1150000>;
 			clock-latency-ns = <40000>;
 		};
 		opp-1416000000 {
@@ -197,7 +200,7 @@
 			opp-microvolt-L0 = <1025000 1025000 1150000>;
 			opp-microvolt-L1 = <975000 975000 1150000>;
 			opp-microvolt-L2 = <950000 950000 1150000>;
-			opp-microvolt-L3 = <925000 925000 1150000>;
+			opp-microvolt-L3 = <1000000 1000000 1150000>;
 			clock-latency-ns = <40000>;
 		};
 		opp-1608000000 {
@@ -240,8 +243,8 @@
 
 	cpuinfo {
 		compatible = "rockchip,cpuinfo";
-		nvmem-cells = <&otp_id>, <&otp_cpu_version>, <&cpu_code>;
-		nvmem-cell-names = "id", "cpu-version", "cpu-code";
+		nvmem-cells = <&otp_id>, <&otp_cpu_version>, <&cpu_code>, <&performance>;
+		nvmem-cell-names = "id", "cpu-version", "cpu-code", "performance";
 	};
 
 	display_subsystem: display-subsystem {
@@ -1302,14 +1305,17 @@
 		opp-200000000 {
 			opp-hz = /bits/ 64 <200000000>;
 			opp-microvolt = <850000 850000 1000000>;
+			opp-microvolt-L3 = <900000 900000 1000000>;
 		};
 		opp-300000000 {
 			opp-hz = /bits/ 64 <300000000>;
 			opp-microvolt = <850000 850000 1000000>;
+			opp-microvolt-L3 = <900000 900000 1000000>;
 		};
 		opp-400000000 {
 			opp-hz = /bits/ 64 <400000000>;
 			opp-microvolt = <850000 850000 1000000>;
+			opp-microvolt-L3 = <900000 900000 1000000>;
 		};
 		opp-600000000 {
 			opp-hz = /bits/ 64 <600000000>;
@@ -1559,6 +1565,7 @@
 			opp-microvolt-L0 = <900000>;
 			opp-microvolt-L1 = <875000>;
 			opp-microvolt-L2 = <875000>;
+			opp-microvolt-L3 = <900000>;
 		};
 		opp-400000000 {
 			opp-hz = /bits/ 64 <400000000>;
@@ -2727,6 +2734,10 @@
 		};
 		core_pvtm:core-pvtm@2a {
 			reg = <0x2a 0x2>;
+		};
+		performance:performance@22 {
+			reg = <0x22 0x1>;
+			bits = <0 4>;
 		};
 		cpu_tsadc_trim_l: cpu-tsadc-trim-l@2e {
 			reg = <0x2e 0x1>;

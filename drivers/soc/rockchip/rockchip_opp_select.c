@@ -82,6 +82,7 @@ struct otp_opp_info {
 
 static int pvtm_value[PVTM_CH_MAX][PVTM_SUB_CH_MAX];
 static int lkg_version;
+u32 soc_is_rk3566t;
 
 /*
  * temp = temp * 10
@@ -1365,6 +1366,9 @@ void rockchip_get_scale_volt_sel(struct device *dev, char *lkg_name,
 			*volt_sel = bin_volt_sel;
 		else
 			*volt_sel = max(lkg_volt_sel, pvtm_volt_sel);
+
+		if (soc_is_rk3566t)
+			*volt_sel = 3;
 	}
 
 	of_node_put(np);
@@ -1688,6 +1692,21 @@ out_clk:
 	clk_put(clk);
 out_np:
 	of_node_put(np);
+
+	if (soc_is_rk3566t) {
+		if (!strcmp(dev_name(dev), "cpu0")) {
+			dev_pm_opp_remove(dev, 1608000000);
+			dev_pm_opp_remove(dev, 1800000000);
+			dev_pm_opp_remove(dev, 1992000000);
+		}
+		if (!strcmp(dev_name(dev), "fde60000.gpu")) {
+			dev_pm_opp_remove(dev, 600000000);
+			dev_pm_opp_remove(dev, 700000000);
+		}
+		if (!strcmp(dev_name(dev), "fdf40000.rkvenc")) {
+			dev_pm_opp_remove(dev, 400000000);
+		}
+	}
 
 	return ret;
 }

@@ -23,6 +23,7 @@
 
 unsigned long rockchip_soc_id;
 EXPORT_SYMBOL(rockchip_soc_id);
+extern u32 soc_is_rk3566t;
 
 static int rockchip_cpuinfo_probe(struct platform_device *pdev)
 {
@@ -90,6 +91,18 @@ static int rockchip_cpuinfo_probe(struct platform_device *pdev)
 	dev_info(dev, "Serial\t\t: %08x%08x\n",
 		 system_serial_high, system_serial_low);
 #endif
+
+	cell = nvmem_cell_get(dev, "performance");
+	if (!IS_ERR(cell)) {
+		efuse_buf = nvmem_cell_read(cell, &len);
+		nvmem_cell_put(cell);
+		if (IS_ERR(efuse_buf))
+			return PTR_ERR(efuse_buf);
+
+		soc_is_rk3566t = efuse_buf[0];
+		dev_info(dev, "soc_is_rk3566t: %08x\n", soc_is_rk3566t);
+		kfree(efuse_buf);
+	}
 
 	return 0;
 }
