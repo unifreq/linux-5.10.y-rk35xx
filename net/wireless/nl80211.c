@@ -2509,7 +2509,8 @@ static int nl80211_send_wiphy(struct cfg80211_registered_device *rdev,
 			CMD(set_multicast_to_unicast, SET_MULTICAST_TO_UNICAST);
 			CMD(update_connect_params, UPDATE_CONNECT_PARAMS);
 			CMD(update_ft_ies, UPDATE_FT_IES);
-			CMD(set_sar_specs, SET_SAR_SPECS);
+			if (rdev->wiphy.sar_capa)
+				CMD(set_sar_specs, SET_SAR_SPECS);
 		}
 #undef CMD
 
