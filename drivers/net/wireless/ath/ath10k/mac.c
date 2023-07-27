@@ -24,6 +24,7 @@
 #include "wmi-tlv.h"
 #include "wmi-ops.h"
 #include "wow.h"
+#include "leds.h"
 
 /*********/
 /* Rates */
@@ -1020,6 +1021,40 @@ static inline int ath10k_vdev_setup_sync(struct ath10k *ar)
 	return ar->last_wmi_vdev_start_status;
 }
 
+static u32 ath10k_get_max_antenna_gain(struct ath10k *ar,
+				       u32 ch_max_antenna_gain)
+{
+	u32 max_antenna_gain;
+
+	if (ar->dfs_detector && ar->dfs_detector->region == NL80211_DFS_FCC) {
+		/* FCC allows maximum antenna gain of 6 dBi. 15.247(b)(4):
+		 *
+		 * > (4) The conducted output power limit
+		 * > specified in paragraph (b) of this section
+		 * > is based on the use of antennas
+		 * > with directional gains that do not exceed
+		 * > 6 dBi. Except as shown in paragraph
+		 * > (c) of this section, if transmitting
+		 * > antennas of directional gain greater
+		 * > than 6 dBi are used, the conducted
+		 * > output power from the intentional radiator
+		 * > shall be reduced below the stated
+		 * > values in paragraphs (b)(1), (b)(2),
+		 * > and (b)(3) of this section, as appropriate,
+		 * > by the amount in dB that the
+		 * > directional gain of the antenna exceeds
+		 * > 6 dBi.
+		 *
+		 * https://www.gpo.gov/fdsys/pkg/CFR-2013-title47-vol1/pdf/CFR-2013-title47-vol1-sec15-247.pdf
+		 */
+		max_antenna_gain = 6;
+	} else {
+		max_antenna_gain = 0;
+	}
+
+	return max(ch_max_antenna_gain, max_antenna_gain);
+}
+
 static int ath10k_monitor_vdev_start(struct ath10k *ar, int vdev_id)
 {
 	struct cfg80211_chan_def *chandef = NULL;
@@ -1052,7 +1087,8 @@ static int ath10k_monitor_vdev_start(struct ath10k *ar, int vdev_id)
 	arg.channel.min_power = 0;
 	arg.channel.max_power = channel->max_power * 2;
 	arg.channel.max_reg_power = channel->max_reg_power * 2;
-	arg.channel.max_antenna_gain = channel->max_antenna_gain;
+	arg.channel.max_antenna_gain = ath10k_get_max_antenna_gain(ar,
+						channel->max_antenna_gain);
 
 	reinit_completion(&ar->vdev_setup_done);
 	reinit_completion(&ar->vdev_delete_done);
@@ -1498,7 +1534,8 @@ static int ath10k_vdev_start_restart(struct ath10k_vif *arvif,
 	arg.channel.min_power = 0;
 	arg.channel.max_power = chandef->chan->max_power * 2;
 	arg.channel.max_reg_power = chandef->chan->max_reg_power * 2;
-	arg.channel.max_antenna_gain = chandef->chan->max_antenna_gain;
+	arg.channel.max_antenna_gain = ath10k_get_max_antenna_gain(ar,
+					chandef->chan->max_antenna_gain);
 
 	if (arvif->vdev_type == WMI_VDEV_TYPE_AP) {
 		arg.ssid = arvif->u.ap.ssid;
@@ -3426,7 +3463,8 @@ static int ath10k_update_channel_list(struct ath10k *ar)
 			ch->min_power = 0;
 			ch->max_power = channel->max_power * 2;
 			ch->max_reg_power = channel->max_reg_power * 2;
-			ch->max_antenna_gain = channel->max_antenna_gain;
+			ch->max_antenna_gain = ath10k_get_max_antenna_gain(ar,
+						channel->max_antenna_gain);
 			ch->reg_class_id = 0; /* FIXME */
 
 			/* FIXME: why use only legacy modes, why not any
@@ -9843,6 +9881,21 @@ static int ath10k_mac_init_rd(struct ath10k *ar)
 	return 0;
 }
 
+#ifdef CONFIG_MAC80211_LEDS
+static const struct ieee80211_tpt_blink ath10k_tpt_blink[] = {
+	{ .throughput = 0 * 1024, .blink_time = 334 },
+	{ .throughput = 1 * 1024, .blink_time = 260 },
+	{ .throughput = 2 * 1024, .blink_time = 220 },
+	{ .throughput = 5 * 1024, .blink_time = 190 },
+	{ .throughput = 10 * 1024, .blink_time = 170 },
+	{ .throughput = 25 * 1024, .blink_time = 150 },
+	{ .throughput = 54 * 1024, .blink_time = 130 },
+	{ .throughput = 120 * 1024, .blink_time = 110 },
+	{ .throughput = 265 * 1024, .blink_time = 80 },
+	{ .throughput = 586 * 1024, .blink_time = 50 },
+};
+#endif
+
 int ath10k_mac_register(struct ath10k *ar)
 {
 	static const u32 cipher_suites[] = {
@@ -10194,6 +10247,12 @@ int ath10k_mac_register(struct ath10k *ar)
 	wiphy_ext_feature_set(ar->hw->wiphy, NL80211_EXT_FEATURE_CQM_RSSI_LIST);
 
 	ar->hw->weight_multiplier = ATH10K_AIRTIME_WEIGHT_MULTIPLIER;
+
+#ifdef CONFIG_MAC80211_LEDS
+	ar->led_default_trigger = ieee80211_create_tpt_led_trigger(ar->hw,
+		IEEE80211_TPT_LEDTRIG_FL_RADIO, ath10k_tpt_blink,
+		ARRAY_SIZE(ath10k_tpt_blink));
+#endif
 
 	ret = ieee80211_register_hw(ar->hw);
 	if (ret) {
