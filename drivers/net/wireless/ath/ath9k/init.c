@@ -48,7 +48,7 @@ int ath9k_modparam_nohwcrypt;
 module_param_named(nohwcrypt, ath9k_modparam_nohwcrypt, int, 0444);
 MODULE_PARM_DESC(nohwcrypt, "Disable hardware encryption");
 
-int ath9k_led_blink;
+int ath9k_led_blink = 1;
 module_param_named(blink, ath9k_led_blink, int, 0444);
 MODULE_PARM_DESC(blink, "Enable LED blink on activity");
 
@@ -870,7 +870,8 @@ static void ath9k_init_txpower_limits(struct ath_softc *sc)
 	if (ah->caps.hw_caps & ATH9K_HW_CAP_5GHZ)
 		ath9k_init_band_txpower(sc, NL80211_BAND_5GHZ);
 
-	ah->curchan = curchan;
+	if (curchan)
+		ah->curchan = curchan;
 }
 
 static const struct ieee80211_iface_limit if_limits[] = {
@@ -882,6 +883,7 @@ static const struct ieee80211_iface_limit if_limits[] = {
 				 BIT(NL80211_IFTYPE_AP) },
 	{ .max = 1,	.types = BIT(NL80211_IFTYPE_P2P_CLIENT) |
 				 BIT(NL80211_IFTYPE_P2P_GO) },
+	{ .max = 1,	.types = BIT(NL80211_IFTYPE_ADHOC) },
 };
 
 #ifdef CONFIG_ATH9K_CHANNEL_CONTEXT
@@ -962,6 +964,7 @@ static void ath9k_set_hw_capab(struct ath_softc *sc, struct ieee80211_hw *hw)
 	ieee80211_hw_set(hw, HOST_BROADCAST_PS_BUFFERING);
 	ieee80211_hw_set(hw, SUPPORT_FAST_XMIT);
 	ieee80211_hw_set(hw, SUPPORTS_CLONED_SKBS);
+	ieee80211_hw_set(hw, MFP_CAPABLE);
 
 	if (ath9k_ps_enable)
 		ieee80211_hw_set(hw, SUPPORTS_PS);
@@ -973,9 +976,6 @@ static void ath9k_set_hw_capab(struct ath_softc *sc, struct ieee80211_hw *hw)
 			hw->radiotap_mcs_details |=
 				IEEE80211_RADIOTAP_MCS_HAVE_STBC;
 	}
-
-	if (AR_SREV_9160_10_OR_LATER(sc->sc_ah) || ath9k_modparam_nohwcrypt)
-		ieee80211_hw_set(hw, MFP_CAPABLE);
 
 	hw->wiphy->features |= NL80211_FEATURE_ACTIVE_MONITOR |
 			       NL80211_FEATURE_AP_MODE_CHAN_WIDTH_CHANGE |
@@ -1049,6 +1049,18 @@ static void ath9k_set_hw_capab(struct ath_softc *sc, struct ieee80211_hw *hw)
 	wiphy_ext_feature_set(hw->wiphy, NL80211_EXT_FEATURE_CAN_REPLACE_PTK0);
 }
 
+static void ath_get_initial_entropy(struct ath_softc *sc)
+{
+	struct ath_hw *ah = sc->sc_ah;
+	char buf[256];
+
+	/* reuse last channel initialized by the tx power test */
+	ath9k_hw_reset(ah, ah->curchan, NULL, false);
+
+	ath9k_hw_get_adc_entropy(ah, buf, sizeof(buf));
+	add_device_randomness(buf, sizeof(buf));
+}
+
 int ath9k_init_device(u16 devid, struct ath_softc *sc,
 		    const struct ath_bus_ops *bus_ops)
 {
@@ -1089,12 +1101,14 @@ int ath9k_init_device(u16 devid, struct ath_softc *sc,
 
 #ifdef CONFIG_MAC80211_LEDS
 	/* must be initialized before ieee80211_register_hw */
-	sc->led_cdev.default_trigger = ieee80211_create_tpt_led_trigger(sc->hw,
+	sc->led_default_trigger = ieee80211_create_tpt_led_trigger(sc->hw,
 		IEEE80211_TPT_LEDTRIG_FL_RADIO, ath9k_tpt_blink,
 		ARRAY_SIZE(ath9k_tpt_blink));
 #endif
 
 	wiphy_read_of_freq_limits(hw->wiphy);
+
+	ath_get_initial_entropy(sc);
 
 	/* Register with mac80211 */
 	error = ieee80211_register_hw(hw);
@@ -1179,25 +1193,25 @@ static int __init ath9k_init(void)
 {
 	int error;
 
-	error = ath_pci_init();
+	error = ath_ahb_init();
 	if (error < 0) {
-		pr_err("No PCI devices found, driver not installed\n");
 		error = -ENODEV;
 		goto err_out;
 	}
 
-	error = ath_ahb_init();
+	error = ath_pci_init();
 	if (error < 0) {
+		pr_err("No PCI devices found, driver not installed\n");
 		error = -ENODEV;
-		goto err_pci_exit;
+		goto err_ahb_exit;
 	}
 
 	dmi_check_system(ath9k_quirks);
 
 	return 0;
 
- err_pci_exit:
-	ath_pci_exit();
+ err_ahb_exit:
+	ath_ahb_exit();
  err_out:
 	return error;
 }

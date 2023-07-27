@@ -15,12 +15,210 @@
  */
 
 #include "ath9k.h"
+#include <linux/ath9k_platform.h>
+#include <linux/gpio.h>
+#include <linux/platform_device.h>
+#include <linux/gpio_keys.h>
+
+#ifdef CONFIG_MAC80211_LEDS
+
+#ifdef CONFIG_GPIOLIB
+
+/***************/
+/*  GPIO Chip  */
+/***************/
+
+/* gpio_chip handler : set GPIO to input */
+static int ath9k_gpio_pin_cfg_input(struct gpio_chip *chip, unsigned offset)
+{
+	struct ath9k_gpio_chip *gc = container_of(chip, struct ath9k_gpio_chip,
+						  gchip);
+
+	ath9k_hw_gpio_request_in(gc->sc->sc_ah, offset, "ath9k-gpio");
+
+	return 0;
+}
+
+/* gpio_chip handler : set GPIO to output */
+static int ath9k_gpio_pin_cfg_output(struct gpio_chip *chip, unsigned offset,
+				     int value)
+{
+	struct ath9k_gpio_chip *gc = container_of(chip, struct ath9k_gpio_chip,
+						  gchip);
+
+	ath9k_hw_gpio_request_out(gc->sc->sc_ah, offset, "ath9k-gpio",
+				  AR_GPIO_OUTPUT_MUX_AS_OUTPUT);
+	ath9k_hw_set_gpio(gc->sc->sc_ah, offset, value);
+
+	return 0;
+}
+
+/* gpio_chip handler : query GPIO direction (0=out, 1=in) */
+static int ath9k_gpio_pin_get_dir(struct gpio_chip *chip, unsigned offset)
+{
+	struct ath9k_gpio_chip *gc = container_of(chip, struct ath9k_gpio_chip,
+						  gchip);
+	struct ath_hw *ah = gc->sc->sc_ah;
+
+	return !((REG_READ(ah, AR_GPIO_OE_OUT) >> (offset * 2)) & 3);
+}
+
+/* gpio_chip handler : get GPIO pin value */
+static int ath9k_gpio_pin_get(struct gpio_chip *chip, unsigned offset)
+{
+	struct ath9k_gpio_chip *gc = container_of(chip, struct ath9k_gpio_chip,
+						  gchip);
+
+	return ath9k_hw_gpio_get(gc->sc->sc_ah, offset);
+}
+
+/* gpio_chip handler : set GPIO pin to value */
+static void ath9k_gpio_pin_set(struct gpio_chip *chip, unsigned offset,
+			       int value)
+{
+	struct ath9k_gpio_chip *gc = container_of(chip, struct ath9k_gpio_chip,
+						  gchip);
+
+	ath9k_hw_set_gpio(gc->sc->sc_ah, offset, value);
+}
+
+/* register GPIO chip */
+static void ath9k_register_gpio_chip(struct ath_softc *sc)
+{
+	struct ath9k_gpio_chip *gc;
+	struct ath_hw *ah = sc->sc_ah;
+
+	gc = kzalloc(sizeof(struct ath9k_gpio_chip), GFP_KERNEL);
+	if (!gc)
+		return;
+
+	gc->sc = sc;
+	snprintf(gc->label, sizeof(gc->label), "ath9k-%s",
+		 wiphy_name(sc->hw->wiphy));
+#ifdef CONFIG_OF
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,5,0)
+	gc->gchip.parent = sc->dev;
+#else
+	gc->gchip.dev = sc->dev;
+#endif
+#endif
+	gc->gchip.label = gc->label;
+	gc->gchip.base = -1;	/* determine base automatically */
+	gc->gchip.ngpio = ah->caps.num_gpio_pins;
+	gc->gchip.direction_input = ath9k_gpio_pin_cfg_input;
+	gc->gchip.direction_output = ath9k_gpio_pin_cfg_output;
+	gc->gchip.get_direction = ath9k_gpio_pin_get_dir;
+	gc->gchip.get = ath9k_gpio_pin_get;
+	gc->gchip.set = ath9k_gpio_pin_set;
+
+	if (gpiochip_add(&gc->gchip)) {
+		kfree(gc);
+		return;
+	}
+
+#ifdef CONFIG_OF
+	gc->gchip.owner = NULL;
+#endif
+	sc->gpiochip = gc;
+}
+
+/* remove GPIO chip */
+static void ath9k_unregister_gpio_chip(struct ath_softc *sc)
+{
+	struct ath9k_gpio_chip *gc = sc->gpiochip;
+
+	if (!gc)
+		return;
+
+	gpiochip_remove(&gc->gchip);
+	kfree(gc);
+	sc->gpiochip = NULL;
+}
+
+/******************/
+/*  GPIO Buttons  */
+/******************/
+
+/* add GPIO buttons */
+static void ath9k_init_buttons(struct ath_softc *sc)
+{
+	struct ath9k_platform_data *pdata = sc->dev->platform_data;
+	struct platform_device *pdev;
+	struct gpio_keys_platform_data gkpdata;
+	struct gpio_keys_button *bt;
+	int i;
+
+	if (!sc->gpiochip)
+		return;
+
+	if (!pdata || !pdata->btns || !pdata->num_btns)
+		return;
+
+	bt = devm_kmemdup(sc->dev, pdata->btns,
+			  pdata->num_btns * sizeof(struct gpio_keys_button),
+			  GFP_KERNEL);
+	if (!bt)
+		return;
+
+	for (i = 0; i < pdata->num_btns; i++) {
+		if (pdata->btns[i].gpio == sc->sc_ah->led_pin)
+				sc->sc_ah->led_pin = -1;
+
+		ath9k_hw_gpio_request_in(sc->sc_ah, pdata->btns[i].gpio,
+					 "ath9k-gpio");
+		bt[i].gpio = sc->gpiochip->gchip.base + pdata->btns[i].gpio;
+	}
+
+	memset(&gkpdata, 0, sizeof(struct gpio_keys_platform_data));
+	gkpdata.buttons = bt;
+	gkpdata.nbuttons = pdata->num_btns;
+	gkpdata.poll_interval = pdata->btn_poll_interval;
+
+	pdev = platform_device_register_data(sc->dev, "gpio-keys-polled",
+					     PLATFORM_DEVID_AUTO, &gkpdata,
+					     sizeof(gkpdata));
+	if (!IS_ERR_OR_NULL(pdev))
+		sc->btnpdev = pdev;
+	else {
+		sc->btnpdev = NULL;
+		devm_kfree(sc->dev, bt);
+	}
+}
+
+/* remove GPIO buttons */
+static void ath9k_deinit_buttons(struct ath_softc *sc)
+{
+	if (!sc->gpiochip || !sc->btnpdev)
+		return;
+
+	platform_device_unregister(sc->btnpdev);
+
+	sc->btnpdev = NULL;
+}
+
+#else /* CONFIG_GPIOLIB */
+
+static inline void ath9k_register_gpio_chip(struct ath_softc *sc)
+{
+}
+
+static inline void ath9k_unregister_gpio_chip(struct ath_softc *sc)
+{
+}
+
+static inline void ath9k_init_buttons(struct ath_softc *sc)
+{
+}
+
+static inline void ath9k_deinit_buttons(struct ath_softc *sc)
+{
+}
+
+#endif /* CONFIG_GPIOLIB */
 
 /********************************/
 /*	 LED functions		*/
 /********************************/
-
-#ifdef CONFIG_MAC80211_LEDS
 
 static void ath_fill_led_pin(struct ath_softc *sc)
 {
@@ -39,62 +237,171 @@ static void ath_fill_led_pin(struct ath_softc *sc)
 		else
 			ah->led_pin = ATH_LED_PIN_DEF;
 	}
-
-	/* Configure gpio for output */
-	ath9k_hw_gpio_request_out(ah, ah->led_pin, "ath9k-led",
-				  AR_GPIO_OUTPUT_MUX_AS_OUTPUT);
-
-	/* LED off, active low */
-	ath9k_hw_set_gpio(ah, ah->led_pin, ah->config.led_active_high ? 0 : 1);
 }
 
 static void ath_led_brightness(struct led_classdev *led_cdev,
 			       enum led_brightness brightness)
 {
-	struct ath_softc *sc = container_of(led_cdev, struct ath_softc, led_cdev);
-	u32 val = (brightness == LED_OFF);
+	struct ath_led *led = container_of(led_cdev, struct ath_led, cdev);
+	struct ath_softc *sc = led->sc;
 
-	if (sc->sc_ah->config.led_active_high)
-		val = !val;
+	ath9k_ps_wakeup(sc);
+	ath9k_hw_set_gpio(sc->sc_ah, led->gpio->gpio,
+			  (brightness != LED_OFF) ^ led->gpio->active_low);
+	ath9k_ps_restore(sc);
+}
 
-	ath9k_hw_set_gpio(sc->sc_ah, sc->sc_ah->led_pin, val);
+static int ath_add_led(struct ath_softc *sc, struct ath_led *led)
+{
+	const struct gpio_led *gpio = led->gpio;
+	int ret;
+
+	led->cdev.name = gpio->name;
+	led->cdev.default_trigger = gpio->default_trigger;
+	led->cdev.brightness_set = ath_led_brightness;
+
+	ret = led_classdev_register(wiphy_dev(sc->hw->wiphy), &led->cdev);
+	if (ret < 0)
+		return ret;
+
+	led->sc = sc;
+	list_add(&led->list, &sc->leds);
+
+	/* Configure gpio for output */
+	ath9k_hw_gpio_request_out(sc->sc_ah, gpio->gpio, gpio->name,
+				  AR_GPIO_OUTPUT_MUX_AS_OUTPUT);
+
+	/* Set default LED state */
+	if (gpio->default_state == LEDS_GPIO_DEFSTATE_ON)
+		ath9k_hw_set_gpio(sc->sc_ah, gpio->gpio, !gpio->active_low);
+	else
+		ath9k_hw_set_gpio(sc->sc_ah, gpio->gpio, gpio->active_low);
+
+#ifdef CONFIG_GPIOLIB
+	/* If there is GPIO chip configured, reserve LED pin */
+	if (sc->gpiochip)
+		gpio_request(sc->gpiochip->gchip.base + gpio->gpio, gpio->name);
+#endif
+
+	return 0;
+}
+
+int ath_create_gpio_led(struct ath_softc *sc, int gpio_num, const char *name,
+			const char *trigger, bool active_low)
+{
+	struct ath_led *led;
+	struct gpio_led *gpio;
+	char *_name;
+	int ret;
+
+	led = kzalloc(sizeof(*led) + sizeof(*gpio) + strlen(name) + 1,
+		      GFP_KERNEL);
+	if (!led)
+		return -ENOMEM;
+
+	led->gpio = gpio = (struct gpio_led *) (led + 1);
+	_name = (char *) (led->gpio + 1);
+
+	strcpy(_name, name);
+	gpio->name = _name;
+	gpio->gpio = gpio_num;
+	gpio->active_low = active_low;
+	gpio->default_trigger = trigger;
+
+	ret = ath_add_led(sc, led);
+	if (unlikely(ret < 0))
+		kfree(led);
+
+	return ret;
+}
+
+static int ath_create_platform_led(struct ath_softc *sc,
+				   const struct gpio_led *gpio)
+{
+	struct ath_led *led;
+	int ret;
+
+	led = kzalloc(sizeof(*led), GFP_KERNEL);
+	if (!led)
+		return -ENOMEM;
+
+	led->gpio = gpio;
+	ret = ath_add_led(sc, led);
+	if (ret < 0)
+		kfree(led);
+
+	return ret;
 }
 
 void ath_deinit_leds(struct ath_softc *sc)
 {
-	if (!sc->led_registered)
-		return;
+	struct ath_led *led;
 
-	ath_led_brightness(&sc->led_cdev, LED_OFF);
-	led_classdev_unregister(&sc->led_cdev);
-
-	ath9k_hw_gpio_free(sc->sc_ah, sc->sc_ah->led_pin);
+	ath9k_deinit_buttons(sc);
+	while (!list_empty(&sc->leds)) {
+		led = list_first_entry(&sc->leds, struct ath_led, list);
+#ifdef CONFIG_GPIOLIB
+		/* If there is GPIO chip configured, free LED pin */
+		if (sc->gpiochip)
+			gpio_free(sc->gpiochip->gchip.base + led->gpio->gpio);
+#endif
+		list_del(&led->list);
+		ath_led_brightness(&led->cdev, LED_OFF);
+		led_classdev_unregister(&led->cdev);
+		ath9k_hw_gpio_free(sc->sc_ah, led->gpio->gpio);
+		kfree(led);
+	}
+	ath9k_unregister_gpio_chip(sc);
 }
 
 void ath_init_leds(struct ath_softc *sc)
 {
-	int ret;
+	struct ath9k_platform_data *pdata = sc->dev->platform_data;
+	struct device_node *np = sc->dev->of_node;
+	char led_name[32];
+	const char *trigger;
+	int i;
+
+	INIT_LIST_HEAD(&sc->leds);
 
 	if (AR_SREV_9100(sc->sc_ah))
 		return;
 
+	if (!np)
+		ath9k_register_gpio_chip(sc);
+
+	/* setup gpio controller only if requested and skip the led_pin setup */
+	if (of_property_read_bool(np, "gpio-controller")) {
+		ath9k_register_gpio_chip(sc);
+		return;
+	}
+
 	ath_fill_led_pin(sc);
+	ath9k_init_buttons(sc);
 
-	if (!ath9k_led_blink)
-		sc->led_cdev.default_trigger =
-			ieee80211_get_radio_led_name(sc->hw);
+	if (pdata && pdata->leds && pdata->num_leds)
+		for (i = 0; i < pdata->num_leds; i++) {
+			if (pdata->leds[i].gpio == sc->sc_ah->led_pin)
+				sc->sc_ah->led_pin = -1;
 
-	snprintf(sc->led_name, sizeof(sc->led_name),
-		"ath9k-%s", wiphy_name(sc->hw->wiphy));
-	sc->led_cdev.name = sc->led_name;
-	sc->led_cdev.brightness_set = ath_led_brightness;
+			ath_create_platform_led(sc, &pdata->leds[i]);
+		}
 
-	ret = led_classdev_register(wiphy_dev(sc->hw->wiphy), &sc->led_cdev);
-	if (ret < 0)
+	if (sc->sc_ah->led_pin < 0)
 		return;
 
-	sc->led_registered = true;
+	snprintf(led_name, sizeof(led_name), "ath9k-%s",
+		 wiphy_name(sc->hw->wiphy));
+
+	if (ath9k_led_blink)
+		trigger = sc->led_default_trigger;
+	else
+		trigger = ieee80211_get_radio_led_name(sc->hw);
+
+	ath_create_gpio_led(sc, sc->sc_ah->led_pin, led_name, trigger,
+			   !sc->sc_ah->config.led_active_high);
 }
+
 #endif
 
 /*******************/

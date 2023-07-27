@@ -36,6 +36,7 @@
 
 #define ATHEROS_VENDOR_ID	0x168c
 
+#define AR9300_DEVID_INVALID	0xabcd
 #define AR5416_DEVID_PCI	0x0023
 #define AR5416_DEVID_PCIE	0x0024
 #define AR9160_DEVID_PCI	0x0027
@@ -521,6 +522,12 @@ enum {
 	ATH9K_RESET_COLD,
 };
 
+enum {
+	ATH_DIAG_DISABLE_RX,
+	ATH_DIAG_DISABLE_TX,
+	ATH_DIAG_TRIGGER_ERROR,
+};
+
 struct ath9k_hw_version {
 	u32 magic;
 	u16 devid;
@@ -716,6 +723,7 @@ struct ath_spec_scan {
  * @config_pci_powersave:
  * @calibrate: periodic calibration for NF, ANI, IQ, ADC gain, ADC-DC
  *
+ * @get_adc_entropy: get entropy from the raw ADC I/Q output
  * @spectral_scan_config: set parameters for spectral scan and enable/disable it
  * @spectral_scan_trigger: trigger a spectral scan run
  * @spectral_scan_wait: wait for a spectral scan run to finish
@@ -738,6 +746,7 @@ struct ath_hw_ops {
 			struct ath_hw_antcomb_conf *antconf);
 	void (*antdiv_comb_conf_set)(struct ath_hw *ah,
 			struct ath_hw_antcomb_conf *antconf);
+	void (*get_adc_entropy)(struct ath_hw *ah, u8 *buf, size_t len);
 	void (*spectral_scan_config)(struct ath_hw *ah,
 				     struct ath_spec_scan *param);
 	void (*spectral_scan_trigger)(struct ath_hw *ah);
@@ -808,6 +817,8 @@ struct ath_hw {
 	u32 rfkill_polarity;
 	u32 ah_flags;
 	s16 nf_override;
+
+	unsigned long diag;
 
 	bool reset_power_on;
 	bool htc_reset_init;
@@ -1078,6 +1089,7 @@ void ath9k_hw_check_nav(struct ath_hw *ah);
 bool ath9k_hw_check_alive(struct ath_hw *ah);
 
 bool ath9k_hw_setpower(struct ath_hw *ah, enum ath9k_power_mode mode);
+void ath9k_hw_update_diag(struct ath_hw *ah);
 
 /* Generic hw timer primitives */
 struct ath_gen_timer *ath_gen_timer_alloc(struct ath_hw *ah,

@@ -774,6 +774,7 @@ static const struct pci_device_id ath_pci_id_table[] = {
 	  .driver_data = ATH9K_PCI_BT_ANT_DIV },
 #endif
 
+	{ PCI_VDEVICE(ATHEROS, 0xabcd) }, /* PCI-E  internal chip default ID */
 	{ 0 }
 };
 

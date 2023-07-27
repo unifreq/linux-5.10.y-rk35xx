@@ -969,55 +969,6 @@ static bool ar5008_hw_ani_control_new(struct ath_hw *ah,
 		 * on == 0 means more noise imm
 		 */
 		u32 on = param ? 1 : 0;
-		/*
-		 * make register setting for default
-		 * (weak sig detect ON) come from INI file
-		 */
-		int m1ThreshLow = on ?
-			aniState->iniDef.m1ThreshLow : m1ThreshLow_off;
-		int m2ThreshLow = on ?
-			aniState->iniDef.m2ThreshLow : m2ThreshLow_off;
-		int m1Thresh = on ?
-			aniState->iniDef.m1Thresh : m1Thresh_off;
-		int m2Thresh = on ?
-			aniState->iniDef.m2Thresh : m2Thresh_off;
-		int m2CountThr = on ?
-			aniState->iniDef.m2CountThr : m2CountThr_off;
-		int m2CountThrLow = on ?
-			aniState->iniDef.m2CountThrLow : m2CountThrLow_off;
-		int m1ThreshLowExt = on ?
-			aniState->iniDef.m1ThreshLowExt : m1ThreshLowExt_off;
-		int m2ThreshLowExt = on ?
-			aniState->iniDef.m2ThreshLowExt : m2ThreshLowExt_off;
-		int m1ThreshExt = on ?
-			aniState->iniDef.m1ThreshExt : m1ThreshExt_off;
-		int m2ThreshExt = on ?
-			aniState->iniDef.m2ThreshExt : m2ThreshExt_off;
-
-		REG_RMW_FIELD(ah, AR_PHY_SFCORR_LOW,
-			      AR_PHY_SFCORR_LOW_M1_THRESH_LOW,
-			      m1ThreshLow);
-		REG_RMW_FIELD(ah, AR_PHY_SFCORR_LOW,
-			      AR_PHY_SFCORR_LOW_M2_THRESH_LOW,
-			      m2ThreshLow);
-		REG_RMW_FIELD(ah, AR_PHY_SFCORR,
-			      AR_PHY_SFCORR_M1_THRESH, m1Thresh);
-		REG_RMW_FIELD(ah, AR_PHY_SFCORR,
-			      AR_PHY_SFCORR_M2_THRESH, m2Thresh);
-		REG_RMW_FIELD(ah, AR_PHY_SFCORR,
-			      AR_PHY_SFCORR_M2COUNT_THR, m2CountThr);
-		REG_RMW_FIELD(ah, AR_PHY_SFCORR_LOW,
-			      AR_PHY_SFCORR_LOW_M2COUNT_THR_LOW,
-			      m2CountThrLow);
-
-		REG_RMW_FIELD(ah, AR_PHY_SFCORR_EXT,
-			      AR_PHY_SFCORR_EXT_M1_THRESH_LOW, m1ThreshLowExt);
-		REG_RMW_FIELD(ah, AR_PHY_SFCORR_EXT,
-			      AR_PHY_SFCORR_EXT_M2_THRESH_LOW, m2ThreshLowExt);
-		REG_RMW_FIELD(ah, AR_PHY_SFCORR_EXT,
-			      AR_PHY_SFCORR_EXT_M1_THRESH, m1ThreshExt);
-		REG_RMW_FIELD(ah, AR_PHY_SFCORR_EXT,
-			      AR_PHY_SFCORR_EXT_M2_THRESH, m2ThreshExt);
 
 		if (on)
 			REG_SET_BIT(ah, AR_PHY_SFCORR_LOW,
@@ -1340,9 +1291,30 @@ void ar5008_hw_init_rate_txpower(struct ath_hw *ah, int16_t *rate_array,
 	}
 }
 
+static void ar5008_hw_get_adc_entropy(struct ath_hw *ah, u8 *buf, size_t len)
+{
+	int i, j;
+
+	REG_RMW_FIELD(ah, AR_PHY_TEST, AR_PHY_TEST_BBB_OBS_SEL, 1);
+	REG_CLR_BIT(ah, AR_PHY_TEST, AR_PHY_TEST_RX_OBS_SEL_BIT5);
+	REG_RMW_FIELD(ah, AR_PHY_TEST2, AR_PHY_TEST2_RX_OBS_SEL, 0);
+
+	memset(buf, 0, len);
+	for (i = 0; i < len; i++) {
+		for (j = 0; j < 4; j++) {
+			u32 regval = REG_READ(ah, AR_PHY_TST_ADC);
+
+			buf[i] <<= 2;
+			buf[i] |= (regval & 1) | ((regval & BIT(9)) >> 8);
+			udelay(1);
+		}
+	}
+}
+
 int ar5008_hw_attach_phy_ops(struct ath_hw *ah)
 {
 	struct ath_hw_private_ops *priv_ops = ath9k_hw_private_ops(ah);
+	struct ath_hw_ops *ops = ath9k_hw_ops(ah);
 	static const u32 ar5416_cca_regs[6] = {
 		AR_PHY_CCA,
 		AR_PHY_CH1_CCA,
@@ -1356,6 +1328,8 @@ int ar5008_hw_attach_phy_ops(struct ath_hw *ah)
 	ret = ar5008_hw_rf_alloc_ext_banks(ah);
 	if (ret)
 	    return ret;
+
+	ops->get_adc_entropy = ar5008_hw_get_adc_entropy;
 
 	priv_ops->rf_set_freq = ar5008_hw_set_channel;
 	priv_ops->spur_mitigate_freq = ar5008_hw_spur_mitigate;
