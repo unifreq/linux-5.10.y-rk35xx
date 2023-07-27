@@ -73,7 +73,7 @@ config ATH10K_LEDS
 	select LEDS_CLASS
 	select NEW_LEDS
 	default y
-	---help---
+	help
 	  This option is necessary, if you want LED support for chipset connected led pins. If unsure, say N.
 
 config ATH10K_SPECTRAL
@@ -94,7 +94,7 @@ config ATH10K_TRACING
 config ATH10K_THERMAL
 	bool "Atheros ath10k thermal monitoring support"
 	depends on THERMAL
-	---help---
+	help
 	  Select this to ath10k use hwmon for thermal measurement.
 
 config ATH10K_DFS_CERTIFIED

@@ -96,11 +96,7 @@ static void ath9k_register_gpio_chip(struct ath_softc *sc)
 	snprintf(gc->label, sizeof(gc->label), "ath9k-%s",
 		 wiphy_name(sc->hw->wiphy));
 #ifdef CONFIG_OF
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,5,0)
 	gc->gchip.parent = sc->dev;
-#else
-	gc->gchip.dev = sc->dev;
-#endif
 #endif
 	gc->gchip.label = gc->label;
 	gc->gchip.base = -1;	/* determine base automatically */
