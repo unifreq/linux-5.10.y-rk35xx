@@ -3678,13 +3678,13 @@ wl_cfg80211_start_ap(
  *      hardcoded values in 'wl_cfg80211_set_channel()'.
  */
 #if ((LINUX_VERSION_CODE >= KERNEL_VERSION(3, 6, 0)) && !defined(WL_COMPAT_WIRELESS))
-	if (!dev->ieee80211_ptr->preset_chandef.chan) {
+	if (!dev->ieee80211_ptr->u.mesh.preset_chandef.chan) {
 		WL_ERR(("chan is NULL\n"));
 		err = -EINVAL;
 		goto fail;
 	}
 	if ((err = wl_cfg80211_set_channel(wiphy, dev,
-		dev->ieee80211_ptr->preset_chandef.chan,
+		dev->ieee80211_ptr->u.mesh.preset_chandef.chan,
 		NL80211_CHAN_HT20) < 0)) {
 		WL_ERR(("Set channel failed \n"));
 		goto fail;
@@ -3779,7 +3779,7 @@ fail:
 	if (err) {
 		WL_ERR(("ADD/SET beacon failed\n"));
 		wl_flush_fw_log_buffer(dev, FW_LOGSET_MASK_ALL);
-		wl_cfg80211_stop_ap(wiphy, dev);
+		wl_cfg80211_stop_ap(wiphy, dev, 0);
 		if (dev_role == NL80211_IFTYPE_AP) {
 #ifdef WL_EXT_IAPSTA
 		if (!wl_ext_iapsta_iftype_enabled(dev, WL_IF_TYPE_AP)) {
@@ -3820,7 +3820,8 @@ fail:
 s32
 wl_cfg80211_stop_ap(
 	struct wiphy *wiphy,
-	struct net_device *dev)
+	struct net_device *dev,
+	unsigned int link_id)
 {
 	int err = 0;
 	u32 dev_role = 0;
@@ -5207,7 +5208,7 @@ wl_cfg80211_ch_switch_notify(struct net_device *dev, uint16 chanspec, struct wip
 	}
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION (3, 8, 0))
 	freq = chandef.chan ? chandef.chan->center_freq : chandef.center_freq1;
-	cfg80211_ch_switch_notify(dev, &chandef);
+	cfg80211_ch_switch_notify(dev, &chandef, 0);
 #elif (LINUX_VERSION_CODE >= KERNEL_VERSION (3, 5, 0) && (LINUX_VERSION_CODE <= (3, 7, 0)))
 	freq = chan_info.freq;
 	cfg80211_ch_switch_notify(dev, freq, chan_info.chan_type);

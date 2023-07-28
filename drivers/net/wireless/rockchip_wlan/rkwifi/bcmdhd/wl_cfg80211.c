@@ -6537,7 +6537,7 @@ wl_cfg80211_disconnect(struct wiphy *wiphy, struct net_device *dev,
 			WL_TRACE_HW4(("Aborting the scan! \n"));
 			wl_cfgscan_cancel_scan(cfg);
 		}
-		if (conn_in_progress || connected || wdev->ssid_len) {
+		if (conn_in_progress || connected || wdev->u.client.ssid_len) {
 				scbval.val = reason_code;
 				memcpy(&scbval.ea, curbssid, ETHER_ADDR_LEN);
 				scbval.val = htod32(scbval.val);
@@ -6582,7 +6582,7 @@ wl_cfg80211_disconnect(struct wiphy *wiphy, struct net_device *dev,
 		 * and issue disconnect indication if required.
 		 */
 
-		if (wdev->current_bss || wdev->ssid_len) {
+		if (wdev->connected || wdev->u.client.ssid_len) {
 			WL_INFORM_MEM(("report disconnect event\n"));
 			CFG80211_DISCONNECTED(dev, 0, NULL, 0, false, GFP_KERNEL);
 		}
@@ -13934,7 +13934,7 @@ wl_bss_connect_done(struct bcm_cfg80211 *cfg, struct net_device *ndev,
 			completed = false;
 			sec->auth_assoc_res_status = WLAN_STATUS_UNSPECIFIED_FAILURE;
 		}
-		if (!ndev->ieee80211_ptr->ssid_len) {
+		if (!ndev->ieee80211_ptr->u.client.ssid_len) {
 			/* In certain cases, the delayed cfg80211 work from
 				* disconnect context will induce race conditions in
 				* which the ssid_len will be cleared, but dhd is in
@@ -17429,7 +17429,7 @@ static s32 __wl_cfg80211_down(struct bcm_cfg80211 *cfg)
 			struct wiphy *wiphy = bcmcfg_to_wiphy(cfg);
 			struct wireless_dev *wdev = ndev->ieee80211_ptr;
 			struct cfg80211_bss *bss = CFG80211_GET_BSS(wiphy, NULL, latest_bssid,
-				wdev->ssid, wdev->ssid_len);
+				wdev->u.client.ssid, wdev->u.client.ssid_len);
 
 			BCM_REFERENCE(bss);
 
