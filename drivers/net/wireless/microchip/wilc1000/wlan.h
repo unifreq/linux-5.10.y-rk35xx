@@ -97,6 +97,14 @@
 #define WILC_SPI_WAKEUP_REG		0x1
 #define WILC_SPI_WAKEUP_BIT		BIT(1)
 
+#define WILC_SPI_CLK_STATUS_REG        0x0f
+#define WILC_SPI_CLK_STATUS_BIT        BIT(2)
+#define WILC_SPI_HOST_TO_FW_REG		0x0b
+#define WILC_SPI_HOST_TO_FW_BIT		BIT(0)
+
+#define WILC_SPI_FW_TO_HOST_REG		0x10
+#define WILC_SPI_FW_TO_HOST_BIT		BIT(0)
+
 #define WILC_SPI_PROTOCOL_OFFSET	(WILC_SPI_PROTOCOL_CONFIG - \
 					 WILC_SPI_REG_BASE)
 
@@ -205,7 +213,17 @@
 #define WILC_RX_BUFF_SIZE	(96 * 1024)
 #define WILC_TX_BUFF_SIZE	(64 * 1024)
 
-#define MODALIAS		"WILC_SPI"
+#define NQUEUES			4
+#define AC_BUFFER_SIZE		1000
+
+#define VO_AC_COUNT_FIELD		GENMASK(31, 25)
+#define VO_AC_ACM_STAT_FIELD		BIT(24)
+#define VI_AC_COUNT_FIELD		GENMASK(23, 17)
+#define VI_AC_ACM_STAT_FIELD		BIT(16)
+#define BE_AC_COUNT_FIELD		GENMASK(15, 9)
+#define BE_AC_ACM_STAT_FIELD		BIT(8)
+#define BK_AC_COUNT_FIELD		GENMASK(7, 3)
+#define BK_AC_ACM_STAT_FIELD		BIT(1)
 
 #define WILC_PKT_HDR_CONFIG_FIELD	BIT(31)
 #define WILC_PKT_HDR_OFFSET_FIELD	GENMASK(30, 22)
@@ -282,11 +300,12 @@
 #define ENABLE_RX_VMM		(SEL_VMM_TBL1 | EN_VMM)
 #define ENABLE_TX_VMM		(SEL_VMM_TBL0 | EN_VMM)
 /* time for expiring the completion of cfg packets */
-#define WILC_CFG_PKTS_TIMEOUT	msecs_to_jiffies(2000)
+#define WILC_CFG_PKTS_TIMEOUT	msecs_to_jiffies(3000)
 
 #define IS_MANAGMEMENT		0x100
 #define IS_MANAGMEMENT_CALLBACK	0x080
 #define IS_MGMT_STATUS_SUCCES	0x040
+#define IS_MGMT_AUTH_PKT       0x010
 
 #define WILC_WID_TYPE		GENMASK(15, 12)
 #define WILC_VMM_ENTRY_FULL_RETRY	1
@@ -295,10 +314,17 @@
  *      Tx/Rx Queue Structure
  *
  ********************************************/
+enum ip_pkt_priority {
+	AC_VO_Q = 0,
+	AC_VI_Q = 1,
+	AC_BE_Q = 2,
+	AC_BK_Q = 3
+};
 
 struct txq_entry_t {
 	struct list_head list;
 	int type;
+	u8 q_num;
 	int ack_idx;
 	u8 *buffer;
 	int buffer_size;
@@ -306,6 +332,17 @@ struct txq_entry_t {
 	int status;
 	struct wilc_vif *vif;
 	void (*tx_complete_func)(void *priv, int status);
+};
+
+struct txq_fw_recv_queue_stat {
+	u8 acm;
+	u8 count;
+};
+
+struct txq_handle {
+	struct txq_entry_t txq_head;
+	u16 count;
+	struct txq_fw_recv_queue_stat fw;
 };
 
 struct rxq_entry_t {
@@ -335,6 +372,8 @@ struct wilc_hif_func {
 	int (*hif_sync_ext)(struct wilc *wilc, int nint);
 	int (*enable_interrupt)(struct wilc *nic);
 	void (*disable_interrupt)(struct wilc *nic);
+	int (*hif_reset)(struct wilc *wilc);
+	bool (*hif_is_init)(struct wilc *wilc);
 };
 
 #define WILC_MAX_CFG_FRAME_SIZE		1468
@@ -362,14 +401,14 @@ struct wilc_cfg_rsp {
 	u8 seq_no;
 };
 
-struct wilc;
 struct wilc_vif;
 
 int wilc_wlan_firmware_download(struct wilc *wilc, const u8 *buffer,
 				u32 buffer_size);
 int wilc_wlan_start(struct wilc *wilc);
 int wilc_wlan_stop(struct wilc *wilc, struct wilc_vif *vif);
-int wilc_wlan_txq_add_net_pkt(struct net_device *dev, void *priv, u8 *buffer,
+int wilc_wlan_txq_add_net_pkt(struct net_device *dev,
+			      struct tx_complete_data *tx_data, u8 *buffer,
 			      u32 buffer_size,
 			      void (*tx_complete_fn)(void *, int));
 int wilc_wlan_handle_txq(struct wilc *wl, u32 *txq_count);
@@ -386,6 +425,7 @@ int wilc_wlan_get_num_conn_ifcs(struct wilc *wilc);
 netdev_tx_t wilc_mac_xmit(struct sk_buff *skb, struct net_device *dev);
 
 void wilc_wfi_p2p_rx(struct wilc_vif *vif, u8 *buff, u32 size);
+bool wilc_wfi_mgmt_frame_rx(struct wilc_vif *vif, u8 *buff, u32 size);
 void host_wakeup_notify(struct wilc *wilc);
 void host_sleep_notify(struct wilc *wilc);
 void chip_allow_sleep(struct wilc *wilc);
