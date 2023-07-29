@@ -17,7 +17,6 @@
 
 #include "util.h"
 
-#define RTW_NAPI_WEIGHT_NUM		64
 #define RTW_MAX_MAC_ID_NUM		32
 #define RTW_MAX_SEC_CAM_NUM		32
 #define MAX_PG_CAM_BACKUP_NUM		8
@@ -754,7 +753,6 @@ struct rtw_sta_info {
 	u8 ldpc_en:2;
 	bool sgi_enable;
 	bool vht_enable;
-	bool updated;
 	u8 init_ra_lv;
 	u64 ra_mask;
 
@@ -1180,6 +1178,7 @@ struct rtw_chip_info {
 	bool rx_ldpc;
 	bool tx_stbc;
 	u8 max_power_index;
+	u8 ampdu_density;
 
 	u16 fw_fifo_addr[RTW_FW_FIFO_MAX];
 	const struct rtw_fwcd_segs *fwcd_segs;
@@ -1233,9 +1232,6 @@ struct rtw_chip_info {
 	const char *wow_fw_name;
 	const struct wiphy_wowlan_support *wowlan_stub;
 	const u8 max_sched_scan_ssids;
-
-	/* for 8821c set channel */
-	u32 ch_param[3];
 
 	/* coex paras */
 	u32 coex_para_ver;
@@ -1938,6 +1934,9 @@ struct rtw_hal {
 
 	enum rtw_sar_bands sar_band;
 	struct rtw_sar sar;
+
+	/* for 8821c set channel */
+	u32 ch_param[3];
 };
 
 struct rtw_path_div {
@@ -2009,6 +2008,7 @@ struct rtw_dev {
 	struct work_struct c2h_work;
 	struct work_struct ips_work;
 	struct work_struct fw_recovery_work;
+	struct work_struct update_beacon_work;
 
 	/* used to protect txqs list */
 	spinlock_t txq_lock;
@@ -2147,7 +2147,8 @@ void rtw_chip_prepare_tx(struct rtw_dev *rtwdev);
 void rtw_vif_port_config(struct rtw_dev *rtwdev, struct rtw_vif *rtwvif,
 			 u32 config);
 void rtw_tx_report_purge_timer(struct timer_list *t);
-void rtw_update_sta_info(struct rtw_dev *rtwdev, struct rtw_sta_info *si);
+void rtw_update_sta_info(struct rtw_dev *rtwdev, struct rtw_sta_info *si,
+			 bool reset_ra_mask);
 void rtw_core_scan_start(struct rtw_dev *rtwdev, struct rtw_vif *rtwvif,
 			 const u8 *mac_addr, bool hw_scan);
 void rtw_core_scan_complete(struct rtw_dev *rtwdev, struct ieee80211_vif *vif,
