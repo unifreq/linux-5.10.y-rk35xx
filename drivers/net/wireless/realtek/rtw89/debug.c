@@ -525,7 +525,8 @@ static int __print_txpwr_map(struct seq_file *m, struct rtw89_dev *rtwdev,
 
 static void __print_regd(struct seq_file *m, struct rtw89_dev *rtwdev)
 {
-	u8 band = rtwdev->hal.current_band_type;
+	const struct rtw89_chan *chan = rtw89_chan_get(rtwdev, RTW89_SUB_ENTITY_0);
+	u8 band = chan->band_type;
 	u8 regd = rtw89_regd_get(rtwdev, band);
 
 	switch (regd) {
@@ -593,6 +594,7 @@ rtw89_debug_priv_mac_reg_dump_select(struct file *filp,
 	struct seq_file *m = (struct seq_file *)filp->private_data;
 	struct rtw89_debugfs_priv *debugfs_priv = m->private;
 	struct rtw89_dev *rtwdev = debugfs_priv->rtwdev;
+	const struct rtw89_chip_info *chip = rtwdev->chip;
 	char buf[32];
 	size_t buf_size;
 	int sel;
@@ -609,6 +611,12 @@ rtw89_debug_priv_mac_reg_dump_select(struct file *filp,
 
 	if (sel < RTW89_DBG_SEL_MAC_00 || sel > RTW89_DBG_SEL_RFC) {
 		rtw89_info(rtwdev, "invalid args: %d\n", sel);
+		return -EINVAL;
+	}
+
+	if (sel == RTW89_DBG_SEL_MAC_30 && chip->chip_id != RTL8852C) {
+		rtw89_info(rtwdev, "sel %d is address hole on chip %d\n", sel,
+			   chip->chip_id);
 		return -EINVAL;
 	}
 
@@ -2122,17 +2130,18 @@ static ssize_t rtw89_debug_priv_send_h2c_set(struct file *filp,
 	struct rtw89_debugfs_priv *debugfs_priv = filp->private_data;
 	struct rtw89_dev *rtwdev = debugfs_priv->rtwdev;
 	u8 *h2c;
+	int ret;
 	u16 h2c_len = count / 2;
 
 	h2c = rtw89_hex2bin_user(rtwdev, user_buf, count);
 	if (IS_ERR(h2c))
 		return -EFAULT;
 
-	rtw89_fw_h2c_raw(rtwdev, h2c, h2c_len);
+	ret = rtw89_fw_h2c_raw(rtwdev, h2c, h2c_len);
 
 	kfree(h2c);
 
-	return count;
+	return ret ? ret : count;
 }
 
 static int
@@ -2189,6 +2198,37 @@ out:
 	return count;
 }
 
+static int rtw89_dbg_trigger_ctrl_error(struct rtw89_dev *rtwdev)
+{
+	struct rtw89_cpuio_ctrl ctrl_para = {0};
+	u16 pkt_id;
+
+	rtw89_leave_ps_mode(rtwdev);
+
+	pkt_id = rtw89_mac_dle_buf_req(rtwdev, 0x20, true);
+	switch (pkt_id) {
+	case 0xffff:
+		return -ETIMEDOUT;
+	case 0xfff:
+		return -ENOMEM;
+	default:
+		break;
+	}
+
+	/* intentionally, enqueue two pkt, but has only one pkt id */
+	ctrl_para.cmd_type = CPUIO_OP_CMD_ENQ_TO_HEAD;
+	ctrl_para.start_pktid = pkt_id;
+	ctrl_para.end_pktid = pkt_id;
+	ctrl_para.pkt_num = 1; /* start from 0 */
+	ctrl_para.dst_pid = WDE_DLE_PORT_ID_WDRLS;
+	ctrl_para.dst_qid = WDE_DLE_QUEID_NO_REPORT;
+
+	if (rtw89_mac_set_cpuio(rtwdev, &ctrl_para, true))
+		return -EFAULT;
+
+	return 0;
+}
+
 static int
 rtw89_debug_priv_fw_crash_get(struct seq_file *m, void *v)
 {
@@ -2196,9 +2236,14 @@ rtw89_debug_priv_fw_crash_get(struct seq_file *m, void *v)
 	struct rtw89_dev *rtwdev = debugfs_priv->rtwdev;
 
 	seq_printf(m, "%d\n",
-		   test_bit(RTW89_FLAG_RESTART_TRIGGER, rtwdev->flags));
+		   test_bit(RTW89_FLAG_CRASH_SIMULATING, rtwdev->flags));
 	return 0;
 }
+
+enum rtw89_dbg_crash_simulation_type {
+	RTW89_DBG_SIM_CPU_EXCEPTION = 1,
+	RTW89_DBG_SIM_CTRL_ERROR = 2,
+};
 
 static ssize_t
 rtw89_debug_priv_fw_crash_set(struct file *filp, const char __user *user_buf,
@@ -2207,22 +2252,30 @@ rtw89_debug_priv_fw_crash_set(struct file *filp, const char __user *user_buf,
 	struct seq_file *m = (struct seq_file *)filp->private_data;
 	struct rtw89_debugfs_priv *debugfs_priv = m->private;
 	struct rtw89_dev *rtwdev = debugfs_priv->rtwdev;
-	bool fw_crash;
+	int (*sim)(struct rtw89_dev *rtwdev);
+	u8 crash_type;
 	int ret;
 
-	if (!RTW89_CHK_FW_FEATURE(CRASH_TRIGGER, &rtwdev->fw))
-		return -EOPNOTSUPP;
-
-	ret = kstrtobool_from_user(user_buf, count, &fw_crash);
+	ret = kstrtou8_from_user(user_buf, count, 0, &crash_type);
 	if (ret)
 		return -EINVAL;
 
-	if (!fw_crash)
+	switch (crash_type) {
+	case RTW89_DBG_SIM_CPU_EXCEPTION:
+		if (!RTW89_CHK_FW_FEATURE(CRASH_TRIGGER, &rtwdev->fw))
+			return -EOPNOTSUPP;
+		sim = rtw89_fw_h2c_trigger_cpu_exception;
+		break;
+	case RTW89_DBG_SIM_CTRL_ERROR:
+		sim = rtw89_dbg_trigger_ctrl_error;
+		break;
+	default:
 		return -EINVAL;
+	}
 
 	mutex_lock(&rtwdev->mutex);
-	set_bit(RTW89_FLAG_RESTART_TRIGGER, rtwdev->flags);
-	ret = rtw89_fw_h2c_trigger_cpu_exception(rtwdev);
+	set_bit(RTW89_FLAG_CRASH_SIMULATING, rtwdev->flags);
+	ret = sim(rtwdev);
 	mutex_unlock(&rtwdev->mutex);
 
 	if (ret)
@@ -2289,7 +2342,10 @@ static void rtw89_sta_info_get_iter(void *data, struct ieee80211_sta *sta)
 	struct rate_info *rate = &rtwsta->ra_report.txrate;
 	struct ieee80211_rx_status *status = &rtwsta->rx_status;
 	struct seq_file *m = (struct seq_file *)data;
+	struct rtw89_dev *rtwdev = rtwsta->rtwdev;
+	struct rtw89_hal *hal = &rtwdev->hal;
 	u8 rssi;
+	int i;
 
 	seq_printf(m, "TX rate [%d]: ", rtwsta->mac_id);
 
@@ -2334,8 +2390,15 @@ static void rtw89_sta_info_get_iter(void *data, struct ieee80211_sta *sta)
 	seq_printf(m, "\t(hw_rate=0x%x)\n", rtwsta->rx_hw_rate);
 
 	rssi = ewma_rssi_read(&rtwsta->avg_rssi);
-	seq_printf(m, "RSSI: %d dBm (raw=%d, prev=%d)\n",
+	seq_printf(m, "RSSI: %d dBm (raw=%d, prev=%d) [",
 		   RTW89_RSSI_RAW_TO_DBM(rssi), rssi, rtwsta->prev_rssi);
+	for (i = 0; i < rtwdev->chip->rf_path_num; i++) {
+		rssi = ewma_rssi_read(&rtwsta->rssi[i]);
+		seq_printf(m, "%d%s%s", RTW89_RSSI_RAW_TO_DBM(rssi),
+			   hal->tx_path_diversity && (hal->antenna_tx & BIT(i)) ? "*" : "",
+			   i + 1 == rtwdev->chip->rf_path_num ? "" : ", ");
+	}
+	seq_puts(m, "]\n");
 }
 
 static void
@@ -2434,6 +2497,26 @@ void rtw89_vif_ids_get_iter(void *data, u8 *mac, struct ieee80211_vif *vif)
 	rtw89_dump_addr_cam(m, &rtwvif->addr_cam);
 }
 
+static void rtw89_dump_ba_cam(struct seq_file *m, struct rtw89_sta *rtwsta)
+{
+	struct rtw89_vif *rtwvif = rtwsta->rtwvif;
+	struct rtw89_dev *rtwdev = rtwvif->rtwdev;
+	struct rtw89_ba_cam_entry *entry;
+	bool first = true;
+
+	list_for_each_entry(entry, &rtwsta->ba_cam_list, list) {
+		if (first) {
+			seq_puts(m, "\tba_cam ");
+			first = false;
+		} else {
+			seq_puts(m, ", ");
+		}
+		seq_printf(m, "tid[%u]=%d", entry->tid,
+			   (int)(entry - rtwdev->cam_info.ba_cam_entry));
+	}
+	seq_puts(m, "\n");
+}
+
 static void rtw89_sta_ids_get_iter(void *data, struct ieee80211_sta *sta)
 {
 	struct rtw89_sta *rtwsta = (struct rtw89_sta *)sta->drv_priv;
@@ -2442,6 +2525,7 @@ static void rtw89_sta_ids_get_iter(void *data, struct ieee80211_sta *sta)
 	seq_printf(m, "STA [%d] %pM %s\n", rtwsta->mac_id, sta->addr,
 		   sta->tdls ? "(TDLS)" : "");
 	rtw89_dump_addr_cam(m, &rtwsta->addr_cam);
+	rtw89_dump_ba_cam(m, rtwsta);
 }
 
 static int rtw89_debug_priv_stations_get(struct seq_file *m, void *v)
@@ -2449,6 +2533,8 @@ static int rtw89_debug_priv_stations_get(struct seq_file *m, void *v)
 	struct rtw89_debugfs_priv *debugfs_priv = m->private;
 	struct rtw89_dev *rtwdev = debugfs_priv->rtwdev;
 	struct rtw89_cam_info *cam_info = &rtwdev->cam_info;
+
+	mutex_lock(&rtwdev->mutex);
 
 	seq_puts(m, "map:\n");
 	seq_printf(m, "\tmac_id:    %*ph\n", (int)sizeof(rtwdev->mac_id_map),
@@ -2459,11 +2545,15 @@ static int rtw89_debug_priv_stations_get(struct seq_file *m, void *v)
 		   cam_info->bssid_cam_map);
 	seq_printf(m, "\tsec_cam:   %*ph\n", (int)sizeof(cam_info->sec_cam_map),
 		   cam_info->sec_cam_map);
+	seq_printf(m, "\tba_cam:    %*ph\n", (int)sizeof(cam_info->ba_cam_map),
+		   cam_info->ba_cam_map);
 
 	ieee80211_iterate_active_interfaces_atomic(rtwdev->hw,
 		IEEE80211_IFACE_ITER_NORMAL, rtw89_vif_ids_get_iter, m);
 
 	ieee80211_iterate_stations_atomic(rtwdev->hw, rtw89_sta_ids_get_iter, m);
+
+	mutex_unlock(&rtwdev->mutex);
 
 	return 0;
 }
