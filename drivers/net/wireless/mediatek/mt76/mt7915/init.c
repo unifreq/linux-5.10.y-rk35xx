@@ -1109,13 +1109,13 @@ int mt7915_register_device(struct mt7915_dev *dev)
 	if (ret)
 		goto unreg_dev;
 
+	ieee80211_queue_work(mt76_hw(dev), &dev->init_work);
+
 	if (phy2) {
 		ret = mt7915_register_ext_phy(dev, phy2);
 		if (ret)
 			goto unreg_thermal;
 	}
-
-	ieee80211_queue_work(mt76_hw(dev), &dev->init_work);
 
 	mt7915_init_debugfs(&dev->phy);
 
