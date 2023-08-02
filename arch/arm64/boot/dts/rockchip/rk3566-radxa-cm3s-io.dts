@@ -255,8 +255,7 @@
 };
 
 &u2phy0_host {
-	phy-supply = <&vcc5v0_usb20>;
-	status = "okay";
+	status = "disabled";
 };
 
 &combphy2_psq {
