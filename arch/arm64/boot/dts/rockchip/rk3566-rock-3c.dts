@@ -885,6 +885,7 @@
 
 &u2phy0_host {
 	phy-supply = <&vcc5v0_host>;
+	disable_wakeup;
 	status = "okay";
 };
 
