@@ -15,6 +15,7 @@
  */
 
 #include "ath9k.h"
+#include "hsr.h"
 
 /* Set/change channels.  If the channel is really being changed, it's done
  * by reseting the chip.  To accomplish this we must first cleanup any pending
@@ -22,6 +23,7 @@
  */
 static int ath_set_channel(struct ath_softc *sc)
 {
+	struct device_node *np = sc->dev->of_node;
 	struct ath_hw *ah = sc->sc_ah;
 	struct ath_common *common = ath9k_hw_common(ah);
 	struct ieee80211_hw *hw = sc->hw;
@@ -41,6 +43,11 @@ static int ath_set_channel(struct ath_softc *sc)
 
 	ath_dbg(common, CONFIG, "Set channel: %d MHz width: %d\n",
 		chan->center_freq, chandef->width);
+
+	if (of_property_read_bool(np, "ubnt,hsr")) {
+		ath9k_hsr_enable(ah, chandef->width, chan->center_freq);
+		ath9k_hsr_status(ah);
+	}
 
 	/* update survey stats for the old channel before switching */
 	spin_lock_irqsave(&common->cc_lock, flags);

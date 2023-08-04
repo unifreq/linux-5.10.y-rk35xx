@@ -20,6 +20,12 @@
 #define PHY_AGC_CLR             0x10000000
 #define RFSILENT_BB             0x00002000
 
+#define AR_PHY_TEST_BBB_OBS_SEL       0x780000
+#define AR_PHY_TEST_BBB_OBS_SEL_S     19
+
+#define AR_PHY_TEST_RX_OBS_SEL_BIT5_S 23
+#define AR_PHY_TEST_RX_OBS_SEL_BIT5   (1 << AR_PHY_TEST_RX_OBS_SEL_BIT5_S)
+
 #define AR_PHY_TURBO                0x9804
 #define AR_PHY_FC_TURBO_MODE        0x00000001
 #define AR_PHY_FC_TURBO_SHORT       0x00000002
@@ -35,6 +41,9 @@
 #define AR_PHY_FC_ENABLE_DAC_FIFO   0x00000800
 
 #define AR_PHY_TEST2			0x9808
+
+#define AR_PHY_TEST2_RX_OBS_SEL        0x3C00
+#define AR_PHY_TEST2_RX_OBS_SEL_S      10
 
 #define AR_PHY_TIMING2           0x9810
 #define AR_PHY_TIMING3           0x9814
@@ -392,6 +401,8 @@
 
 #define AR_PHY_RFBUS_GRANT       0x9C20
 #define AR_PHY_RFBUS_GRANT_EN    0x00000001
+
+#define AR_PHY_TST_ADC      0x9C24
 
 #define AR_PHY_CHAN_INFO_GAIN_DIFF             0x9CF4
 #define AR_PHY_CHAN_INFO_GAIN_DIFF_UPPER_LIMIT 320
