@@ -678,18 +678,13 @@ void ath9k_hw_startpcureceive(struct ath_hw *ah, bool is_scanning)
 
 	ath9k_ani_reset(ah, is_scanning);
 
-	REG_CLR_BIT(ah, AR_DIAG_SW,
-		    AR_DIAG_RX_DIS | AR_DIAG_RX_ABORT | AR_DIAG_FORCE_RX_CLEAR);
+	REG_CLR_BIT(ah, AR_DIAG_SW, (AR_DIAG_RX_DIS | AR_DIAG_RX_ABORT));
 }
 EXPORT_SYMBOL(ath9k_hw_startpcureceive);
 
 void ath9k_hw_abortpcurecv(struct ath_hw *ah)
 {
-	u32 reg = AR_DIAG_RX_DIS | AR_DIAG_RX_ABORT;
-
-	if (!IS_ENABLED(CONFIG_ATH9K_TX99))
-		reg |= AR_DIAG_FORCE_RX_CLEAR;
-	REG_SET_BIT(ah, AR_DIAG_SW, reg);
+	REG_SET_BIT(ah, AR_DIAG_SW, AR_DIAG_RX_ABORT | AR_DIAG_RX_DIS);
 
 	ath9k_hw_disable_mib_counters(ah);
 }

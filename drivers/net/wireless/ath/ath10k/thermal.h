@@ -19,13 +19,13 @@ struct ath10k_thermal {
 	/* protected by conf_mutex */
 	u32 throttle_state;
 	u32 quiet_period;
-	/* temperature value in Celcius degree
+	/* temperature value in Celsius degree
 	 * protected by data_lock
 	 */
 	int temperature;
 };
 
-#if IS_REACHABLE(CONFIG_ATH10K_THERMAL)
+#if IS_REACHABLE(CONFIG_THERMAL)
 int ath10k_thermal_register(struct ath10k *ar);
 void ath10k_thermal_unregister(struct ath10k *ar);
 void ath10k_thermal_event_temperature(struct ath10k *ar, int temperature);

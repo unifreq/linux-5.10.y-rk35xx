@@ -48,9 +48,6 @@
 #define AR_PHY_PLL_CONTROL 0x16180
 #define AR_PHY_PLL_MODE 0x16184
 
-#define AR_PHY_USB_CTRL1	0x16c84
-#define AR_PHY_USB_CTRL2	0x16c88
-
 enum ath9k_ant_div_comb_lna_conf {
 	ATH_ANT_DIV_COMB_LNA1_MINUS_LNA2,
 	ATH_ANT_DIV_COMB_LNA2,

@@ -100,12 +100,6 @@ static inline void ath9k_hw_tx99_set_txpower(struct ath_hw *ah, u8 power)
 		ath9k_hw_ops(ah)->tx99_set_txpower(ah, power);
 }
 
-static inline void ath9k_hw_get_adc_entropy(struct ath_hw *ah,
-		u8 *buf, size_t len)
-{
-	ath9k_hw_ops(ah)->get_adc_entropy(ah, buf, len);
-}
-
 #ifdef CONFIG_ATH9K_BTCOEX_SUPPORT
 
 static inline void ath9k_hw_set_bt_ant_diversity(struct ath_hw *ah, bool enable)

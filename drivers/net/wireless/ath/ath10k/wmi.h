@@ -3030,41 +3030,6 @@ enum wmi_10_4_feature_mask {
 
 };
 
-/* WMI_GPIO_CONFIG_CMDID */
-enum {
-	WMI_GPIO_PULL_NONE,
-	WMI_GPIO_PULL_UP,
-	WMI_GPIO_PULL_DOWN,
-};
-
-enum {
-	WMI_GPIO_INTTYPE_DISABLE,
-	WMI_GPIO_INTTYPE_RISING_EDGE,
-	WMI_GPIO_INTTYPE_FALLING_EDGE,
-	WMI_GPIO_INTTYPE_BOTH_EDGE,
-	WMI_GPIO_INTTYPE_LEVEL_LOW,
-	WMI_GPIO_INTTYPE_LEVEL_HIGH
-};
-
-/* WMI_GPIO_CONFIG_CMDID */
-struct wmi_gpio_config_cmd {
-	__le32 gpio_num;             /* GPIO number to be setup */
-	__le32 input;                /* 0 - Output/ 1 - Input */
-	__le32 pull_type;            /* Pull type defined above */
-	__le32 intr_mode;            /* Interrupt mode defined above (Input) */
-} __packed;
-
-/* WMI_GPIO_OUTPUT_CMDID */
-struct wmi_gpio_output_cmd {
-	__le32 gpio_num;    /* GPIO number to be setup */
-	__le32 set;         /* Set the GPIO pin*/
-} __packed;
-
-/* WMI_GPIO_INPUT_EVENTID */
-struct wmi_gpio_input_event {
-	__le32 gpio_num;    /* GPIO number which changed state */
-} __packed;
-
 struct wmi_ext_resource_config_10_4_cmd {
 	/* contains enum wmi_host_platform_type */
 	__le32 host_platform_config;
@@ -3205,7 +3170,7 @@ struct wmi_start_scan_common {
 	/* dwell time in msec on passive channels */
 	__le32 dwell_time_passive;
 	/*
-	 * min time in msec on the BSS channel,only valid if atleast one
+	 * min time in msec on the BSS channel,only valid if at least one
 	 * VDEV is active
 	 */
 	__le32 min_rest_time;
@@ -3231,7 +3196,7 @@ struct wmi_start_scan_common {
 	 * and bssid_list
 	 */
 	__le32 repeat_probe_time;
-	/* time in msec between 2 consequetive probe requests with in a set. */
+	/* time in msec between 2 consecutive probe requests with in a set. */
 	__le32 probe_spacing_time;
 	/*
 	 * data inactivity time in msec on bss channel that will be used by
@@ -3513,7 +3478,9 @@ struct wmi_phyerr_event {
 	__le32 num_phyerrs;
 	__le32 tsf_l32;
 	__le32 tsf_u32;
-	struct wmi_phyerr phyerrs[];
+
+	/* array of struct wmi_phyerr */
+	u8 phyerrs[];
 } __packed;
 
 struct wmi_10_4_phyerr_event {
@@ -4430,7 +4397,7 @@ struct wmi_pdev_stats_tx {
 	/* wal pdev continuous xretry */
 	__le32 pdev_cont_xretry;
 
-	/* wal pdev continous xretry */
+	/* wal pdev continuous xretry */
 	__le32 pdev_tx_timeout;
 
 	/* wal pdev resets  */
@@ -5273,7 +5240,7 @@ enum wmi_vdev_param {
 	 * scheduler.
 	 */
 	WMI_VDEV_OC_SCHEDULER_AIR_TIME_LIMIT,
-	/* enable/dsiable WDS for this VDEV  */
+	/* enable/disable WDS for this VDEV  */
 	WMI_VDEV_PARAM_WDS,
 	/* ATIM Window */
 	WMI_VDEV_PARAM_ATIM_WINDOW,
@@ -5405,7 +5372,7 @@ enum wmi_10x_vdev_param {
 	 * scheduler.
 	 */
 	WMI_10X_VDEV_OC_SCHEDULER_AIR_TIME_LIMIT,
-	/* enable/dsiable WDS for this VDEV  */
+	/* enable/disable WDS for this VDEV  */
 	WMI_10X_VDEV_PARAM_WDS,
 	/* ATIM Window */
 	WMI_10X_VDEV_PARAM_ATIM_WINDOW,
@@ -5937,7 +5904,7 @@ enum wmi_sta_ps_param_tx_wake_threshold {
 enum wmi_sta_ps_param_pspoll_count {
 	WMI_STA_PS_PSPOLL_COUNT_NO_MAX = 0,
 	/*
-	 * Values greater than 0 indicate the maximum numer of PS-Poll frames
+	 * Values greater than 0 indicate the maximum number of PS-Poll frames
 	 * FW will send before waking up.
 	 */
 
@@ -6980,7 +6947,7 @@ struct wmi_echo_ev_arg {
 };
 
 struct wmi_pdev_temperature_event {
-	/* temperature value in Celcius degree */
+	/* temperature value in Celsius degree */
 	__le32 temperature;
 } __packed;
 

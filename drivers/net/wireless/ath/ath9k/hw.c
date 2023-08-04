@@ -247,19 +247,6 @@ void ath9k_hw_get_channel_centers(struct ath_hw *ah,
 		centers->synth_center + (extoff * HT40_CHANNEL_CENTER_SHIFT);
 }
 
-static inline void ath9k_hw_disable_pll_lock_detect(struct ath_hw *ah)
-{
-	/* On AR9330 and AR9340 devices, some PHY registers must be
-	 * tuned to gain better stability/performance. These registers
-	 * might be changed while doing wlan reset so the registers must
-	 * be reprogrammed after each reset.
-	 */
-	REG_CLR_BIT(ah, AR_PHY_USB_CTRL1, BIT(20));
-	REG_RMW(ah, AR_PHY_USB_CTRL2,
-		(1 << 21) | (0xf << 22),
-		(1 << 21) | (0x3 << 22));
-}
-
 /******************/
 /* Chip Revisions */
 /******************/
@@ -415,8 +402,13 @@ static void ath9k_hw_init_config(struct ath_hw *ah)
 
 	ah->config.rx_intr_mitigation = true;
 
-	ah->config.rimt_last = 250;
-	ah->config.rimt_first = 500;
+	if (AR_SREV_9300_20_OR_LATER(ah)) {
+		ah->config.rimt_last = 500;
+		ah->config.rimt_first = 2000;
+	} else {
+		ah->config.rimt_last = 250;
+		ah->config.rimt_first = 700;
+	}
 
 	if (AR_SREV_9462(ah) || AR_SREV_9565(ah))
 		ah->config.pll_pwrsave = 7;
@@ -675,7 +667,6 @@ int ath9k_hw_init(struct ath_hw *ah)
 
 	/* These are all the AR5008/AR9001/AR9002/AR9003 hardware family of chipsets */
 	switch (ah->hw_version.devid) {
-	case AR9300_DEVID_INVALID:
 	case AR5416_DEVID_PCI:
 	case AR5416_DEVID_PCIE:
 	case AR5416_AR9100_DEVID:
@@ -1320,55 +1311,38 @@ void ath9k_hw_get_delta_slope_vals(struct ath_hw *ah, u32 coef_scaled,
 	*coef_exponent = coef_exp - 16;
 }
 
-static bool ath9k_hw_need_external_reset(struct ath_hw *ah, int type)
+/* AR9330 WAR:
+ * call external reset function to reset WMAC if:
+ * - doing a cold reset
+ * - we have pending frames in the TX queues.
+ */
+static bool ath9k_hw_ar9330_reset_war(struct ath_hw *ah, int type)
 {
-	int i;
+	int i, npend = 0;
 
-	if (type == ATH9K_RESET_COLD)
-		return true;
+	for (i = 0; i < AR_NUM_QCU; i++) {
+		npend = ath9k_hw_numtxpending(ah, i);
+		if (npend)
+			break;
+	}
 
-	if (AR_SREV_9550(ah))
-		return true;
+	if (ah->external_reset &&
+	    (npend || type == ATH9K_RESET_COLD)) {
+		int reset_err = 0;
 
-	/* AR9330 WAR:
-	 * call external reset function to reset WMAC if:
-	 * - doing a cold reset
-	 * - we have pending frames in the TX queues.
-	 */
-	if (AR_SREV_9330(ah)) {
-		for (i = 0; i < AR_NUM_QCU; i++) {
-			if (ath9k_hw_numtxpending(ah, i))
-				return true;
+		ath_dbg(ath9k_hw_common(ah), RESET,
+			"reset MAC via external reset\n");
+
+		reset_err = ah->external_reset();
+		if (reset_err) {
+			ath_err(ath9k_hw_common(ah),
+				"External reset failed, err=%d\n",
+				reset_err);
+			return false;
 		}
+
+		REG_WRITE(ah, AR_RTC_RESET, 1);
 	}
-
-	return false;
-}
-
-static bool ath9k_hw_external_reset(struct ath_hw *ah, int type)
-{
-	int err;
-
-	if (!ah->external_reset || !ath9k_hw_need_external_reset(ah, type))
-		return true;
-
-	ath_dbg(ath9k_hw_common(ah), RESET,
-		"reset MAC via external reset\n");
-
-	err = ah->external_reset();
-	if (err) {
-		ath_err(ath9k_hw_common(ah),
-			"External reset failed, err=%d\n", err);
-		return false;
-	}
-
-	if (AR_SREV_9550(ah)) {
-		REG_WRITE(ah, AR_RTC_RESET, 0);
-		udelay(10);
-	}
-
-	REG_WRITE(ah, AR_RTC_RESET, 1);
-	udelay(10);
 
 	return true;
 }
@@ -1422,23 +1396,23 @@ static bool ath9k_hw_set_reset(struct ath_hw *ah, int type)
 			rst_flags |= AR_RTC_RC_MAC_COLD;
 	}
 
+	if (AR_SREV_9330(ah)) {
+		if (!ath9k_hw_ar9330_reset_war(ah, type))
+			return false;
+	}
+
 	if (ath9k_hw_mci_is_enabled(ah))
 		ar9003_mci_check_gpm_offset(ah);
 
 	/* DMA HALT added to resolve ar9300 and ar9580 bus error during
-	 * RTC_RC reg read. Also needed for AR9550 external reset
+	 * RTC_RC reg read
 	 */
-	if (AR_SREV_9300(ah) || AR_SREV_9580(ah) || AR_SREV_9550(ah)) {
+	if (AR_SREV_9300(ah) || AR_SREV_9580(ah)) {
 		REG_SET_BIT(ah, AR_CFG, AR_CFG_HALT_REQ);
 		ath9k_hw_wait(ah, AR_CFG, AR_CFG_HALT_ACK, AR_CFG_HALT_ACK,
 			      20 * AH_WAIT_TIMEOUT);
-	}
-
-	if (!AR_SREV_9100(ah))
-		ath9k_hw_external_reset(ah, type);
-
-	if (AR_SREV_9300(ah) || AR_SREV_9580(ah))
 		REG_CLR_BIT(ah, AR_CFG, AR_CFG_HALT_REQ);
+	}
 
 	REG_WRITE(ah, AR_RTC_RC, rst_flags);
 
@@ -1460,15 +1434,8 @@ static bool ath9k_hw_set_reset(struct ath_hw *ah, int type)
 	if (!AR_SREV_9100(ah))
 		REG_WRITE(ah, AR_RC, 0);
 
-	if (AR_SREV_9100(ah)) {
-		/* Reset the AHB-WMAC interface */
-		if (ah->external_reset)
-			ah->external_reset();
+	if (AR_SREV_9100(ah))
 		udelay(50);
-	}
-
-	if (AR_SREV_9330(ah) || AR_SREV_9340(ah))
-		ath9k_hw_disable_pll_lock_detect(ah);
 
 	return true;
 }
@@ -1568,9 +1535,6 @@ static bool ath9k_hw_chip_reset(struct ath_hw *ah,
 	if (AR_SREV_9330(ah))
 		ar9003_hw_internal_regulator_apply(ah);
 	ath9k_hw_init_pll(ah, chan);
-
-	if (AR_SREV_9330(ah) || AR_SREV_9340(ah))
-		ath9k_hw_disable_pll_lock_detect(ah);
 
 	return true;
 }
@@ -1878,14 +1842,8 @@ static int ath9k_hw_do_fastcc(struct ath_hw *ah, struct ath9k_channel *chan)
 	if (AR_SREV_9271(ah))
 		ar9002_hw_load_ani_reg(ah, chan);
 
-	if (AR_SREV_9330(ah) || AR_SREV_9340(ah))
-		ath9k_hw_disable_pll_lock_detect(ah);
-
 	return 0;
 fail:
-	if (AR_SREV_9330(ah) || AR_SREV_9340(ah))
-		ath9k_hw_disable_pll_lock_detect(ah);
-
 	return -EINVAL;
 }
 
@@ -1905,20 +1863,6 @@ u32 ath9k_hw_get_tsf_offset(struct timespec64 *last, struct timespec64 *cur)
 	return (u32) usec;
 }
 EXPORT_SYMBOL(ath9k_hw_get_tsf_offset);
-
-void ath9k_hw_update_diag(struct ath_hw *ah)
-{
-	if (test_bit(ATH_DIAG_DISABLE_RX, &ah->diag))
-		REG_SET_BIT(ah, AR_DIAG_SW, AR_DIAG_RX_DIS);
-	else
-		REG_CLR_BIT(ah, AR_DIAG_SW, AR_DIAG_RX_DIS);
-
-	if (test_bit(ATH_DIAG_DISABLE_TX, &ah->diag))
-		REG_SET_BIT(ah, AR_DIAG_SW, AR_DIAG_LOOP_BACK);
-	else
-		REG_CLR_BIT(ah, AR_DIAG_SW, AR_DIAG_LOOP_BACK);
-}
-EXPORT_SYMBOL(ath9k_hw_update_diag);
 
 int ath9k_hw_reset(struct ath_hw *ah, struct ath9k_channel *chan,
 		   struct ath9k_hw_cal_data *caldata, bool fastcc)
@@ -2128,7 +2072,6 @@ int ath9k_hw_reset(struct ath_hw *ah, struct ath9k_channel *chan,
 		ar9003_hw_disable_phy_restart(ah);
 
 	ath9k_hw_apply_gpio_override(ah);
-	ath9k_hw_update_diag(ah);
 
 	if (AR_SREV_9565(ah) && common->bt_ant_diversity)
 		REG_SET_BIT(ah, AR_BTCOEX_WL_LNADIV, AR_BTCOEX_WL_LNADIV_FORCE_ON);
@@ -2138,9 +2081,6 @@ int ath9k_hw_reset(struct ath_hw *ah, struct ath9k_channel *chan,
 		ah->radar_conf.ext_channel = IS_CHAN_HT40(chan);
 		ath9k_hw_set_radar_params(ah);
 	}
-
-	if (AR_SREV_9330(ah) || AR_SREV_9340(ah))
-		ath9k_hw_disable_pll_lock_detect(ah);
 
 	return 0;
 }
@@ -3016,8 +2956,7 @@ void ath9k_hw_apply_txpower(struct ath_hw *ah, struct ath9k_channel *chan,
 {
 	struct ath_regulatory *reg = ath9k_hw_regulatory(ah);
 	struct ieee80211_channel *channel;
-	int chan_pwr, new_pwr, max_gain;
-	int ant_gain, ant_reduction = 0;
+	int chan_pwr, new_pwr;
 	u16 ctl = NO_CTL;
 
 	if (!chan)
@@ -3029,18 +2968,9 @@ void ath9k_hw_apply_txpower(struct ath_hw *ah, struct ath9k_channel *chan,
 	channel = chan->chan;
 	chan_pwr = min_t(int, channel->max_power * 2, MAX_COMBINED_POWER);
 	new_pwr = min_t(int, chan_pwr, reg->power_limit);
-	max_gain = chan_pwr - new_pwr + channel->max_antenna_gain * 2;
-
-	ant_gain = get_antenna_gain(ah, chan);
-	if (ant_gain > max_gain)
-		ant_reduction = ant_gain - max_gain;
-
-	/* FCC allows maximum antenna gain of 6 dBi */
-	if (reg->region == NL80211_DFS_FCC)
-		ant_reduction = max_t(int, ant_reduction - 12, 0);
 
 	ah->eep_ops->set_txpower(ah, chan, ctl,
-				 ant_reduction, new_pwr, test);
+				 get_antenna_gain(ah, chan), new_pwr, test);
 }
 
 void ath9k_hw_set_txpowerlimit(struct ath_hw *ah, u32 limit, bool test)
