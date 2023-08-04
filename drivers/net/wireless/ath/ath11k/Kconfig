@@ -57,3 +57,10 @@ config ATH11K_SPECTRAL
 	  Enable ath11k spectral scan support
 
 	  Say Y to enable access to the FFT/spectral data via debugfs.
+
+config ATH11K_THERMAL
+	bool "ath11k thermal sensors and throttling support"
+	depends on ATH11K
+	depends on THERMAL
+	help
+	  Enable ath11k thermal sensors and throttling support.

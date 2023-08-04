@@ -352,129 +352,6 @@ static u32 ath11k_map_fw_reg_flags(u16 reg_flags)
 	return flags;
 }
 
-static bool
-ath11k_reg_can_intersect(struct ieee80211_reg_rule *rule1,
-			 struct ieee80211_reg_rule *rule2)
-{
-	u32 start_freq1, end_freq1;
-	u32 start_freq2, end_freq2;
-
-	start_freq1 = rule1->freq_range.start_freq_khz;
-	start_freq2 = rule2->freq_range.start_freq_khz;
-
-	end_freq1 = rule1->freq_range.end_freq_khz;
-	end_freq2 = rule2->freq_range.end_freq_khz;
-
-	if ((start_freq1 >= start_freq2 &&
-	     start_freq1 < end_freq2) ||
-	    (start_freq2 > start_freq1 &&
-	     start_freq2 < end_freq1))
-		return true;
-
-	/* TODO: Should we restrict intersection feasibility
-	 *  based on min bandwidth of the intersected region also,
-	 *  say the intersected rule should have a  min bandwidth
-	 * of 20MHz?
-	 */
-
-	return false;
-}
-
-static void ath11k_reg_intersect_rules(struct ieee80211_reg_rule *rule1,
-				       struct ieee80211_reg_rule *rule2,
-				       struct ieee80211_reg_rule *new_rule)
-{
-	u32 start_freq1, end_freq1;
-	u32 start_freq2, end_freq2;
-	u32 freq_diff, max_bw;
-
-	start_freq1 = rule1->freq_range.start_freq_khz;
-	start_freq2 = rule2->freq_range.start_freq_khz;
-
-	end_freq1 = rule1->freq_range.end_freq_khz;
-	end_freq2 = rule2->freq_range.end_freq_khz;
-
-	new_rule->freq_range.start_freq_khz = max_t(u32, start_freq1,
-						    start_freq2);
-	new_rule->freq_range.end_freq_khz = min_t(u32, end_freq1, end_freq2);
-
-	freq_diff = new_rule->freq_range.end_freq_khz -
-			new_rule->freq_range.start_freq_khz;
-	max_bw = min_t(u32, rule1->freq_range.max_bandwidth_khz,
-		       rule2->freq_range.max_bandwidth_khz);
-	new_rule->freq_range.max_bandwidth_khz = min_t(u32, max_bw, freq_diff);
-
-	new_rule->power_rule.max_antenna_gain =
-		min_t(u32, rule1->power_rule.max_antenna_gain,
-		      rule2->power_rule.max_antenna_gain);
-
-	new_rule->power_rule.max_eirp = min_t(u32, rule1->power_rule.max_eirp,
-					      rule2->power_rule.max_eirp);
-
-	/* Use the flags of both the rules */
-	new_rule->flags = rule1->flags | rule2->flags;
-
-	/* To be safe, lts use the max cac timeout of both rules */
-	new_rule->dfs_cac_ms = max_t(u32, rule1->dfs_cac_ms,
-				     rule2->dfs_cac_ms);
-}
-
-static struct ieee80211_regdomain *
-ath11k_regd_intersect(struct ieee80211_regdomain *default_regd,
-		      struct ieee80211_regdomain *curr_regd)
-{
-	u8 num_old_regd_rules, num_curr_regd_rules, num_new_regd_rules;
-	struct ieee80211_reg_rule *old_rule, *curr_rule, *new_rule;
-	struct ieee80211_regdomain *new_regd = NULL;
-	u8 i, j, k;
-
-	num_old_regd_rules = default_regd->n_reg_rules;
-	num_curr_regd_rules = curr_regd->n_reg_rules;
-	num_new_regd_rules = 0;
-
-	/* Find the number of intersecting rules to allocate new regd memory */
-	for (i = 0; i < num_old_regd_rules; i++) {
-		old_rule = default_regd->reg_rules + i;
-		for (j = 0; j < num_curr_regd_rules; j++) {
-			curr_rule = curr_regd->reg_rules + j;
-
-			if (ath11k_reg_can_intersect(old_rule, curr_rule))
-				num_new_regd_rules++;
-		}
-	}
-
-	if (!num_new_regd_rules)
-		return NULL;
-
-	new_regd = kzalloc(sizeof(*new_regd) + (num_new_regd_rules *
-			sizeof(struct ieee80211_reg_rule)),
-			GFP_ATOMIC);
-
-	if (!new_regd)
-		return NULL;
-
-	/* We set the new country and dfs region directly and only trim
-	 * the freq, power, antenna gain by intersecting with the
-	 * default regdomain. Also MAX of the dfs cac timeout is selected.
-	 */
-	new_regd->n_reg_rules = num_new_regd_rules;
-	memcpy(new_regd->alpha2, curr_regd->alpha2, sizeof(new_regd->alpha2));
-	new_regd->dfs_region = curr_regd->dfs_region;
-	new_rule = new_regd->reg_rules;
-
-	for (i = 0, k = 0; i < num_old_regd_rules; i++) {
-		old_rule = default_regd->reg_rules + i;
-		for (j = 0; j < num_curr_regd_rules; j++) {
-			curr_rule = curr_regd->reg_rules + j;
-
-			if (ath11k_reg_can_intersect(old_rule, curr_rule))
-				ath11k_reg_intersect_rules(old_rule, curr_rule,
-							   (new_rule + k++));
-		}
-	}
-	return new_regd;
-}
-
 static const char *
 ath11k_reg_get_regdom_str(enum nl80211_dfs_regions dfs_region)
 {
@@ -609,55 +486,61 @@ ath11k_reg_update_weather_radar_band(struct ath11k_base *ab,
 
 struct ieee80211_regdomain *
 ath11k_reg_build_regd(struct ath11k_base *ab,
-		      struct cur_regulatory_info *reg_info, bool intersect)
+		      struct cur_regulatory_info *reg_info)
 {
-	struct ieee80211_regdomain *tmp_regd, *default_regd, *new_regd = NULL;
+	struct ieee80211_regdomain *new_regd = NULL;
 	struct cur_reg_rule *reg_rule;
-	u8 i = 0, j = 0;
+	u8 i = 0, j = 0, k = 0;
 	u8 num_rules;
 	u16 max_bw;
 	u32 flags;
 	char alpha2[3];
 
-	num_rules = reg_info->num_5g_reg_rules + reg_info->num_2g_reg_rules;
+	num_rules = reg_info->num_5ghz_reg_rules + reg_info->num_2ghz_reg_rules;
+
+	/* FIXME: Currently taking reg rules for 6 GHz only from Indoor AP mode list.
+	 * This can be updated after complete 6 GHz regulatory support is added.
+	 */
+	if (reg_info->is_ext_reg_event)
+		num_rules += reg_info->num_6ghz_rules_ap[WMI_REG_INDOOR_AP];
 
 	if (!num_rules)
-		goto ret;
+		return new_regd;
 
 	/* Add max additional rules to accommodate weather radar band */
 	if (reg_info->dfs_region == ATH11K_DFS_REG_ETSI)
 		num_rules += 2;
 
-	tmp_regd =  kzalloc(sizeof(*tmp_regd) +
+	new_regd =  kzalloc(sizeof(*new_regd) +
 			(num_rules * sizeof(struct ieee80211_reg_rule)),
 			GFP_ATOMIC);
-	if (!tmp_regd)
-		goto ret;
+	if (!new_regd)
+		return new_regd;
 
-	memcpy(tmp_regd->alpha2, reg_info->alpha2, REG_ALPHA2_LEN + 1);
+	memcpy(new_regd->alpha2, reg_info->alpha2, REG_ALPHA2_LEN + 1);
 	memcpy(alpha2, reg_info->alpha2, REG_ALPHA2_LEN + 1);
 	alpha2[2] = '\0';
-	tmp_regd->dfs_region = ath11k_map_fw_dfs_region(reg_info->dfs_region);
+	new_regd->dfs_region = ath11k_map_fw_dfs_region(reg_info->dfs_region);
 
 	ath11k_dbg(ab, ATH11K_DBG_REG,
-		   "\r\nCountry %s, CFG Regdomain %s FW Regdomain %d, num_reg_rules %d\n",
-		   alpha2, ath11k_reg_get_regdom_str(tmp_regd->dfs_region),
+		   "Country %s, CFG Regdomain %s FW Regdomain %d, num_reg_rules %d\n",
+		   alpha2, ath11k_reg_get_regdom_str(new_regd->dfs_region),
 		   reg_info->dfs_region, num_rules);
 	/* Update reg_rules[] below. Firmware is expected to
-	 * send these rules in order(2G rules first and then 5G)
+	 * send these rules in order(2 GHz rules first and then 5 GHz)
 	 */
 	for (; i < num_rules; i++) {
-		if (reg_info->num_2g_reg_rules &&
-		    (i < reg_info->num_2g_reg_rules)) {
-			reg_rule = reg_info->reg_rules_2g_ptr + i;
+		if (reg_info->num_2ghz_reg_rules &&
+		    (i < reg_info->num_2ghz_reg_rules)) {
+			reg_rule = reg_info->reg_rules_2ghz_ptr + i;
 			max_bw = min_t(u16, reg_rule->max_bw,
-				       reg_info->max_bw_2g);
+				       reg_info->max_bw_2ghz);
 			flags = 0;
-		} else if (reg_info->num_5g_reg_rules &&
-			   (j < reg_info->num_5g_reg_rules)) {
-			reg_rule = reg_info->reg_rules_5g_ptr + j++;
+		} else if (reg_info->num_5ghz_reg_rules &&
+			   (j < reg_info->num_5ghz_reg_rules)) {
+			reg_rule = reg_info->reg_rules_5ghz_ptr + j++;
 			max_bw = min_t(u16, reg_rule->max_bw,
-				       reg_info->max_bw_5g);
+				       reg_info->max_bw_5ghz);
 
 			/* FW doesn't pass NL80211_RRF_AUTO_BW flag for
 			 * BW Auto correction, we can enable this by default
@@ -666,13 +549,21 @@ ath11k_reg_build_regd(struct ath11k_base *ab,
 			 * per other BW rule flags we pass from here
 			 */
 			flags = NL80211_RRF_AUTO_BW;
+		} else if (reg_info->is_ext_reg_event &&
+			   reg_info->num_6ghz_rules_ap[WMI_REG_INDOOR_AP] &&
+			   (k < reg_info->num_6ghz_rules_ap[WMI_REG_INDOOR_AP])) {
+			reg_rule = reg_info->reg_rules_6ghz_ap_ptr[WMI_REG_INDOOR_AP] +
+				   k++;
+			max_bw = min_t(u16, reg_rule->max_bw,
+				       reg_info->max_bw_6ghz_ap[WMI_REG_INDOOR_AP]);
+			flags = NL80211_RRF_AUTO_BW;
 		} else {
 			break;
 		}
 
 		flags |= ath11k_map_fw_reg_flags(reg_rule->flags);
 
-		ath11k_reg_update_rule(tmp_regd->reg_rules + i,
+		ath11k_reg_update_rule(new_regd->reg_rules + i,
 				       reg_rule->start_freq,
 				       reg_rule->end_freq, max_bw,
 				       reg_rule->ant_gain, reg_rule->reg_power,
@@ -687,39 +578,31 @@ ath11k_reg_build_regd(struct ath11k_base *ab,
 		    reg_info->dfs_region == ATH11K_DFS_REG_ETSI &&
 		    (reg_rule->end_freq > ETSI_WEATHER_RADAR_BAND_LOW &&
 		    reg_rule->start_freq < ETSI_WEATHER_RADAR_BAND_HIGH)){
-			ath11k_reg_update_weather_radar_band(ab, tmp_regd,
+			ath11k_reg_update_weather_radar_band(ab, new_regd,
 							     reg_rule, &i,
 							     flags, max_bw);
 			continue;
 		}
 
-		ath11k_dbg(ab, ATH11K_DBG_REG,
-			   "\t%d. (%d - %d @ %d) (%d, %d) (%d ms) (FLAGS %d)\n",
-			   i + 1, reg_rule->start_freq, reg_rule->end_freq,
-			   max_bw, reg_rule->ant_gain, reg_rule->reg_power,
-			   tmp_regd->reg_rules[i].dfs_cac_ms,
-			   flags);
-	}
-
-	tmp_regd->n_reg_rules = i;
-
-	if (intersect) {
-		default_regd = ab->default_regd[reg_info->phy_id];
-
-		/* Get a new regd by intersecting the received regd with
-		 * our default regd.
-		 */
-		new_regd = ath11k_regd_intersect(default_regd, tmp_regd);
-		kfree(tmp_regd);
-		if (!new_regd) {
-			ath11k_warn(ab, "Unable to create intersected regdomain\n");
-			goto ret;
+		if (reg_info->is_ext_reg_event) {
+			ath11k_dbg(ab, ATH11K_DBG_REG,
+				   "\t%d. (%d - %d @ %d) (%d, %d) (%d ms) (FLAGS %d) (%d, %d)\n",
+				   i + 1, reg_rule->start_freq, reg_rule->end_freq,
+				   max_bw, reg_rule->ant_gain, reg_rule->reg_power,
+				   new_regd->reg_rules[i].dfs_cac_ms, flags,
+				   reg_rule->psd_flag, reg_rule->psd_eirp);
+		} else {
+			ath11k_dbg(ab, ATH11K_DBG_REG,
+				   "\t%d. (%d - %d @ %d) (%d, %d) (%d ms) (FLAGS %d)\n",
+				   i + 1, reg_rule->start_freq, reg_rule->end_freq,
+				   max_bw, reg_rule->ant_gain, reg_rule->reg_power,
+				   new_regd->reg_rules[i].dfs_cac_ms,
+				   flags);
 		}
-	} else {
-		new_regd = tmp_regd;
 	}
 
-ret:
+	new_regd->n_reg_rules = i;
+
 	return new_regd;
 }
 
