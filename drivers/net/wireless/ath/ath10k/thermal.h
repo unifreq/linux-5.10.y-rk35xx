@@ -25,7 +25,7 @@ struct ath10k_thermal {
 	int temperature;
 };
 
-#if IS_REACHABLE(CONFIG_THERMAL)
+#if IS_REACHABLE(CONFIG_ATH10K_THERMAL)
 int ath10k_thermal_register(struct ath10k *ar);
 void ath10k_thermal_unregister(struct ath10k *ar);
 void ath10k_thermal_event_temperature(struct ath10k *ar, int temperature);
