@@ -1707,6 +1707,7 @@ out_np:
 		if (!strcmp(dev_name(dev), "fde60000.gpu")) {
 			dev_pm_opp_remove(dev, 600000000);
 			dev_pm_opp_remove(dev, 700000000);
+			dev_pm_opp_remove(dev, 800000000);
 		}
 		if (!strcmp(dev_name(dev), "fdf40000.rkvenc")) {
 			dev_pm_opp_remove(dev, 400000000);
