@@ -5,9 +5,8 @@
 #include <linux/firmware.h>
 #include "mt7921.h"
 #include "mt7921_trace.h"
-#include "eeprom.h"
 #include "mcu.h"
-#include "mac.h"
+#include "../mt76_connac2_mac.h"
 
 #define MT_STA_BFER			BIT(0)
 #define MT_STA_BFEE			BIT(1)
@@ -48,19 +47,19 @@ int mt7921_mcu_parse_response(struct mt76_dev *mdev, int cmd,
 		   cmd == MCU_UNI_CMD(HIF_CTRL) ||
 		   cmd == MCU_UNI_CMD(OFFLOAD) ||
 		   cmd == MCU_UNI_CMD(SUSPEND)) {
-		struct mt7921_mcu_uni_event *event;
+		struct mt76_connac_mcu_uni_event *event;
 
 		skb_pull(skb, sizeof(*rxd));
-		event = (struct mt7921_mcu_uni_event *)skb->data;
+		event = (struct mt76_connac_mcu_uni_event *)skb->data;
 		ret = le32_to_cpu(event->status);
 		/* skip invalid event */
 		if (mcu_cmd != event->cid)
 			ret = -EAGAIN;
 	} else if (cmd == MCU_CE_QUERY(REG_READ)) {
-		struct mt7921_mcu_reg_event *event;
+		struct mt76_connac_mcu_reg_event *event;
 
 		skb_pull(skb, sizeof(*rxd));
-		event = (struct mt7921_mcu_reg_event *)skb->data;
+		event = (struct mt76_connac_mcu_reg_event *)skb->data;
 		ret = (int)le32_to_cpu(event->val);
 	} else {
 		skb_pull(skb, sizeof(struct mt76_connac2_mcu_rxd));
@@ -477,12 +476,6 @@ static int mt7921_load_firmware(struct mt7921_dev *dev)
 {
 	int ret;
 
-	ret = mt76_get_field(dev, MT_CONN_ON_MISC, MT_TOP_MISC2_FW_N9_RDY);
-	if (ret && mt76_is_mmio(&dev->mt76)) {
-		dev_dbg(dev->mt76.dev, "Firmware is already download\n");
-		goto fw_loaded;
-	}
-
 	ret = mt76_connac2_load_patch(&dev->mt76, mt7921_patch_name(dev));
 	if (ret)
 		return ret;
@@ -504,8 +497,6 @@ static int mt7921_load_firmware(struct mt7921_dev *dev)
 
 		return -EIO;
 	}
-
-fw_loaded:
 
 #ifdef CONFIG_PM
 	dev->mt76.hw->wiphy->wowlan = &mt76_connac_wowlan_support;

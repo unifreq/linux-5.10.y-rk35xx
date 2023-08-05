@@ -3,7 +3,7 @@
 
 #include "mt7921.h"
 #include "../dma.h"
-#include "mac.h"
+#include "../mt76_connac2_mac.h"
 
 static int mt7921_poll_tx(struct napi_struct *napi, int budget)
 {
@@ -19,7 +19,7 @@ static int mt7921_poll_tx(struct napi_struct *napi, int budget)
 
 	mt76_connac_tx_cleanup(&dev->mt76);
 	if (napi_complete(napi))
-		mt7921_irq_enable(dev, MT_INT_TX_DONE_ALL);
+		mt76_connac_irq_enable(&dev->mt76, MT_INT_TX_DONE_ALL);
 	mt76_connac_pm_unref(&dev->mphy, &dev->pm);
 
 	return 0;
@@ -123,9 +123,9 @@ static int mt7921_dma_enable(struct mt7921_dev *dev)
 	mt76_set(dev, MT_WFDMA_DUMMY_CR, MT_WFDMA_NEED_REINIT);
 
 	/* enable interrupts for TX/RX rings */
-	mt7921_irq_enable(dev,
-			  MT_INT_RX_DONE_ALL | MT_INT_TX_DONE_ALL |
-			  MT_INT_MCU_CMD);
+	mt76_connac_irq_enable(&dev->mt76,
+			       MT_INT_RX_DONE_ALL | MT_INT_TX_DONE_ALL |
+			       MT_INT_MCU_CMD);
 	mt76_set(dev, MT_MCU2HOST_SW_INT_ENA, MT_MCU_CMD_WAKE_RX_PCIE);
 
 	return 0;
@@ -228,10 +228,6 @@ int mt7921_dma_init(struct mt7921_dev *dev)
 	mt76_dma_attach(&dev->mt76);
 
 	ret = mt7921_dma_disable(dev, true);
-	if (ret)
-		return ret;
-
-	ret = mt7921_wfsys_reset(dev);
 	if (ret)
 		return ret;
 

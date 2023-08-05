@@ -596,13 +596,9 @@ static void mt7915_mmio_wed_offload_disable(struct mtk_wed_device *wed)
 static void mt7915_mmio_wed_release_rx_buf(struct mtk_wed_device *wed)
 {
 	struct mt7915_dev *dev;
-	u32 length;
 	int i;
 
 	dev = container_of(wed, struct mt7915_dev, mt76.mmio.wed);
-	length = SKB_DATA_ALIGN(NET_SKB_PAD + wed->wlan.rx_size +
-				sizeof(struct skb_shared_info));
-
 	for (i = 0; i < dev->mt76.rx_token_size; i++) {
 		struct mt76_txwi_cache *t;
 
@@ -610,9 +606,7 @@ static void mt7915_mmio_wed_release_rx_buf(struct mtk_wed_device *wed)
 		if (!t || !t->ptr)
 			continue;
 
-		dma_unmap_single(dev->mt76.dma_dev, t->dma_addr,
-				 wed->wlan.rx_size, DMA_FROM_DEVICE);
-		__free_pages(virt_to_page(t->ptr), get_order(length));
+		mt76_put_page_pool_buf(t->ptr, false);
 		t->ptr = NULL;
 
 		mt76_put_rxwi(&dev->mt76, t);
@@ -624,47 +618,38 @@ static void mt7915_mmio_wed_release_rx_buf(struct mtk_wed_device *wed)
 static u32 mt7915_mmio_wed_init_rx_buf(struct mtk_wed_device *wed, int size)
 {
 	struct mtk_rxbm_desc *desc = wed->rx_buf_ring.desc;
+	struct mt76_txwi_cache *t = NULL;
 	struct mt7915_dev *dev;
-	u32 length;
-	int i;
+	struct mt76_queue *q;
+	int i, len;
 
 	dev = container_of(wed, struct mt7915_dev, mt76.mmio.wed);
-	length = SKB_DATA_ALIGN(NET_SKB_PAD + wed->wlan.rx_size +
-				sizeof(struct skb_shared_info));
+	q = &dev->mt76.q_rx[MT_RXQ_MAIN];
+	len = SKB_WITH_OVERHEAD(q->buf_size);
 
 	for (i = 0; i < size; i++) {
-		struct mt76_txwi_cache *t = mt76_get_rxwi(&dev->mt76);
-		dma_addr_t phy_addr;
-		struct page *page;
+		enum dma_data_direction dir;
+		dma_addr_t addr;
+		u32 offset;
 		int token;
-		void *ptr;
+		void *buf;
 
+		t = mt76_get_rxwi(&dev->mt76);
 		if (!t)
 			goto unmap;
 
-		page = __dev_alloc_pages(GFP_KERNEL, get_order(length));
-		if (!page) {
-			mt76_put_rxwi(&dev->mt76, t);
+		buf = mt76_get_page_pool_buf(q, &offset, q->buf_size);
+		if (!buf)
 			goto unmap;
-		}
 
-		ptr = page_address(page);
-		phy_addr = dma_map_single(dev->mt76.dma_dev, ptr,
-					  wed->wlan.rx_size,
-					  DMA_TO_DEVICE);
-		if (unlikely(dma_mapping_error(dev->mt76.dev, phy_addr))) {
-			__free_pages(page, get_order(length));
-			mt76_put_rxwi(&dev->mt76, t);
-			goto unmap;
-		}
+		addr = page_pool_get_dma_addr(virt_to_head_page(buf)) + offset;
+		dir = page_pool_get_dma_dir(q->page_pool);
+		dma_sync_single_for_device(dev->mt76.dma_dev, addr, len, dir);
 
-		desc->buf0 = cpu_to_le32(phy_addr);
-		token = mt76_rx_token_consume(&dev->mt76, ptr, t, phy_addr);
+		desc->buf0 = cpu_to_le32(addr);
+		token = mt76_rx_token_consume(&dev->mt76, buf, t, addr);
 		if (token < 0) {
-			dma_unmap_single(dev->mt76.dma_dev, phy_addr,
-					 wed->wlan.rx_size, DMA_TO_DEVICE);
-			__free_pages(page, get_order(length));
-			mt76_put_rxwi(&dev->mt76, t);
+			mt76_put_page_pool_buf(buf, false);
 			goto unmap;
 		}
 
@@ -676,6 +661,8 @@ static u32 mt7915_mmio_wed_init_rx_buf(struct mtk_wed_device *wed, int size)
 	return 0;
 
 unmap:
+	if (t)
+		mt76_put_rxwi(&dev->mt76, t);
 	mt7915_mmio_wed_release_rx_buf(wed);
 	return -ENOMEM;
 }
@@ -929,7 +916,7 @@ static void mt7915_rx_poll_complete(struct mt76_dev *mdev,
 /* TODO: support 2/4/6/8 MSI-X vectors */
 static void mt7915_irq_tasklet(struct tasklet_struct *t)
 {
-	struct mt7915_dev *dev = from_tasklet(dev, t, irq_tasklet);
+	struct mt7915_dev *dev = from_tasklet(dev, t, mt76.irq_tasklet);
 	struct mtk_wed_device *wed = &dev->mt76.mmio.wed;
 	u32 intr, intr1, mask;
 
@@ -1002,18 +989,18 @@ irqreturn_t mt7915_irq_handler(int irq, void *dev_instance)
 	struct mt7915_dev *dev = dev_instance;
 	struct mtk_wed_device *wed = &dev->mt76.mmio.wed;
 
-	if (mtk_wed_device_active(wed)) {
+	if (mtk_wed_device_active(wed))
 		mtk_wed_device_irq_set_mask(wed, 0);
-	} else {
+	else
 		mt76_wr(dev, MT_INT_MASK_CSR, 0);
-		if (dev->hif2)
-			mt76_wr(dev, MT_INT1_MASK_CSR, 0);
-	}
+
+	if (dev->hif2)
+		mt76_wr(dev, MT_INT1_MASK_CSR, 0);
 
 	if (!test_bit(MT76_STATE_INITIALIZED, &dev->mphy.state))
 		return IRQ_NONE;
 
-	tasklet_schedule(&dev->irq_tasklet);
+	tasklet_schedule(&dev->mt76.irq_tasklet);
 
 	return IRQ_HANDLED;
 }
@@ -1035,7 +1022,6 @@ struct mt7915_dev *mt7915_mmio_probe(struct device *pdev,
 		.rx_skb = mt7915_queue_rx_skb,
 		.rx_check = mt7915_rx_check,
 		.rx_poll_complete = mt7915_rx_poll_complete,
-		.sta_ps = mt7915_sta_ps,
 		.sta_add = mt7915_mac_sta_add,
 		.sta_remove = mt7915_mac_sta_remove,
 		.update_survey = mt7915_update_channel,
@@ -1054,7 +1040,7 @@ struct mt7915_dev *mt7915_mmio_probe(struct device *pdev,
 	if (ret)
 		goto error;
 
-	tasklet_setup(&dev->irq_tasklet, mt7915_irq_tasklet);
+	tasklet_setup(&mdev->irq_tasklet, mt7915_irq_tasklet);
 
 	return dev;
 
