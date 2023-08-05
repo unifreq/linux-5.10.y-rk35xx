@@ -4,7 +4,7 @@
  * Copyright (c) 2008, Jouni Malinen <j@w1.fi>
  * Copyright (c) 2011, Javier Lopez <jlopex@gmail.com>
  * Copyright (c) 2016 - 2017 Intel Deutschland GmbH
- * Copyright (C) 2018 - 2022 Intel Corporation
+ * Copyright (C) 2018 - 2023 Intel Corporation
  */
 
 /*
@@ -1644,37 +1644,38 @@ static void mac80211_hwsim_add_vendor_rtap(struct sk_buff *skb)
 	 * the values accordingly.
 	 */
 #ifdef HWSIM_RADIOTAP_OUI
-	struct ieee80211_vendor_radiotap *rtap;
+	struct ieee80211_radiotap_vendor_tlv *rtap;
+	static const char vendor_data[8] = "ABCDEFGH";
+
+	// Make sure no padding is needed
+	BUILD_BUG_ON(sizeof(vendor_data) % 4);
+	/* this is last radiotap info before the mac header, so
+	 * skb_reset_mac_header for mac8022 to know the end of
+	 * the radiotap TLV/beginning of the 802.11 header
+	 */
+	skb_reset_mac_header(skb);
 
 	/*
 	 * Note that this code requires the headroom in the SKB
 	 * that was allocated earlier.
 	 */
-	rtap = skb_push(skb, sizeof(*rtap) + 8 + 4);
-	rtap->oui[0] = HWSIM_RADIOTAP_OUI[0];
-	rtap->oui[1] = HWSIM_RADIOTAP_OUI[1];
-	rtap->oui[2] = HWSIM_RADIOTAP_OUI[2];
-	rtap->subns = 127;
+	rtap = skb_push(skb, sizeof(*rtap) + sizeof(vendor_data));
 
-	/*
-	 * Radiotap vendor namespaces can (and should) also be
-	 * split into fields by using the standard radiotap
-	 * presence bitmap mechanism. Use just BIT(0) here for
-	 * the presence bitmap.
-	 */
-	rtap->present = BIT(0);
-	/* We have 8 bytes of (dummy) data */
-	rtap->len = 8;
-	/* For testing, also require it to be aligned */
-	rtap->align = 8;
-	/* And also test that padding works, 4 bytes */
-	rtap->pad = 4;
-	/* push the data */
-	memcpy(rtap->data, "ABCDEFGH", 8);
-	/* make sure to clear padding, mac80211 doesn't */
-	memset(rtap->data + 8, 0, 4);
+	rtap->len = cpu_to_le16(sizeof(*rtap) -
+				sizeof(struct ieee80211_radiotap_tlv) +
+				sizeof(vendor_data));
+	rtap->type = cpu_to_le16(IEEE80211_RADIOTAP_VENDOR_NAMESPACE);
 
-	IEEE80211_SKB_RXCB(skb)->flag |= RX_FLAG_RADIOTAP_VENDOR_DATA;
+	rtap->content.oui[0] = HWSIM_RADIOTAP_OUI[0];
+	rtap->content.oui[1] = HWSIM_RADIOTAP_OUI[1];
+	rtap->content.oui[2] = HWSIM_RADIOTAP_OUI[2];
+	rtap->content.oui_subtype = 127;
+	/* clear reserved field */
+	rtap->content.reserved = 0;
+	rtap->content.vendor_type = 0;
+	memcpy(rtap->content.data, vendor_data, sizeof(vendor_data));
+
+	IEEE80211_SKB_RXCB(skb)->flag |= RX_FLAG_RADIOTAP_TLV_AT_END;
 #endif
 }
 
@@ -1863,7 +1864,7 @@ mac80211_hwsim_select_tx_link(struct mac80211_hwsim_data *data,
 
 	WARN_ON(is_multicast_ether_addr(hdr->addr1));
 
-	if (WARN_ON_ONCE(!sta->valid_links))
+	if (WARN_ON_ONCE(!sta || !sta->valid_links))
 		return &vif->bss_conf;
 
 	for (i = 0; i < ARRAY_SIZE(vif->link_conf); i++) {
@@ -5153,6 +5154,9 @@ static int mac80211_hwsim_new_radio(struct genl_info *info,
 			      NL80211_EXT_FEATURE_BEACON_RATE_LEGACY);
 	wiphy_ext_feature_set(hw->wiphy, NL80211_EXT_FEATURE_ENABLE_FTM_RESPONDER);
 
+	wiphy_ext_feature_set(hw->wiphy,
+			      NL80211_EXT_FEATURE_SCAN_MIN_PREQ_CONTENT);
+
 	hw->wiphy->interface_modes = param->iftypes;
 
 	/* ask mac80211 to reserve space for magic */
@@ -6553,7 +6557,7 @@ static int __init init_mac80211_hwsim(void)
 	if (err)
 		goto out_exit_netlink;
 
-	hwsim_class = class_create(THIS_MODULE, "mac80211_hwsim");
+	hwsim_class = class_create("mac80211_hwsim");
 	if (IS_ERR(hwsim_class)) {
 		err = PTR_ERR(hwsim_class);
 		goto out_exit_virtio;
