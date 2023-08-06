@@ -14,7 +14,6 @@
 #include <linux/pci.h>
 #include <linux/uuid.h>
 #include <linux/time.h>
-#include <linux/leds.h>
 
 #include "htt.h"
 #include "htc.h"
@@ -1257,13 +1256,6 @@ struct ath10k {
 	} testmode;
 
 	struct {
-		struct gpio_led wifi_led;
-		struct led_classdev cdev;
-		char label[48];
-		u32 gpio_state_pin;
-	} leds;
-
-	struct {
 		/* protected by data_lock */
 		u32 rx_crc_err_drop;
 		u32 fw_crash_counter;
@@ -1311,10 +1303,6 @@ struct ath10k {
 
 	s32 tx_power_2g_limit;
 	s32 tx_power_5g_limit;
-
-#ifdef CONFIG_MAC80211_LEDS
-	const char *led_default_trigger;
-#endif
 
 	/* must be last */
 	u8 drv_priv[] __aligned(sizeof(void *));

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 /*
  * Copyright (c) 2019-2020 The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2022, Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/module.h>
@@ -370,20 +370,13 @@ static void ath11k_pci_sw_reset(struct ath11k_base *ab, bool power_on)
 static void ath11k_pci_init_qmi_ce_config(struct ath11k_base *ab)
 {
 	struct ath11k_qmi_ce_cfg *cfg = &ab->qmi.ce_cfg;
-	struct ath11k_pci *ab_pci = ath11k_pci_priv(ab);
-	struct pci_bus *bus = ab_pci->pdev->bus;
 
 	cfg->tgt_ce = ab->hw_params.target_ce_config;
 	cfg->tgt_ce_len = ab->hw_params.target_ce_count;
 
 	cfg->svc_to_ce_map = ab->hw_params.svc_to_ce_map;
 	cfg->svc_to_ce_map_len = ab->hw_params.svc_to_ce_map_len;
-
-	if (ab->hw_rev == ATH11K_HW_QCN9074_HW10) {
-		ab->qmi.service_ins_id = ab->hw_params.qmi_service_ins_id +
-		(((pci_domain_nr(bus) & 0xF) << 4) | (bus->number & 0xF));
-	} else
-		ab->qmi.service_ins_id = ab->hw_params.qmi_service_ins_id;
+	ab->qmi.service_ins_id = ab->hw_params.qmi_service_ins_id;
 
 	ath11k_ce_get_shadow_config(ab, &cfg->shadow_reg_v2,
 				    &cfg->shadow_reg_v2_len);
@@ -752,7 +745,6 @@ static int ath11k_pci_probe(struct pci_dev *pdev,
 	ab_pci->ab = ab;
 	ab_pci->pdev = pdev;
 	ab->hif.ops = &ath11k_pci_hif_ops;
-	ab->fw_mode = ATH11K_FIRMWARE_MODE_NORMAL;
 	pci_set_drvdata(pdev, ab);
 	spin_lock_init(&ab_pci->window_lock);
 
@@ -1003,7 +995,7 @@ static __maybe_unused int ath11k_pci_pm_resume(struct device *dev)
 	if (ret)
 		ath11k_warn(ab, "failed to resume core: %d\n", ret);
 
-	return 0;
+	return ret;
 }
 
 static SIMPLE_DEV_PM_OPS(ath11k_pci_pm_ops,

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 /*
  * Copyright (c) 2018-2019 The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2022 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/module.h>
@@ -32,11 +32,7 @@ module_param_named(frame_mode, ath11k_frame_mode, uint, 0644);
 MODULE_PARM_DESC(frame_mode,
 		 "Datapath frame mode (0: raw, 1: native wifi (default), 2: ethernet)");
 
-bool ath11k_ftm_mode;
-module_param_named(ftm_mode, ath11k_ftm_mode, bool, 0444);
-MODULE_PARM_DESC(ftm_mode, "Boots up in factory test mode");
-
-static struct ath11k_hw_params ath11k_hw_params[] = {
+static const struct ath11k_hw_params ath11k_hw_params[] = {
 	{
 		.hw_rev = ATH11K_HW_IPQ8074,
 		.name = "ipq8074 hw2.0",
@@ -86,7 +82,7 @@ static struct ath11k_hw_params ath11k_hw_params[] = {
 		.supports_shadow_regs = false,
 		.idle_ps = false,
 		.supports_sta_ps = false,
-		.cold_boot_calib = false,
+		.cold_boot_calib = true,
 		.cbcal_restart_fw = true,
 		.fw_mem_mode = 0,
 		.num_vdevs = 16 + 1,
@@ -668,6 +664,7 @@ static struct ath11k_hw_params ath11k_hw_params[] = {
 		.hal_params = &ath11k_hw_hal_params_ipq8074,
 		.single_pdev_only = false,
 		.cold_boot_calib = true,
+		.cbcal_restart_fw = true,
 		.fix_l1ss = true,
 		.supports_dynamic_smps_6ghz = false,
 		.alloc_cacheable_memory = true,
@@ -1385,11 +1382,6 @@ static int ath11k_core_soc_create(struct ath11k_base *ab)
 {
 	int ret;
 
-	if (ath11k_ftm_mode) {
-		ab->fw_mode = ATH11K_FIRMWARE_MODE_FTM;
-		ath11k_info(ab, "Booting in factory test mode\n");
-	}
-
 	ret = ath11k_qmi_init_service(ab);
 	if (ret) {
 		ath11k_err(ab, "failed to initialize qmi :%d\n", ret);
@@ -1616,7 +1608,7 @@ int ath11k_core_qmi_firmware_ready(struct ath11k_base *ab)
 {
 	int ret;
 
-	ret = ath11k_core_start_firmware(ab, ab->fw_mode);
+	ret = ath11k_core_start_firmware(ab, ATH11K_FIRMWARE_MODE_NORMAL);
 	if (ret) {
 		ath11k_err(ab, "failed to start firmware: %d\n", ret);
 		return ret;
@@ -1781,8 +1773,7 @@ void ath11k_core_pre_reconfigure_recovery(struct ath11k_base *ab)
 	for (i = 0; i < ab->num_radios; i++) {
 		pdev = &ab->pdevs[i];
 		ar = pdev->ar;
-		if (!ar || ar->state == ATH11K_STATE_OFF ||
-		    ar->state == ATH11K_STATE_FTM)
+		if (!ar || ar->state == ATH11K_STATE_OFF)
 			continue;
 
 		ieee80211_stop_queues(ar->hw);
@@ -1851,12 +1842,7 @@ static void ath11k_core_post_reconfigure_recovery(struct ath11k_base *ab)
 			ath11k_warn(ab,
 				    "device is wedged, will not restart radio %d\n", i);
 			break;
-		case ATH11K_STATE_FTM:
-			ath11k_dbg(ab, ATH11K_DBG_TESTMODE,
-				   "fw mode reset done radio %d\n", i);
-			break;
 		}
-
 		mutex_unlock(&ar->conf_mutex);
 	}
 	complete(&ab->driver_recovery);
@@ -1953,8 +1939,7 @@ static void ath11k_core_reset(struct work_struct *work)
 static int ath11k_init_hw_params(struct ath11k_base *ab)
 {
 	const struct ath11k_hw_params *hw_params = NULL;
-	u32 fw_mem_mode;
-	int i, ret;
+	int i;
 
 	for (i = 0; i < ARRAY_SIZE(ath11k_hw_params); i++) {
 		hw_params = &ath11k_hw_params[i];
@@ -1970,30 +1955,7 @@ static int ath11k_init_hw_params(struct ath11k_base *ab)
 
 	ab->hw_params = *hw_params;
 
-	ret = of_property_read_u32(ab->dev->of_node,
-				   "qcom,ath11k-fw-memory-mode",
-				   &fw_mem_mode);
-	if (!ret) {
-		if (fw_mem_mode == 0) {
-			ab->hw_params.fw_mem_mode = 0;
-			ab->hw_params.num_vdevs = 16 + 1;
-			ab->hw_params.num_peers = 512;
-		}
-		else if (fw_mem_mode == 1) {
-			ab->hw_params.fw_mem_mode = 1;
-			ab->hw_params.num_vdevs = 8;
-			ab->hw_params.num_peers = 128;
-		} else if (fw_mem_mode == 2) {
-			ab->hw_params.fw_mem_mode = 2;
-			ab->hw_params.num_vdevs = 8;
-			ab->hw_params.num_peers = 128;
-			ab->hw_params.cold_boot_calib = false;
-		} else
-			ath11k_info(ab, "Unsupported FW memory mode: %u\n", fw_mem_mode);
-	}
-
 	ath11k_info(ab, "%s\n", ab->hw_params.name);
-	ath11k_info(ab, "FW memory mode: %d\n", ab->hw_params.fw_mem_mode);
 
 	return 0;
 }

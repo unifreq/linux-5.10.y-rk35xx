@@ -25,7 +25,7 @@ struct ath11k_thermal {
 	int temperature;
 };
 
-#if IS_REACHABLE(CONFIG_ATH11K_THERMAL)
+#if IS_REACHABLE(CONFIG_THERMAL)
 int ath11k_thermal_register(struct ath11k_base *sc);
 void ath11k_thermal_unregister(struct ath11k_base *sc);
 int ath11k_thermal_set_throttling(struct ath11k *ar, u32 throttle_state);

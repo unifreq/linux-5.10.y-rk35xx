@@ -18,7 +18,6 @@
 #include <linux/delay.h>
 #include "ath9k.h"
 #include "btcoex.h"
-#include "hsr.h"
 
 static void ath9k_flush(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 			u32 queues, bool drop);
@@ -539,11 +538,6 @@ irqreturn_t ath_isr(int irq, void *dev)
 		return IRQ_HANDLED;
 	}
 
-	if (test_bit(ATH_DIAG_TRIGGER_ERROR, &ah->diag)) {
-		status |= ATH9K_INT_FATAL;
-		clear_bit(ATH_DIAG_TRIGGER_ERROR, &ah->diag);
-	}
-
 	/*
 	 * If there are no status bits set, then this interrupt was not
 	 * for me (should have been caught above).
@@ -660,7 +654,6 @@ void ath_reset_work(struct work_struct *work)
 static int ath9k_start(struct ieee80211_hw *hw)
 {
 	struct ath_softc *sc = hw->priv;
-	struct device_node *np = sc->dev->of_node;
 	struct ath_hw *ah = sc->sc_ah;
 	struct ath_common *common = ath9k_hw_common(ah);
 	struct ieee80211_channel *curchan = sc->cur_chan->chandef.chan;
@@ -737,11 +730,6 @@ static int ath9k_start(struct ieee80211_hw *hw)
 				  (ah->config.led_active_high) ? 1 : 0);
 		ath9k_hw_gpio_request_out(ah, ah->led_pin, NULL,
 					  AR_GPIO_OUTPUT_MUX_AS_OUTPUT);
-	}
-
-	if (of_property_read_bool(np, "ubnt,hsr")) {
-		ath9k_hsr_init(ah);
-		ath9k_hsr_disable(ah);
 	}
 
 	/*

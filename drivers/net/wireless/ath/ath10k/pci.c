@@ -131,11 +131,7 @@ static const struct ce_attr pci_host_ce_config_wlan[] = {
 		.flags = CE_ATTR_FLAGS,
 		.src_nentries = 0,
 		.src_sz_max = 2048,
-#ifndef CONFIG_ATH10K_SMALLBUFFERS
 		.dest_nentries = 512,
-#else
-		.dest_nentries = 128,
-#endif
 		.recv_cb = ath10k_pci_htt_htc_rx_cb,
 	},
 
@@ -144,11 +140,7 @@ static const struct ce_attr pci_host_ce_config_wlan[] = {
 		.flags = CE_ATTR_FLAGS,
 		.src_nentries = 0,
 		.src_sz_max = 2048,
-#ifndef CONFIG_ATH10K_SMALLBUFFERS
 		.dest_nentries = 128,
-#else
-		.dest_nentries = 64,
-#endif
 		.recv_cb = ath10k_pci_htc_rx_cb,
 	},
 
@@ -175,11 +167,7 @@ static const struct ce_attr pci_host_ce_config_wlan[] = {
 		.flags = CE_ATTR_FLAGS,
 		.src_nentries = 0,
 		.src_sz_max = 512,
-#ifndef CONFIG_ATH10K_SMALLBUFFERS
 		.dest_nentries = 512,
-#else
-		.dest_nentries = 128,
-#endif
 		.recv_cb = ath10k_pci_htt_rx_cb,
 	},
 
@@ -204,11 +192,7 @@ static const struct ce_attr pci_host_ce_config_wlan[] = {
 		.flags = CE_ATTR_FLAGS,
 		.src_nentries = 0,
 		.src_sz_max = 2048,
-#ifndef CONFIG_ATH10K_SMALLBUFFERS
 		.dest_nentries = 128,
-#else
-		.dest_nentries = 96,
-#endif
 		.recv_cb = ath10k_pci_pktlog_rx_cb,
 	},
 
@@ -3422,14 +3406,11 @@ static int ath10k_pci_claim(struct ath10k *ar)
 	if (!ar_pci->mem) {
 		ath10k_err(ar, "failed to iomap BAR%d\n", BAR_NUM);
 		ret = -EIO;
-		goto err_master;
+		goto err_region;
 	}
 
 	ath10k_dbg(ar, ATH10K_DBG_BOOT, "boot pci_mem 0x%pK\n", ar_pci->mem);
 	return 0;
-
-err_master:
-	pci_clear_master(pdev);
 
 err_region:
 	pci_release_region(pdev, BAR_NUM);
@@ -3447,7 +3428,6 @@ static void ath10k_pci_release(struct ath10k *ar)
 
 	pci_iounmap(pdev, ar_pci->mem);
 	pci_release_region(pdev, BAR_NUM);
-	pci_clear_master(pdev);
 	pci_disable_device(pdev);
 }
 

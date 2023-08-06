@@ -235,11 +235,7 @@ enum htt_rx_ring_flags {
 };
 
 #define HTT_RX_RING_SIZE_MIN 128
-#ifndef CONFIG_ATH10K_SMALLBUFFERS
 #define HTT_RX_RING_SIZE_MAX 2048
-#else
-#define HTT_RX_RING_SIZE_MAX 512
-#endif
 #define HTT_RX_RING_SIZE HTT_RX_RING_SIZE_MAX
 #define HTT_RX_RING_FILL_LEVEL (((HTT_RX_RING_SIZE) / 2) - 1)
 #define HTT_RX_RING_FILL_LEVEL_DUAL_MAC (HTT_RX_RING_SIZE - 1)
@@ -1112,8 +1108,10 @@ struct htt_rx_in_ord_ind {
 	u8 reserved;
 	__le16 msdu_count;
 	union {
-		struct htt_rx_in_ord_msdu_desc msdu_descs32[0];
-		struct htt_rx_in_ord_msdu_desc_ext msdu_descs64[0];
+		DECLARE_FLEX_ARRAY(struct htt_rx_in_ord_msdu_desc,
+				   msdu_descs32);
+		DECLARE_FLEX_ARRAY(struct htt_rx_in_ord_msdu_desc_ext,
+				   msdu_descs64);
 	} __packed;
 } __packed;
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 /*
  * Copyright (c) 2018-2019 The Linux Foundation. All rights reserved.
- * Copyright (c) 2021, 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021, Qualcomm Innovation Center, Inc. All rights reserved.
  */
 #include <linux/skbuff.h>
 #include <linux/ctype.h>
@@ -19,7 +19,6 @@
 #include "mac.h"
 #include "hw.h"
 #include "peer.h"
-#include "testmode.h"
 
 struct wmi_tlv_policy {
 	size_t min_len;
@@ -238,8 +237,9 @@ static int ath11k_wmi_tlv_parse(struct ath11k_base *ar, const void **tb,
 				   (void *)tb);
 }
 
-const void **ath11k_wmi_tlv_parse_alloc(struct ath11k_base *ab, const void *ptr,
-					size_t len, gfp_t gfp)
+static const void **
+ath11k_wmi_tlv_parse_alloc(struct ath11k_base *ab, const void *ptr,
+			   size_t len, gfp_t gfp)
 {
 	const void **tb;
 	int ret;
@@ -724,9 +724,6 @@ int ath11k_wmi_vdev_create(struct ath11k *ar, u8 *macaddr,
 	cmd->vdev_subtype = param->subtype;
 	cmd->num_cfg_txrx_streams = WMI_NUM_SUPPORTED_BAND_MAX;
 	cmd->pdev_id = param->pdev_id;
-	cmd->mbssid_flags = param->mbssid_flags;
-	cmd->mbssid_tx_vdev_id = param->mbssid_tx_vdev_id;
-
 	ether_addr_copy(cmd->vdev_macaddr.addr, macaddr);
 
 	ptr = skb->data + sizeof(*cmd);
@@ -944,8 +941,6 @@ int ath11k_wmi_vdev_start(struct ath11k *ar, struct wmi_vdev_start_req_arg *arg,
 	cmd->cac_duration_ms = arg->cac_duration_ms;
 	cmd->regdomain = arg->regdomain;
 	cmd->he_ops = arg->he_ops;
-	cmd->mbssid_flags = arg->mbssid_flags;
-	cmd->mbssid_tx_vdev_id = arg->mbssid_tx_vdev_id;
 
 	if (!restart) {
 		if (arg->ssid) {
@@ -1001,8 +996,7 @@ int ath11k_wmi_vdev_start(struct ath11k *ar, struct wmi_vdev_start_req_arg *arg,
 	return ret;
 }
 
-int ath11k_wmi_vdev_up(struct ath11k *ar, u32 vdev_id, u32 aid, const u8 *bssid,
-		       u8 *tx_bssid, u32 nontx_profile_idx, u32 nontx_profile_cnt)
+int ath11k_wmi_vdev_up(struct ath11k *ar, u32 vdev_id, u32 aid, const u8 *bssid)
 {
 	struct ath11k_pdev_wmi *wmi = ar->wmi;
 	struct wmi_vdev_up_cmd *cmd;
@@ -1026,19 +1020,14 @@ int ath11k_wmi_vdev_up(struct ath11k *ar, u32 vdev_id, u32 aid, const u8 *bssid,
 
 	ether_addr_copy(cmd->vdev_bssid.addr, bssid);
 
-	cmd->nontx_profile_idx = nontx_profile_idx;
-	cmd->nontx_profile_cnt = nontx_profile_cnt;
-	if (tx_bssid)
-		ether_addr_copy(cmd->tx_vdev_bssid.addr, tx_bssid);
-
 	if (arvif && arvif->vif->type == NL80211_IFTYPE_STATION) {
 		bss_conf = &arvif->vif->bss_conf;
 
 		if (bss_conf->nontransmitted) {
-			ether_addr_copy(cmd->tx_vdev_bssid.addr,
+			ether_addr_copy(cmd->trans_bssid.addr,
 					bss_conf->transmitter_bssid);
-			cmd->nontx_profile_idx = bss_conf->bssid_index;
-			cmd->nontx_profile_cnt = bss_conf->bssid_indicator;
+			cmd->profile_idx = bss_conf->bssid_index;
+			cmd->profile_num = bss_conf->bssid_indicator;
 		}
 	}
 
@@ -1699,7 +1688,7 @@ int ath11k_wmi_send_bcn_offload_control_cmd(struct ath11k *ar,
 
 int ath11k_wmi_bcn_tmpl(struct ath11k *ar, u32 vdev_id,
 			struct ieee80211_mutable_offsets *offs,
-			struct sk_buff *bcn, u32 ema_params)
+			struct sk_buff *bcn)
 {
 	struct ath11k_pdev_wmi *wmi = ar->wmi;
 	struct wmi_bcn_tmpl_cmd *cmd;
@@ -1737,8 +1726,6 @@ int ath11k_wmi_bcn_tmpl(struct ath11k *ar, u32 vdev_id,
 	}
 
 	cmd->buf_len = bcn->len;
-	cmd->mbssid_ie_offset = offs->mbssid_off;
-	cmd->ema_params = ema_params;
 
 	ptr = skb->data + sizeof(*cmd);
 
@@ -3884,7 +3871,7 @@ ath11k_wmi_obss_color_collision_event(struct ath11k_base *ab, struct sk_buff *sk
 	switch (ev->evt_type) {
 	case WMI_BSS_COLOR_COLLISION_DETECTION:
 		ieee80211_obss_color_collision_notify(arvif->vif, ev->obss_color_bitmap,
-						       GFP_KERNEL);
+						      GFP_KERNEL);
 		ath11k_dbg(ab, ATH11K_DBG_WMI,
 			   "OBSS color collision detected vdev:%d, event:%d, bitmap:%08llx\n",
 			   ev->vdev_id, ev->evt_type, ev->obss_color_bitmap);
@@ -4000,9 +3987,6 @@ ath11k_wmi_copy_resource_config(struct wmi_resource_config *wmi_cfg,
 		~(1 << WMI_CFG_HOST_SERVICE_FLAG_REG_CC_EXT);
 	wmi_cfg->host_service_flags |= (tg_cfg->is_reg_cc_ext_event_supported <<
 					WMI_CFG_HOST_SERVICE_FLAG_REG_CC_EXT);
-	wmi_cfg->flags2 = WMI_RSRC_CFG_FLAG2_CALC_NEXT_DTIM_COUNT_SET;
-	wmi_cfg->ema_max_vap_cnt = tg_cfg->ema_max_vap_cnt;
-	wmi_cfg->ema_max_profile_period = tg_cfg->ema_max_profile_period;
 }
 
 static int ath11k_init_cmd_send(struct ath11k_pdev_wmi *wmi,
@@ -6996,12 +6980,24 @@ static void ath11k_wmi_htc_tx_complete(struct ath11k_base *ab,
 		wake_up(&wmi->tx_ce_desc_wq);
 }
 
+static bool ath11k_reg_is_world_alpha(char *alpha)
+{
+	if (alpha[0] == '0' && alpha[1] == '0')
+		return true;
+
+	if (alpha[0] == 'n' && alpha[1] == 'a')
+		return true;
+
+	return false;
+}
+
 static int ath11k_reg_chan_list_event(struct ath11k_base *ab,
 				      struct sk_buff *skb,
 				      enum wmi_reg_chan_list_cmd_type id)
 {
 	struct cur_regulatory_info *reg_info = NULL;
 	struct ieee80211_regdomain *regd = NULL;
+	bool intersect = false;
 	int ret = 0, pdev_idx, i, j;
 	struct ath11k *ar;
 
@@ -7063,7 +7059,17 @@ static int ath11k_reg_chan_list_event(struct ath11k_base *ab,
 		    (char *)reg_info->alpha2, 2))
 		goto mem_free;
 
-	regd = ath11k_reg_build_regd(ab, reg_info);
+	/* Intersect new rules with default regd if a new country setting was
+	 * requested, i.e a default regd was already set during initialization
+	 * and the regd coming from this event has a valid country info.
+	 */
+	if (ab->default_regd[pdev_idx] &&
+	    !ath11k_reg_is_world_alpha((char *)
+		ab->default_regd[pdev_idx]->alpha2) &&
+	    !ath11k_reg_is_world_alpha((char *)reg_info->alpha2))
+		intersect = true;
+
+	regd = ath11k_reg_build_regd(ab, reg_info, intersect);
 	if (!regd) {
 		ath11k_warn(ab, "failed to build regd from reg_info\n");
 		goto fallback;
@@ -8610,9 +8616,6 @@ static void ath11k_wmi_tlv_op_rx(struct ath11k_base *ab, struct sk_buff *skb)
 		break;
 	case WMI_PDEV_CSA_SWITCH_COUNT_STATUS_EVENTID:
 		ath11k_wmi_pdev_csa_switch_count_status_event(ab, skb);
-		break;
-	case WMI_PDEV_UTF_EVENTID:
-		ath11k_tm_wmi_event(ab, id, skb);
 		break;
 	case WMI_PDEV_TEMPERATURE_EVENTID:
 		ath11k_wmi_pdev_temperature_event(ab, skb);

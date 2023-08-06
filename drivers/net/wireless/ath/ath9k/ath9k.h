@@ -20,12 +20,11 @@
 #include <linux/etherdevice.h>
 #include <linux/device.h>
 #include <linux/interrupt.h>
+#include <linux/kstrtox.h>
 #include <linux/leds.h>
 #include <linux/completion.h>
 #include <linux/time.h>
 #include <linux/hw_random.h>
-#include <linux/gpio/driver.h>
-#include <linux/reset.h>
 
 #include "common.h"
 #include "debug.h"
@@ -90,7 +89,7 @@ int ath_descdma_setup(struct ath_softc *sc, struct ath_descdma *dd,
 		(_l) &= ((_sz) - 1);		\
 	} while (0)
 
-#define ATH_RXBUF               256
+#define ATH_RXBUF               512
 #define ATH_TXBUF               512
 #define ATH_TXBUF_RESERVE       5
 #define ATH_TXMAXTRY            13
@@ -845,9 +844,6 @@ static inline int ath9k_dump_btcoex(struct ath_softc *sc, u8 *buf, u32 size)
 #ifdef CONFIG_MAC80211_LEDS
 void ath_init_leds(struct ath_softc *sc);
 void ath_deinit_leds(struct ath_softc *sc);
-int ath_create_gpio_led(struct ath_softc *sc, int gpio, const char *name,
-			const char *trigger, bool active_low);
-
 #else
 static inline void ath_init_leds(struct ath_softc *sc)
 {
@@ -984,21 +980,6 @@ void ath_ant_comb_scan(struct ath_softc *sc, struct ath_rx_status *rs);
 
 #define ATH9K_NUM_CHANCTX  2 /* supports 2 operating channels */
 
-struct ath_led {
-	struct list_head list;
-	struct ath_softc *sc;
-	const struct gpio_led *gpio;
-	struct led_classdev cdev;
-};
-
-#ifdef CONFIG_GPIOLIB
-struct ath9k_gpio_chip {
-	struct ath_softc *sc;
-	char label[32];
-	struct gpio_chip gchip;
-};
-#endif
-
 struct ath_softc {
 	struct ieee80211_hw *hw;
 	struct device *dev;
@@ -1012,9 +993,6 @@ struct ath_softc {
 	struct ath_hw *sc_ah;
 	void __iomem *mem;
 	int irq;
-#ifdef CONFIG_OF
-	struct reset_control *reset;
-#endif
 	spinlock_t sc_serial_rw;
 	spinlock_t sc_pm_lock;
 	spinlock_t sc_pcu_lock;
@@ -1055,12 +1033,9 @@ struct ath_softc {
 	spinlock_t chan_lock;
 
 #ifdef CONFIG_MAC80211_LEDS
-	const char *led_default_trigger;
-	struct list_head leds;
-#ifdef CONFIG_GPIOLIB
-	struct ath9k_gpio_chip *gpiochip;
-	struct platform_device *btnpdev;	/* gpio-keys-polled */
-#endif
+	bool led_registered;
+	char led_name[32];
+	struct led_classdev led_cdev;
 #endif
 
 #ifdef CONFIG_ATH9K_DEBUGFS
