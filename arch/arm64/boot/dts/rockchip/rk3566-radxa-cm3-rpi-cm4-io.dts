@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
  * Copyright (c) 2020 Rockchip Electronics Co., Ltd.
- * Copyright (c) 2021 Radxa Limited.
+ * Copyright (c) 2023 Radxa Limited.
  *
  */
 
 /dts-v1/;
 
-#include "rk3566-radxa-rock-3-compute-module.dtsi"
+#include "rk3566-radxa-cm3.dtsi"
 
 / {
 	model = "Radxa CM3 RPI CM4 IO";
-	compatible = "radxa,radxa-cm3-rpi-cm4-io", "rockchip,rk3566";
+	compatible = "radxa,cm3-rpi-cm4-io", "rockchip,rk3566";
 
 	vcc_sd: sdmmc-regulator {
 		compatible = "regulator-fixed";
@@ -25,7 +25,7 @@
 
 	hdmi_sound: hdmi-sound {
 		compatible = "simple-audio-card";
-		simple-audio-card,format = "i2s";
+		simple-audio-card,format = "is";
 		simple-audio-card,mclk-fs = <128>;
 		simple-audio-card,name = "rockchip-hdmi0";
 
@@ -48,7 +48,7 @@
 };
 
 &display_subsystem {
-    status = "okay";
+	status = "okay";
 };
 
 &hdmi {

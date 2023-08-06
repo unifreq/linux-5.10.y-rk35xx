@@ -8,11 +8,11 @@
 /dts-v1/;
 
 #include <dt-bindings/display/rockchip_vop.h>
-#include "rk3566-radxa-rock-3-compute-module-sodimm.dtsi"
+#include "rk3566-radxa-cm3s.dtsi"
 
 / {
 	model = "Radxa CM3 SODIMM IO";
-	compatible = "radxa,radxa-cm3-sodimm-io", "rockchip,rk3566";
+	compatible = "radxa,cm3s-io", "radxa,cm3s", "rockchip,rk3566";
 
 	hdmi_sound: hdmi-sound {
 		compatible = "simple-audio-card";
@@ -207,6 +207,8 @@
 
 &hdmi {
 	status = "okay";
+	preset_max_hdisplay = <1920>;
+	preset_max_vdisplay = <1080>;
 };
 
 &hdmi_in_vp0 {
@@ -253,8 +255,7 @@
 };
 
 &u2phy0_host {
-	phy-supply = <&vcc5v0_usb20>;
-	status = "okay";
+	status = "disabled";
 };
 
 &combphy2_psq {
@@ -265,7 +266,7 @@
 	reset-gpios = <&gpio0 RK_PC3 GPIO_ACTIVE_HIGH>;
 	vpcie3v3-supply = <&vcc3v3_sys>;
 	pinctrl-0 = <&pcie20m2_pins>;
-	status = "disabled";
+	status = "okay";
 };
 
 &sata2 {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
  * Copyright (c) 2020 Rockchip Electronics Co., Ltd.
- * Copyright (c) 2022 Radxa Limited.
+ * Copyright (c) 2021 Radxa Limited.
  *
  */
 
@@ -14,18 +14,52 @@
 #include <dt-bindings/display/drm_mipi_dsi.h>
 #include <dt-bindings/sensor-dev.h>
 #include "rk3566.dtsi"
-#include "rk3568-linux.dtsi"
 
 / {
-	compatible = "radxa,cm3", "rockchip,rk3566";
+	compatible = "radxa,rock-3-compute-module", "rockchip,rk3566";
 
-	/delete-node/ chosen;
+	fiq_debugger: fiq-debugger {
+		compatible = "rockchip,fiq-debugger";
+		rockchip,serial-id = <2>;
+		rockchip,wake-irq = <0>;
+		/* If enable uart uses irq instead of fiq */
+		rockchip,irq-mode-enable = <1>;
+		rockchip,baudrate = <1500000>;  /* Only 115200 and 1500000 */
+		interrupts = <GIC_SPI 252 IRQ_TYPE_LEVEL_LOW>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&uart2m0_xfer>;
+		status = "disabled";
+	};
 
-	aliases {
-		mmc0 = &sdmmc0;
-		mmc1 = &sdhci;
-		mmc2 = &sdmmc1;
-		mmc3 = &sdmmc2;
+	debug: debug@fd904000 {
+		compatible = "rockchip,debug";
+		reg = <0x0 0xfd904000 0x0 0x1000>,
+			<0x0 0xfd905000 0x0 0x1000>,
+			<0x0 0xfd906000 0x0 0x1000>,
+			<0x0 0xfd907000 0x0 0x1000>;
+	};
+
+	cspmu: cspmu@fd90c000 {
+		compatible = "rockchip,cspmu";
+		reg = <0x0 0xfd90c000 0x0 0x1000>,
+			<0x0 0xfd90d000 0x0 0x1000>,
+			<0x0 0xfd90e000 0x0 0x1000>,
+			<0x0 0xfd90f000 0x0 0x1000>;
+	};
+
+	rk817_sound: rk817-sound {
+		status = "disabled";
+		compatible = "simple-audio-card";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,name = "rockchip,rk809-codec";
+		simple-audio-card,mclk-fs = <256>;
+
+		simple-audio-card,cpu {
+			sound-dai = <&i2s1_8ch>;
+		};
+		simple-audio-card,codec {
+			sound-dai = <&rk817_codec>;
+		};
 	};
 
 	vcc_sys: vcc-sys {
@@ -57,13 +91,44 @@
 		vin-supply = <&vcc_sys>;
 	};
 
+	sdio_pwrseq: sdio-pwrseq {
+		compatible = "mmc-pwrseq-simple";
+		clocks = <&rk817 1>;
+		clock-names = "ext_clock";
+		pinctrl-names = "default";
+		pinctrl-0 = <&wifi_enable_h>;
+
+		/*
+		 * On the module itself this is one of these (depending
+		 * on the actual card populated):
+		 * - SDIO_RESET_L_WL_REG_ON
+		 * - PDN (power down when low)
+		 */
+		reset-gpios = <&gpio2 RK_PB7 GPIO_ACTIVE_LOW>;		//WIFI_REG_ON_H
+	};
+
+	bt_uart1: wireless_bluetooth: wireless-bluetooth {
+		compatible = "bluetooth-platdata";
+		clocks = <&rk817 1>;
+		clock-names = "ext_clock";
+		//wifi-bt-power-toggle;
+		uart_rts_gpios = <&gpio2 RK_PB5 GPIO_ACTIVE_LOW>;
+		pinctrl-names = "default", "rts_gpio";
+		pinctrl-0 = <&uart1m0_rtsn>;
+		pinctrl-1 = <&uart1_gpios>;
+		BT,reset_gpio    = <&gpio2 RK_PC0 GPIO_ACTIVE_HIGH>;    //BT_REG_ON_H
+		BT,wake_gpio     = <&gpio2 RK_PB2 GPIO_ACTIVE_HIGH>;    //HOST_WAKE_BT_H
+		BT,wake_host_irq = <&gpio2 RK_PB1 GPIO_ACTIVE_HIGH>;    //BT_WAKE_HOST_H
+		status = "okay";
+	};
+
 	gpio_leds: gpio-leds {
 		compatible = "gpio-leds";
 		status = "okay";
 
 		user-led {
 			gpios = <&gpio0 6 GPIO_ACTIVE_HIGH>;
-			linux,default-trigger = "timer";
+			linux,default-trigger = "heartbeat";
 			default-state = "on";
 			pinctrl-0 = <&user_led_set>;
 		};
@@ -148,7 +213,7 @@
 		pinctrl-0 = <&pmic_int>;
 		pinctrl-1 = <&soc_slppin_slp>, <&rk817_slppin_slp>;
 		pinctrl-2 = <&soc_slppin_gpio>, <&rk817_slppin_pwrdn>;
-		pinctrl-3 = <&soc_slppin_gpio>, <&rk817_slppin_null>;
+		pinctrl-3 = <&soc_slppin_gpio>, <&rk817_slppin_rst>;
 		rockchip,system-power-controller;
 		wakeup-source;
 		#clock-cells = <1>;
@@ -372,6 +437,38 @@
 			};
 		};
 
+		battery {
+			compatible = "rk817,battery";
+			ocv_table = <3400 3513 3578 3687 3734 3752 3763
+				     3766 3771 3784 3804 3836 3885 3925
+				     3962 4005 4063 4114 4169 4227 4303>;
+			design_capacity = <5000>;
+			design_qmax = <5500>;
+			bat_res = <100>;
+			sleep_enter_current = <150>;
+			sleep_exit_current = <180>;
+			sleep_filter_current = <100>;
+			power_off_thresd = <3350>;
+			zero_algorithm_vol = <3850>;
+			max_soc_offset = <60>;
+			monitor_sec = <5>;
+			sample_res = <10>;
+			virtual_power = <0>;
+		};
+
+		charger {
+			compatible = "rk817,charger";
+			min_input_voltage = <4500>;
+			max_input_current = <1500>;
+			max_chrg_current = <2000>;
+			max_chrg_voltage = <4300>;
+			chrg_term_mode = <0>;
+			chrg_finish_cur = <300>;
+			virtual_power = <0>;
+			dc_det_adc = <0>;
+			extcon = <&usb2phy0>;
+		};
+
 		rk817_codec: codec {
 			#sound-dai-cells = <0>;
 			compatible = "rockchip,rk817-codec";
@@ -385,9 +482,20 @@
 			hp-volume = <20>;
 			spk-volume = <3>;
 			out-l2spk-r2hp;
+			//spk-ctl-gpios = <&gpio0 RK_PA6 GPIO_ACTIVE_HIGH>;
 			status = "okay";
 		};
 	};
+};
+
+&i2s1_8ch {
+	status = "disabled";
+	rockchip,clk-trcm = <1>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2s1m0_sclktx
+		     &i2s1m0_lrcktx
+		     &i2s1m0_sdi0
+		     &i2s1m0_sdo0>;
 };
 
 &iep {
@@ -431,31 +539,8 @@
 	status = "okay";
 };
 
-&bus_npu {
-	bus-supply = <&vdd_logic>;
-	pvtm-supply = <&vdd_cpu>;
-	status = "okay";
-};
-
 &rknpu {
-	memory-region = <&rknpu_reserved>;
 	rknpu-supply = <&vdd_gpu>;
-	status = "okay";
-};
-
-&rknpu_mmu {
-	status = "okay";
-};
-
-&reserved_memory {
-
-	rknpu_reserved: rknpu {
-		compatible = "shared-dma-pool";
-		inactive;
-		reusable;
-		size = <0x0 0x20000000>;
-		alignment = <0x0 0x1000>;
-	};
 };
 
 &saradc {
@@ -469,6 +554,42 @@
 	non-removable;
 	max-frequency = <200000000>;
 	status = "okay";
+};
+
+&sdmmc1 {
+	max-frequency=<150000000>;
+	supports-sdio;
+	bus-width = <4>;
+	disable-wp;
+	cap-sd-highspeed;
+	cap-sdio-irq;
+	keep-power-in-suspend;
+	non-removable;
+	rockchip,default-sample-phase=<90>;
+	mmc-pwrseq = <&sdio_pwrseq>;
+	non-removable;
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdmmc1_bus4 &sdmmc1_cmd &sdmmc1_clk>;
+	sd-uhs-sdr104;
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	brcmf: wifi@1 {
+		compatible = "brcm,bcm4329-fmac";
+		reg = <1>;
+		interrupt-parent = <&gpio2>;
+		interrupts = <RK_PC1 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "host-wake";
+		pinctrl-names = "default";
+		pinctrl-0 = <&wifi_host_wake_l>;
+	};
+};
+
+&uart1 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart1m0_xfer &uart1m0_ctsn>;
 };
 
 &gmac1 {
@@ -610,6 +731,56 @@
 	status = "okay";
 };
 
+&reserved_memory {
+	ramoops: ramoops@110000 {
+		compatible = "ramoops";
+		reg = <0x0 0x110000 0x0 0xf0000>;
+		record-size = <0x20000>;
+		console-size = <0x80000>;
+		ftrace-size = <0x00000>;
+		pmsg-size = <0x50000>;
+	};
+};
+
+&rng {
+	status = "okay";
+};
+
+&rockchip_suspend {
+	status = "okay";
+};
+
+&sfc {
+	status = "okay";
+	max-freq = <50000000>;
+	#address-cells = <1>;
+	#size-cells = <0>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&fspi_pins>;
+
+	spi_flash: spi-flash@0 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "jedec,spi-nor";
+		reg = <0x0>;
+		spi-max-frequency = <50000000>;
+		spi-tx-bus-width = <1>;
+		spi-rx-bus-width = <4>;
+		status = "okay";
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			loader@0 {
+				label = "loader";
+				reg = <0x0 0x1000000>;
+			};
+		};
+	};
+};
+
 &pinctrl {
 	pmic {
 		pmic_int: pmic_int {
@@ -624,12 +795,28 @@
 
 		soc_slppin_slp: soc_slppin_slp {
 			rockchip,pins =
-				<0 RK_PA2 1 &pcfg_pull_up>;
+				<0 RK_PA2 RK_FUNC_1 &pcfg_pull_up>;
 		};
 
 		soc_slppin_rst: soc_slppin_rst {
 			rockchip,pins =
-				<0 RK_PA2 2 &pcfg_pull_none>;
+				<0 RK_PA2 RK_FUNC_2 &pcfg_pull_none>;
+		};
+	};
+
+	wifi {
+		wifi_enable_h: wifi-enable-h {
+			rockchip,pins = <2 RK_PB7 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		wifi_host_wake_l: wifi-host-wake-irq {
+			rockchip,pins = <2 RK_PC1 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	wireless-bluetooth {
+		uart1_gpios: uart1-gpios {
+			rockchip,pins = <2 RK_PB5 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 
