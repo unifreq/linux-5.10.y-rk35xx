@@ -226,15 +226,6 @@
 		status = "okay";
 	};
 
-	bt_wake: bt-wake-gpio-regulator {
-		compatible = "regulator-fixed";
-		regulator-name = "bt_wake";
-		enable-active-high;
-		gpio = <&gpio4 RK_PB4 GPIO_ACTIVE_HIGH>;
-		regulator-boot-on;
-		regulator-always-on;
-	};
-
 	gpio_leds: gpio-leds {
 		compatible = "gpio-leds";
 		status = "okay";
