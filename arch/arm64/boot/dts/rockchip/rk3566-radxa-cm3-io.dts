@@ -8,7 +8,6 @@
 /dts-v1/;
 
 #include "rk3566-radxa-cm3.dtsi"
-#include <dt-bindings/display/rockchip_vop.h>
 
 / {
 	model = "Radxa Compute Module 3(CM3) IO Board";
@@ -136,14 +135,6 @@
 &route_hdmi {
 	status = "okay";
 	connect = <&vp0_out_hdmi>;
-};
-
-&vp0 {
-	cursor-win-id = <ROCKCHIP_VOP2_CLUSTER0>;
-};
-
-&vp1 {
-	cursor-win-id = <ROCKCHIP_VOP2_CLUSTER1>;
 };
 
 &sdmmc0 {
