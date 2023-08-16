@@ -574,7 +574,6 @@
 };
 
 &u2phy0_host {
-	disable_wakeup;
 	status = "okay";
 };
 
