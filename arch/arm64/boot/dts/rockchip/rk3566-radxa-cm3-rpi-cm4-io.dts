@@ -21,6 +21,7 @@
 		pinctrl-0 = <&sdmmc_pwren>;
 		regulator-name = "vcc_sd";
 		regulator-always-on;
+		vin-supply = <&vcc3v3_sys>;
 	};
 
 	hdmi_sound: hdmi-sound {
