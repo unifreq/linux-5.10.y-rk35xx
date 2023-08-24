@@ -82,6 +82,13 @@
 			press-threshold-microvolt = <2000>;
 		};
 	};
+
+	fan0: pwm-fan {
+		compatible = "pwm-fan";
+		#cooling-cells = <2>;
+		cooling-levels = <0 64 128 192 255>;
+		pwms = <&pwm0 0 10000 0>;
+	};
 };
 
 &gpio_leds {
@@ -170,6 +177,33 @@
 
 &combphy2_psq {
 	status = "okay";
+};
+
+&pwm0 {
+	pinctrl-0 = <&pwm0m1_pins>;
+	status = "okay";
+};
+
+&soc_thermal {
+	sustainable-power = <5000>; /* milliwatts */
+	cooling-maps {
+		map2 {
+			trip = <&target>;
+			cooling-device =
+				<&fan0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+			contribution = <8192>;
+		};
+		map3 {
+			trip = <&threshold>;
+			cooling-device =
+				<&fan0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+			contribution = <8192>;
+		};
+	};
+};
+
+&threshold {
+	temperature = <60000>;
 };
 
 &pinctrl {
