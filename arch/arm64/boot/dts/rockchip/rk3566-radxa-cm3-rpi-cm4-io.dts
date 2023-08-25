@@ -112,6 +112,50 @@
 	status = "okay";
 };
 
+&i2c0 {
+	status = "okay";
+	pinctrl-name = "default";
+	pinctrl-0 = <&i2c0_xfer>;
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	emc2301: emc2301@2f {
+		status = "okay";
+		compatible = "microchip,emc2301";
+		reg = <0x2f>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		microchip,pwm-separate;
+		microchip,cooling-levels = <10>;
+		channel@0 {
+			reg = <0>;
+			pwm-min = <0>;
+		};
+	};
+};
+
+&threshold {
+	temperature = <60000>;
+};
+
+&soc_thermal {
+	cooling-maps {
+		sustainable-power = <5000>; /* milliwatts */
+		map2 {
+			trip = <&target>;
+			cooling-device =
+				<&emc2301 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+			contribution = <8192>;
+		};
+		map3 {
+			trip = <&threshold>;
+			cooling-device =
+				<&emc2301 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+			contribution = <8192>;
+		};
+	};
+};
+
 &pinctrl {
 	leds {
 		pi_led: pi-led {
