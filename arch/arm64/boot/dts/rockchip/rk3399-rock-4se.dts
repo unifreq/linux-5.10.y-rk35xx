@@ -44,6 +44,7 @@
 
 &sdio0 {
 	status = "okay";
+	max-frequency = <100000000>;
 
 	brcmf: wifi@1 {
 		compatible = "brcm,bcm4329-fmac";
