@@ -166,7 +166,7 @@
 
 &hdmi {
 	status = "okay";
-	pinctrl-0 = <&hdmitx_scl &hdmitx_sda &hdmitxm1_cec>;
+	pinctrl-0 = <&hdmitx_scl &hdmitx_sda &hdmitxm0_cec>;
 };
 
 &hdmi_in_vp0 {
