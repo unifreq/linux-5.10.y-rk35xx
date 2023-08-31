@@ -260,6 +260,21 @@
 	};
 };
 
+&uart5 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart5m1_xfer>;
+};
+
+&can1 {
+	status = "okay";
+	compatible = "rockchip,can-1.0";
+	assigned-clocks = <&cru CLK_CAN1>;
+	assigned-clock-rates = <200000000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&can1m0_pins>;
+};
+
 &pinctrl {
 	usb {
 		vcc5v0_en: vcc5v0-en {
