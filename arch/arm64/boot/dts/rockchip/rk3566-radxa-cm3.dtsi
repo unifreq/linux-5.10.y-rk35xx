@@ -399,7 +399,7 @@
 			pinctrl-0 = <&i2s1m0_mclk>;
 			hp-volume = <20>;
 			spk-volume = <3>;
-			out-l2spk-r2hp;
+			mic-in-differential;
 			status = "okay";
 		};
 	};

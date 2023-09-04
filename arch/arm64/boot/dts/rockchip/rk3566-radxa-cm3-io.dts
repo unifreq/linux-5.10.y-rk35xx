@@ -112,6 +112,7 @@
 };
 
 &i2s1_8ch {
+	rockchip,clk-trcm = <1>;
 	pinctrl-0 = <&i2s1m0_sclktx
 		     &i2s1m0_lrcktx
 		     &i2s1m0_sdi0
