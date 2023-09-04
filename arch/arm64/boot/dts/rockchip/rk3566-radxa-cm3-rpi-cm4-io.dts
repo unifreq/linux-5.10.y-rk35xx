@@ -125,6 +125,7 @@
 		reg = <0x2f>;
 		#address-cells = <1>;
 		#size-cells = <0>;
+		#cooling-cells = <2>;
 		microchip,pwm-separate;
 		microchip,cooling-levels = <10>;
 		channel@0 {
