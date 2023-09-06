@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
  * Copyright (c) 2022 Rockchip Electronics Co., Ltd.
- * Copyright (c) 2022 Radxa Limited.
+ * Copyright (c) 2023 Radxa Limited.
  *
  */
 
@@ -649,7 +649,6 @@
 	status = "okay";
 };
 
-
 &u2phy0_otg {
 	status = "okay";
 };
@@ -683,6 +682,21 @@
 &vop_mmu {
 	status = "okay";
 };
+
+&i2c3 {
+	status = "okay";
+	pinctrl-0 = <&i2c3m1_xfer>;
+
+	usbc0: fusb302@22 {
+		compatible = "fcs,fusb302";
+		reg = <0x22>;
+		interrupt-parent = <&gpio3>;
+		interrupts = <RK_PC7 IRQ_TYPE_LEVEL_LOW>;
+		sel-gpios= <&gpio0 RK_PC5 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&usbc0_int>;
+	};
+ };
 
 &reserved_memory {
 	ramoops: ramoops@110000 {
@@ -940,6 +954,12 @@
 	antenna {
 		ant_1: ant-1 {
 			rockchip,pins = <3 RK_PD3 RK_FUNC_GPIO &pcfg_pull_down>;
+		};
+	};
+
+	usb-typec {
+		usbc0_int: usbc0-int {
+			rockchip,pins = <3 RK_PC7 RK_FUNC_GPIO &pcfg_pull_up>;
 		};
 	};
 };
