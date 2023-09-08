@@ -53,6 +53,20 @@
 		cooling-levels = <0 64 128 192 255>;
 		pwms = <&pwm12 0 10000 0>;
 	};
+
+	bluetooth_en: bluetooth-en {
+		compatible = "regulator-fixed";
+		regulator-name = "bluetooth_en";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-boot-on;
+		regulator-always-on;
+		enable-active-low;
+		gpio = <&gpio1 RK_PB0 GPIO_ACTIVE_LOW>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&ble_en>;
+		vin-supply = <&vcc5v0_sys>;
+	};
 };
 
 &pwm12 {
@@ -287,6 +301,12 @@
 	usb {
 		vcc5v0_host_en: vcc5v0-host-en {
 			rockchip,pins = <4 RK_PA7 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	bluetooth {
+		ble_en: ble-en {
+			rockchip,pins = <1 RK_PB0 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 };
