@@ -68,6 +68,15 @@
 		vin-supply = <&vcc5v0_sys>;
 	};
 
+	vcc3v3_pcie: vcc3v3-pcie {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc3v3_pcie";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		startup-delay-us = <5000>;
+		vin-supply = <&vcc5v0_sys>;
+	};
+
 	leds {
 		compatible = "gpio-leds";
 		pinctrl-0 = <&led1_en>;
@@ -112,6 +121,7 @@
 };
 
 &pcie2x1l2 {
+	vpcie3v3-supply = <&vcc3v3_pcie>;
 	reset-gpios = <&gpio3 RK_PD1 GPIO_ACTIVE_HIGH>;
 	status = "okay";
 };
