@@ -284,8 +284,12 @@
 	vqmmc-supply = <&vcc_1v8_s3>;
 	bus-width = <8>;
 	non-removable;
-	max-frequency = <150000000>;
+	no-sdio;
+	no-sd;
 	mmc-hs200-1_8v;
+	mmc-hs400-1_8v;
+	mmc-hs400-enhanced-strobe;
+	max-frequency = <200000000>;
 };
 
 &mdio1 {
