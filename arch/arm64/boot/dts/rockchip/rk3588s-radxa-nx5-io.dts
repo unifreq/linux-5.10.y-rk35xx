@@ -95,11 +95,6 @@
 	status = "okay";
 };
 
-&pcie2x1l1 {
-	reset-gpios = <&gpio3 RK_PC6 GPIO_ACTIVE_HIGH>;
-	status = "okay";
-};
-
 &usb_host1_ehci {
 	status = "okay";
 };
