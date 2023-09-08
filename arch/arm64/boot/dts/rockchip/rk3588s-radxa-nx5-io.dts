@@ -154,7 +154,7 @@
 
 &usbdp_phy0 {
 	status = "okay";
-	rockchip,dp-lane-mux = < 0 1 >;
+	rockchip,dp-lane-mux = < 0 1 2 3>;
 };
 
 &usbdp_phy0_dp {
