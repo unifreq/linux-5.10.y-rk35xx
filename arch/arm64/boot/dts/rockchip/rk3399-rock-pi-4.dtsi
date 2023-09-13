@@ -745,7 +745,7 @@
 	wakeup-source;
 
 	u2phy0_otg: otg-port {
-		phy-supply = <&vcc5v0_typec>;
+		vbus-supply = <&vcc5v0_typec>;
 		status = "okay";
 	};
 
