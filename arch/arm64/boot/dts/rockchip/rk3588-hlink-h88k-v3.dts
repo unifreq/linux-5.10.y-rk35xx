@@ -3,11 +3,11 @@
 
 /dts-v1/;
 
-#include "rk3588-hinlink.dtsi"
+#include "rk3588-hlink.dtsi"
 
 / {
-	model = "HINLINK OWL H88K-V3 Board";
-	compatible = "hinlink,owl-h88k", "rockchip,rk3588";
+	model = "Hlink H88K-V3";
+	compatible = "hlink,h88k", "rockchip,rk3588";
 };
 
 /* rtl8125b 2.5g ethernet */
