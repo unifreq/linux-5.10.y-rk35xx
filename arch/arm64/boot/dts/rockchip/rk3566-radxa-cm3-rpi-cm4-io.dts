@@ -133,6 +133,13 @@
 			pwm-min = <0>;
 		};
 	};
+
+	pcf85063: pcf85063@51 {
+		compatible = "nxp,pcf85063";
+		status = "okay";
+		reg = <0x51>;
+		quartz-load-femtofarads = <12500>;
+	};
 };
 
 &threshold {
