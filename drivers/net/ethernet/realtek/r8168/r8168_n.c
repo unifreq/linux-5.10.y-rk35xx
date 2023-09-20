@@ -24780,7 +24780,7 @@ rtl8168_led_configuration(struct rtl8168_private *tp)
                                   "realtek,led-data", &led_data);
 
         if (ret)
-                return ret;
+		led_data = 0x2870;
 
         RTL_W16(tp, CustomLED, led_data);
 
