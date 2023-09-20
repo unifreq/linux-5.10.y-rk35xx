@@ -18,9 +18,9 @@
 
 	aliases {
 		ethernet0 = &gmac1;
+		ethernet1 = &pcie_eth;
 		mmc0 = &sdmmc;
 		mmc1 = &sdhci;
-		/delete-property/ ethernet1;
 	};
 
 	chosen: chosen{
@@ -226,12 +226,12 @@
 		led_green: led-green {
 			label = "led_green";
 			gpios = <&gpio4 RK_PB7 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "heartbeat";
 		};
 
 		led_amber: led-amber {
 			label = "led_amber";
 			gpios = <&gpio4 RK_PC1 GPIO_ACTIVE_LOW>;
-			linux,default-trigger = "heartbeat";
 		};
 
 		led_blue: led-blue {
@@ -556,7 +556,7 @@
 		#address-cells = <3>;
 		#size-cells = <2>;
 
-		pcie-eth@10,0 {
+		pcie_eth: pcie-eth@10,0 {
 			compatible = "pci10ec,8168";
 			reg = <0x000000 0 0 0 0>;
 			realtek,led-data = <0x0870>;
