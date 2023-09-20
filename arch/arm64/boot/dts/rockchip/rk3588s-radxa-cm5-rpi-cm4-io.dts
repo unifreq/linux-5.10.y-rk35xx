@@ -87,28 +87,18 @@
 		startup-delay-us = <50000>;
 		vin-supply = <&vcc5v0_sys>;
 	};
+};
 
-	gpio-leds {
-		compatible = "gpio-leds";
-		pinctrl-names = "default";
+&gpio_leds {
+	activity-led-green {
+		gpios = <&gpio4 RK_PB3 GPIO_ACTIVE_LOW>;
+		linux,default-trigger = "heartbeat";
+		default-state = "on";
+	};
 
-		user-led-blue {
-			gpios = <&gpio4 RK_PB4 GPIO_ACTIVE_HIGH>;
-			linux,default-trigger = "heartbeat";
-			default-state = "on";
-		};
-
-		activity-led-green {
-			gpios = <&gpio4 RK_PB3 GPIO_ACTIVE_LOW>;
-			linux,default-trigger = "heartbeat";
-			default-state = "on";
-		};
-
-		pwr-led-red {
-			gpios = <&gpio3 RK_PC5 GPIO_ACTIVE_LOW>;
-			linux,default-trigger = "none";
-			default-state = "on";
-		};
+	pwr-led-red {
+		gpios = <&gpio3 RK_PC5 GPIO_ACTIVE_LOW>;
+		linux,default-trigger = "default-on";
 	};
 };
 
@@ -296,5 +286,3 @@
 	pinctrl-0 = <&sdmmc_bus4 &sdmmc_clk &sdmmc_cmd>;
 	status = "okay";
 };
-
-
