@@ -288,7 +288,7 @@
 	phy-mode = "rgmii";
 	clock_in_out = "output";
 	tx_delay = <0x36>;
-	rx_delay = <0x2b>;
+	rx_delay = <0x2d>;
 
 	snps,reset-gpio = <&gpio4 RK_PC2 GPIO_ACTIVE_LOW>;
 	snps,reset-active-low;
