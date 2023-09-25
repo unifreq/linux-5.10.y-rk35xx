@@ -24,3 +24,9 @@
 	max-frequency = <200000000>;
 	sd-uhs-sdr104;
 };
+
+&gmac0 {
+	phy-mode = "rgmii";
+	tx_delay = <0x42>;
+	rx_delay = <0x34>;
+};
