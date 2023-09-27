@@ -241,9 +241,6 @@
 	};
 };
 
-&reserved_memory {
-};
-
 &avsd {
 	status = "okay";
 };
@@ -267,10 +264,6 @@
 &dmc {
 	center-supply = <&vdd_logic>;
 	status = "okay";
-};
-
-&gmac0 {
-	status = "disabled";
 };
 
 &gmac1 {
@@ -310,6 +303,14 @@
 
 &gpu_bus {
 	bus-supply = <&vdd_logic>;
+	status = "okay";
+};
+
+&mailbox {
+	status = "okay";
+};
+
+&wdt {
 	status = "okay";
 };
 
