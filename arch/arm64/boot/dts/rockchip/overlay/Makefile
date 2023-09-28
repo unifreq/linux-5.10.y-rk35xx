@@ -9,6 +9,7 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
 	rk3399-rock-4-rpi-camera-v1p3.dtbo \
 	rk3399-rock-4-rpi-camera-v2.dtbo \
 	rk3528-sdhci-hs400.dtbo \
+	rk3528-sdmmc-sdr104.dtbo \
 	rk3566-cm3-sodimm-io-sata.dtbo \
 	rk3566-radxa-5inch-touchscreen-on-cm3-sodimm-io.dtbo \
 	rk3566-radxa-cm3-io-dual-cameras-gc2053.dtbo \

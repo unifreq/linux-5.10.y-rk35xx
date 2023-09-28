@@ -1,0 +1,13 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target = <&sdmmc>;
+
+		__overlay__ {
+			max-frequency = <150000000>;
+			sd-uhs-sdr104;	
+		};
+	};
+};
