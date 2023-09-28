@@ -82,6 +82,20 @@
 		};
 	};
 
+	acodec_sound: acodec-sound {
+		status = "okay";
+		compatible = "simple-audio-card";
+		simple-audio-card,name = "rk3528-acodec";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,mclk-fs = <256>;
+		simple-audio-card,cpu {
+			sound-dai = <&sai2>;
+		};
+		simple-audio-card,codec {
+			sound-dai = <&acodec>;
+		};
+	};
+
 	adc_keys: adc-keys {
 		status = "okay";
 		compatible = "adc-keys";
@@ -239,6 +253,11 @@
 			gpios = <&gpio4 RK_PC0 GPIO_ACTIVE_LOW>;
 		};
 	};
+};
+
+&acodec {
+	pa-ctl-gpios = <&gpio0 RK_PA0 GPIO_ACTIVE_HIGH>;
+	status = "okay";
 };
 
 &avsd {
@@ -438,6 +457,10 @@
 		| RKPM_PWM1_M0_REGULATOR_EN
 		)
 	>;
+};
+
+&sai2 {
+	status = "okay";
 };
 
 &saradc {
