@@ -13,6 +13,11 @@
 	model = "Radxa E25";
 	compatible = "radxa,e25", "rockchip,rk3568";
 
+	aliases {
+		mmc0 = &sdmmc0;
+		mmc1 = &sdhci;
+	};
+
 	vcc5v0_otg: vcc5v0-otg-regulator {
 		compatible = "regulator-fixed";
 		regulator-always-on;
