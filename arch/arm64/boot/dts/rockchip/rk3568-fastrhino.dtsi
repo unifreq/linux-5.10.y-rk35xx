@@ -586,6 +586,20 @@
 	status = "okay";
 };
 
+&usb2phy1 {
+	status = "okay";
+};
+
+&u2phy1_host {
+	phy-supply = <&vcc5v0_usb_otg>;
+	status = "okay";
+};
+
+&u2phy1_otg {
+	phy-supply = <&vcc5v0_usb_otg>;
+	status = "okay";
+};
+
 &combphy0_us {
 	status = "okay";
 };
