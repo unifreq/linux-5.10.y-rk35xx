@@ -125,6 +125,9 @@
 
 &hdmi {
 	status = "okay";
+	preset_max_hdisplay = <1920>;
+	preset_max_vdisplay = <1080>;
+	preset_as_preferred;
 };
 
 &hdmi_in_vp0 {
