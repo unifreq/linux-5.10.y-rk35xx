@@ -183,6 +183,7 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-rock-3a.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-rock-3b.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-rock-3-a.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-rock-3-b.dtb
+dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-watermelon-pi-v3.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568m-serdes-evb-camera-csi-v10.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568m-serdes-evb-camera-dvp-v10.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568m-serdes-evb-display-dsi0-command2dsi-lp4x-v10.dtb
