@@ -3,11 +3,12 @@
 
 /dts-v1/;
 
+#include "dt-bindings/usb/pd.h"
 #include "rk3568-watermelon-core.dtsi"
 
 / {
-	model = "NLnet Watermelon Pi V3";
-	compatible = "nlnet,watermelon-pi-v3", "rockchip,rk3568";
+	model = "NLnet Watermelon Pi";
+	compatible = "nlnet,watermelon-pi", "rockchip,rk3568";
 
 	gpio_leds: gpio-leds {
 		compatible = "gpio-leds";
@@ -21,36 +22,25 @@
 		};
 
 		net_led: net-led {
-			gpios = <&gpio3 RK_PA4 GPIO_ACTIVE_HIGH>;
+			gpios = <&gpio0 RK_PB7 GPIO_ACTIVE_HIGH>;
 			label = "blue:net";
 		};
 	};
 
-	pwm_leds: pwm-leds {
-		compatible = "pwm-leds";
-
-		pwm_led: pwm-led {
-			label = "led:pwm";
-			pwms = <&pwm5 0 1000000 0>;
-			max-brightness = <255>;
-		};
-
-		backlight: backlight {
-			label = "lcd:backlight";
-			pwms = <&pwm14 0 1000000 0>;
-			max-brightness = <255>;
-			linux,default-trigger = "default-on";
-		};
+	backlight: backlight {
+		compatible = "gpio-backlight";
+		pinctrl-names = "default";
+		pinctrl-0 = <&backlight_led_pin>;
+		gpios = <&gpio3 RK_PA2 GPIO_ACTIVE_HIGH>;
+		default-on;
 	};
 
-	dc_in: dc-in {
+	vbus_typec: vbus_typec {
 		compatible = "regulator-fixed";
-		regulator-name = "dc_in";
-		regulator-always-on;
-		regulator-boot-on;
-		regulator-min-microvolt = <12000000>;
-		regulator-max-microvolt = <12000000>;
-	};
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		regulator-name = "vbus_typec";
+	};	
 
 	vcc_5v0_mainboard: vcc_5v0-mainboard {
 		compatible = "regulator-fixed";
@@ -59,21 +49,7 @@
 		regulator-boot-on;
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
-		vin-supply = <&dc_in>;
-	};
-
-	/*
-	 * Default is 3.8v
-	 * Connect to battery positive terminal if it is present
-	 */
-	vcc_3v7_mainboard: vcc-3v7-mainboard {
-		compatible = "regulator-fixed";
-		regulator-name = "vcc_3v7_mainboard";
-		regulator-always-on;
-		regulator-boot-on;
-		regulator-min-microvolt = <3700000>;
-		regulator-max-microvolt = <3700000>;
-		vin-supply = <&dc_in>;
+		vin-supply = <&vbus_typec>;
 	};
 
 	vcc_3v3_mainboard: vcc-3v3-mainboard {
@@ -83,7 +59,7 @@
 		regulator-boot-on;
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
-		vin-supply = <&dc_in>;
+		vin-supply = <&vbus_typec>;
 	};
 
 	vcc_3v3_pi6c: vcc-3v3-pi6c {
@@ -112,14 +88,14 @@
 	};
 
 	/* gpio: same as vcc_3v3_pi6c */
-	vcc_3v7_modem: vcc-3v7-modem {
+	vcc_3v3_modem: vcc-3v3-modem {
 		compatible = "regulator-fixed";
-		regulator-name = "vcc_3v7_modem";
+		regulator-name = "vcc_3v3_modem";
 		regulator-always-on;
 		regulator-boot-on;
-		regulator-min-microvolt = <3700000>;
-		regulator-max-microvolt = <3700000>;
-		vin-supply = <&vcc_3v7_mainboard>;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		vin-supply = <&vcc_3v3_mainboard>;
 	};
 
 	vcc5v0_usb_otg0: vcc5v0-usb-otg0 {
@@ -210,14 +186,6 @@
 	status = "okay";
 };
 
-&pmu_io_domains {
-        /*
-         * v1 & v2 uses vcc_1v8
-         * v3 uses vcc_3v3
-         */
-	vccio5-supply = <&vcc_3v3>;
-};
-
 &gmac0 {
 	assigned-clocks = <&cru SCLK_GMAC0_RX_TX>, <&cru SCLK_GMAC0>;
 	assigned-clock-parents = <&cru SCLK_GMAC0_RGMII_SPEED>;
@@ -262,6 +230,32 @@
 	status = "okay";
 };
 
+&i2c0 {
+	fusb0: usb-typec@22 {
+		compatible = "fcs,fusb302";
+		reg = <0x22>;
+		interrupt-parent = <&gpio0>;
+		interrupts = <RK_PC5 IRQ_TYPE_LEVEL_LOW>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&fusb0_int>;
+		vbus-supply = <&vbus_typec>;
+		status = "okay";
+
+		usb_con: connector {
+			compatible = "usb-c-connector";
+			label = "USB-C";
+			data-role = "dual";
+			power-role = "sink";
+			try-power-role = "sink";
+			op-sink-microwatt = <1000000>;
+			sink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)
+					PDO_FIXED(9000, 2000, PDO_FIXED_USB_COMM)
+					PDO_FIXED(12000, 1500, PDO_FIXED_USB_COMM)
+					PDO_VAR(5000, 12000, 3000)>;
+		};
+	};
+};
+
 &mdio0 {
 	rgmii_phy0: ethernet-phy@1 {
 		compatible = "ethernet-phy-ieee802.3-c22";
@@ -290,7 +284,7 @@
 &pcie3x2 {
 	rockchip,bifurcation;
 	reset-gpios = <&gpio2 RK_PD6 GPIO_ACTIVE_HIGH>;
-	vpcie3v3-supply = <&vcc_3v7_modem>;
+	vpcie3v3-supply = <&vcc_3v3_modem>;
 	status = "okay";
 };
 
@@ -299,6 +293,14 @@
 	reset-gpios = <&gpio3 RK_PA1 GPIO_ACTIVE_HIGH>;
 	vpcie3v3-supply = <&vcc_3v3_pcie>;
 	status = "okay";
+};
+
+&pmu_io_domains {
+        /*
+         * v1 & v2 uses vcc_1v8
+         * v3 uses vcc_3v3
+         */
+        vccio5-supply = <&vcc_1v8>;
 };
 
 &pwm3 {
@@ -339,38 +341,38 @@
 	};
 };
 
-&pwm5 {
-	pinctrl-0 = <&pwm5_pins>;
-	pinctrl-names = "active";
-	status = "okay";
-};
-
 &pwm7 {
 	pinctrl-0 = <&pwm7_pins>;
 	pinctrl-names = "active";
 	status = "okay";
 };
 
-&pwm14 {
-	pinctrl-0 = <&pwm14m0_pins>;
-	pinctrl-names = "active";
-	status = "okay";
-};
-
 &pinctrl {
+	backlight {
+		backlight_led_pin: backlight-led-pin {
+			rockchip,pins = <3 RK_PA2 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
 	leds {
 		sys_led_pin: sys-led-pin {
 			rockchip,pins = <0 RK_PA0 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
 		net_led_pin: net-led-pin {
-			rockchip,pins = <3 RK_PA4 RK_FUNC_GPIO &pcfg_pull_none>;
+			rockchip,pins = <0 RK_PB7 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 
 	lcd_display {
 		lcd_reset_pin: lcd-reset-pin {
 			rockchip,pins = <4 RK_PC4 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+
+	fusb30x {
+		fusb0_int: fusb0-int {
+			rockchip,pins = <0 RK_PC5 RK_FUNC_GPIO &pcfg_pull_up>;
 		};
 	};
 
