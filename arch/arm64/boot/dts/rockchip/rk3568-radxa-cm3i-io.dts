@@ -9,8 +9,8 @@
 #include "rk3568-radxa-cm3i.dtsi"
 
 / {
-	model = "Radxa E61";
-	compatible = "radxa,e61", "radxa,cm3i", "rockchip,rk3568";
+	model = "Radxa CM3I IO Board";
+	compatible = "radxa,cm3i-io", "radxa,cm3i", "rockchip,rk3568";
 
 	fan0: pwm-fan {
 		compatible = "pwm-fan";
