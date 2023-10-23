@@ -10,7 +10,7 @@
 #include "rk3566-radxa-cm3.dtsi"
 
 / {
-	model = "Radxa Compute Module 3(CM3) IO Board";
+	model = "Radxa CM3 IO Board";
 	compatible = "radxa,cm3-io", "radxa,cm3", "rockchip,rk3566";
 
 	hdmi_sound: hdmi-sound {
