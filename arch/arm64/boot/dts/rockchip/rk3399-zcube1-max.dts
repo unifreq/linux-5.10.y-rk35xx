@@ -104,6 +104,7 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&host_vbus_drv>;
 		regulator-name = "vcc5v0_host";
+		regulator-boot-on;
 		regulator-always-on;
 	};
 
@@ -818,10 +819,11 @@ hdmi-5v-gpios = <&gpio1 RK_PC6 GPIO_ACTIVE_LOW>;
 
 	u2phy0_host: host-port {
 		phy-supply = <&vcc5v0_host>;
-		status = "okay";
+		status = "disabled";
 	};
 
 	u2phy0_otg: otg-port {
+		phy-supply = <&vcc5v0_host>;
 		status = "okay";
 	};
 };
@@ -831,10 +833,11 @@ hdmi-5v-gpios = <&gpio1 RK_PC6 GPIO_ACTIVE_LOW>;
 
 	u2phy1_host: host-port {
 		phy-supply = <&vcc5v0_host>;
-		status = "okay";
+		status = "disabled";
 	};
 
 	u2phy1_otg: otg-port {
+		phy-supply = <&vcc5v0_host>;
 		status = "okay";
 	};
 };
@@ -870,19 +873,19 @@ hdmi-5v-gpios = <&gpio1 RK_PC6 GPIO_ACTIVE_LOW>;
 };
 
 &usb_host0_ehci {
-	status = "okay";
+	status = "disabled";
 };
 
 &usb_host0_ohci {
-	status = "okay";
+	status = "disabled";
 };
 
 &usb_host1_ehci {
-	status = "okay";
+	status = "disabled";
 };
 
 &usb_host1_ohci {
-	status = "okay";
+	status = "disabled";
 };
 
 &usbdrd3_0 {
