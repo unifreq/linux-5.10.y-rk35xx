@@ -14,6 +14,8 @@
 	aliases {
 		mmc0 = &sdio0;
 		mmc1 = &sdhci;
+		rtc0 = &hym8563;
+		rtc1 = &rk808_rtc;
 	};
 
 	chosen {
@@ -338,6 +340,14 @@ hdmi-5v-gpios = <&gpio1 RK_PC6 GPIO_ACTIVE_LOW>;
 		vcc11-supply = <&vcc5v0_sys>;
 		vcc12-supply = <&vcc3v3_sys>;
 		vddio-supply = <&vcc1v8_pmu>;
+
+		pwrkey {
+			status = "okay";
+		};
+
+		rk808_rtc: rtc {
+			status = "okay";
+		};
 
 		regulators {
 			vdd_center: DCDC_REG1 {
