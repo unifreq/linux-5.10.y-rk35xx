@@ -201,6 +201,18 @@
 	status = "okay";
 };
 
+&i2s1_8ch {
+	status = "okay";
+};
+
+&rk809_sound {
+	status = "okay";
+};
+
+&rk809_codec {
+	status = "okay";
+};
+
 &combphy2_psq {
 	status = "okay";
 };
