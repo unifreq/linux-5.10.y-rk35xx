@@ -200,6 +200,12 @@
 	};
 };
 
+&rk817 {
+	rtc {
+		status = "disabled";
+	};
+};
+
 &soc_thermal {
 	sustainable-power = <5000>; /* milliwatts */
 	cooling-maps {
