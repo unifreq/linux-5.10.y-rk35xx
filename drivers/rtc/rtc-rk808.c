@@ -417,6 +417,7 @@ static int rk808_rtc_probe(struct platform_device *pdev)
 	switch (rk808->variant) {
 	case RK805_ID:
 	case RK808_ID:
+	case RK809_ID:
 	case RK816_ID:
 	case RK817_ID:
 	case RK818_ID:
