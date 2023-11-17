@@ -1,0 +1,41 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+// Copyright (c) 2023 Flippy <flippy@sina.com>
+
+/dts-v1/;
+
+#include "rk3588-hlink.dtsi"
+
+/ {
+	model = "Hlink H88K";
+	compatible = "hlink,h88k", "rockchip,rk3588";
+
+	vcc3v3_m2_sata: vcc3v3-m2-sata {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc3v3_m2_sata";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-always-on;
+		regulator-boot-on;
+		enable-active-high;
+		gpios = <&gpio4 RK_PA4 GPIO_ACTIVE_HIGH>;
+		vin-supply = <&vcc12v_dcin>;
+	};
+};
+
+&sata0 {
+	status = "okay";
+	target-supply = <&vcc3v3_m2_sata>;
+};
+
+&combphy0_ps {
+	status = "okay";
+	pinctrl-0 = <&sata0_pm_reset>;
+};
+
+&pinctrl {
+	sata {
+		sata0_pm_reset: sata0-pm-reset {
+			rockchip,pins = <4 RK_PA0 RK_FUNC_GPIO &pcfg_output_high>;
+		};
+	};
+};

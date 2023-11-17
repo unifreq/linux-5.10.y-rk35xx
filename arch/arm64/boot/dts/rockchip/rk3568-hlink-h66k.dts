@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2020 Rockchip Electronics Co., Ltd.
+ *
+ */
+
+/dts-v1/;
+
+#include "rk3568-hlink.dtsi"
+
+/ {
+	model = "Hlink H66K";
+	compatible = "hlink,h66k", "rockchip,rk3568";
+
+	aliases {
+		ethernet0 = &rtl8125_1;
+		ethernet1 = &rtl8125_2;
+	};
+};
