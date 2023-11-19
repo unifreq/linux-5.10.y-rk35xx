@@ -209,6 +209,20 @@
 		vin-supply = <&dc_12v>;
 	};
 
+	vcc5v0_usb_otg: vcc5v0-usb-otg {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc5v0_usb_otg";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		enable-active-high;
+		gpio = <&gpio0 RK_PA5 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&vcc5v0_usb_otg_en>;
+		vin-supply = <&vcc5v0_sys>;
+	};
+
 	vcc3v3_sys: vcc3v3-sys {
 		compatible = "regulator-fixed";
 		regulator-name = "vcc3v3_sys";
@@ -560,9 +574,16 @@
 			};
 		};
 	};
+
+	usb {
+		vcc5v0_usb_otg_en: vcc5v0-usb-otg-en {
+			rockchip,pins = <0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
 };
 
 &combphy1_usq {
+	phy-supply = <&vcc5v0_usb_otg>;
 	status = "okay";
 };
 
@@ -947,12 +968,12 @@
 };
 
 &u2phy0_host {
-	phy-supply = <&vcc5v0_sys>;
+	phy-supply = <&vcc5v0_usb_otg>;
 	status = "okay";
 };
 
 &u2phy0_otg {
-	vbus-supply = <&vcc5v0_sys>;
+	phy-supply = <&vcc5v0_usb_otg>;
 	status = "okay";
 };
 
@@ -961,12 +982,10 @@
 };
 
 &u2phy1_host {
-	phy-supply = <&vcc5v0_sys>;
 	status = "disabled";
 };
 
 &u2phy1_otg {
-	phy-supply = <&vcc5v0_sys>;
 	status = "disabled";
 };
 
