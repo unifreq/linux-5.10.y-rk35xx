@@ -565,3 +565,6 @@
     status = "okay";
 };
 
+&u2phy0_host {
+    status = "okay";
+};
