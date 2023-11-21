@@ -574,12 +574,6 @@
 			};
 		};
 	};
-
-	usb {
-		vcc5v0_usb_otg_en: vcc5v0-usb-otg-en {
-			rockchip,pins = <0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
-	};
 };
 
 &combphy1_usq {
@@ -735,6 +729,12 @@
 	leds {
 		led_work_enable_h: led-work-enable-h {
 			rockchip,pins = <0 RK_PD4 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	usb {
+		vcc5v0_usb_otg_en: vcc5v0-usb-otg-en {
+			rockchip,pins = <0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 };
