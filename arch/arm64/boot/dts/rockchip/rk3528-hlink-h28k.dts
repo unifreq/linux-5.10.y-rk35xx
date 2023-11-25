@@ -292,7 +292,8 @@
 		     &rgmii_tx_bus2
 		     &rgmii_rx_bus2
 		     &rgmii_rgmii_clk
-		     &rgmii_rgmii_bus>;
+		     &rgmii_rgmii_bus
+		     &eth_pins>;
 
 	phy-supply = <&vcc_3v3_s3>;
 	phy-handle = <&rgmii_phy>;
