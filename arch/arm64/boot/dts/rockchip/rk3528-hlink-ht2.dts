@@ -11,6 +11,10 @@
 	model = "Hlink HT2";
 	compatible = "hlink,ht2", "rockchip,rk3528";
 
+	aliases {
+		mmc2 = &sdio0;
+	};
+
 	hdmi_sound: hdmi-sound {
 		compatible = "rockchip,hdmi";
 		rockchip,mclk-fs = <128>;
@@ -18,6 +22,15 @@
 		rockchip,cpu = <&sai3>;
 		rockchip,codec = <&hdmi>;
 		rockchip,jack-det;
+	};
+
+	sdio_pwrseq: sdio-pwrseq {
+		status = "okay";
+		compatible = "mmc-pwrseq-simple";
+		pinctrl-names = "default";
+		pinctrl-0 = <&wifi_enable_h>;
+		reset-gpios = <&gpio1 RK_PA6 GPIO_ACTIVE_LOW>;
+		post-power-on-delay-ms = <100>;
 	};
 };
 
@@ -40,6 +53,42 @@
 
 &hdmiphy {
 	status = "okay";
+};
+
+&pinctrl {
+	sdio-pwrseq {
+		wifi_enable_h: wifi-enable-h {
+			rockchip,pins = <1 RK_PA6 RK_FUNC_GPIO &pcfg_pull_down>;
+		};
+	};
+
+	wireless-wlan {
+		wifi_wake_host_irq: wifi-wake-host-irq {
+			rockchip,pins = <1 RK_PA7 RK_FUNC_GPIO &pcfg_pull_down>;
+		};
+
+		host_wake_wifi: host-wake-wifi {
+			rockchip,pins = <1 RK_PB5 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	wireless-bluetooth {
+		bt_enable_h: bt-enable-h {
+			rockchip,pins = <1 RK_PB7 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		bt_host_wake: bt-host-wake {
+			rockchip,pins = <1 RK_PC0 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		bt_wake: bt-wake {
+			rockchip,pins = <1 RK_PC1 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		uart2m1_gpio: uart2m1-gpio {
+			rockchip,pins = <1 RK_PB2 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
 };
 
 &pwm3 {
@@ -153,6 +202,52 @@
 
 &sai3 {
 	status = "okay";
+};
+
+&sdio0 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	max-frequency = <50000000>;
+	no-sd;
+	no-mmc;
+	supports-sdio;
+	bus-width = <4>;
+	disable-wp;
+	cap-sd-highspeed;
+	cap-sdio-irq;
+	keep-power-in-suspend;
+	non-removable;
+	mmc-pwrseq = <&sdio_pwrseq>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdio0_bus4 &sdio0_cmd &sdio0_clk>;
+	status = "disabled";
+
+	wifi: wifi@1 {
+		compatible = "aicsemi,aic8800-fdrv";
+		reg = <1>;
+		interrupt-parent = <&gpio1>;
+		interrupts = <RK_PA7 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "host-wake";
+		pinctrl-names = "default";
+		pinctrl-0 = <&wifi_wake_host_irq &host_wake_wifi>;
+	};
+};
+
+&uart2 {
+	status = "disabled";
+	pinctrl-names = "default";
+	//pinctrl-0 = <&uart2m1_xfer &uart2m1_ctsn &uart2m1_gpio>;
+	pinctrl-0 = <&uart2m1_xfer &uart2m1_ctsn &uart2m1_rtsn>;
+
+	bluetooth: bluetooth {
+		compatible = "aicsemi,aic8800-btlpm";
+		max-speed = <1500000>;
+		device-wakeup-gpios = <&gpio1 RK_PC0 GPIO_ACTIVE_HIGH>;
+		host-wakeup-gpios = <&gpio1 RK_PC2 GPIO_ACTIVE_HIGH>;
+		shutdown-gpios = <&gpio1 RK_PC1 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&bt_host_wake &bt_wake &bt_enable_h>;
+	};
 };
 
 &u2phy_otg {
