@@ -19,7 +19,7 @@
 };
 
 &gmac0 {
-	phy-mode = "rgmii-id";
+	phy-mode = "rgmii";
 	clock_in_out = "output";
 
 	snps,reset-gpio = <&gpio2 RK_PD3 GPIO_ACTIVE_LOW>;
@@ -38,8 +38,8 @@
 		     &gmac0_rgmii_clk
 		     &gmac0_rgmii_bus>;
 
-	tx_delay = <0x3c>;
-	rx_delay = <0x2f>;
+	tx_delay = <0x2e>;
+	rx_delay = <0x28>;
 
 	phy-handle = <&rgmii_phy0>;
 	status = "okay";
