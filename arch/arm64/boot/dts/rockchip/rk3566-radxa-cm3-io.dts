@@ -101,7 +101,7 @@
 
 	pwr-led-red {
 		gpios = <&gpio4 15 GPIO_ACTIVE_LOW>;
-		linux,default-trigger = "none";
+		linux,default-trigger = "default-on";
 		pinctrl-0 = <&pwr_led>;
 	};
 };
