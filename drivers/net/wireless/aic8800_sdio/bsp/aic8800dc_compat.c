@@ -25,16 +25,18 @@ u32 syscfg_tbl_8800dc_sdio_u02[][2] = {
     {0x40030084, 0x0011E800},
     {0x40030080, 0x00000001},
     {0x4010001C, 0x00000000},
+};
 #ifdef CONFIG_OOB
-    {0x40504044, 0x2},//oob_enable
-    {0x40500060, 0x03020700},
-    {0x40500040, 0},
-    {0x40100030, 1},
-    {0x40241020, 1},
-    {0x402400f0, 0x340022},
+u32 oobcfg_tbl_8800dc_sdio_u02[][2] = {
+		{0x40504044, 0x2},//oob_enable
+		{0x40500060, 0x03020700},
+		{0x40500040, 0},
+		{0x40100030, 1},
+		{0x40241020, 1},
+		{0x402400f0, 0x340022},
+};
 #endif //CONFIG_OOB
 
-};
 
 u32 syscfg_tbl_masked_8800dc[][3] = {
     //#ifdef CONFIG_PMIC_SETTING
@@ -1698,6 +1700,9 @@ void system_config_8800dc(struct aic_sdio_dev *rwnx_hw)
     int ret, cnt;
     const u32 mem_addr = 0x40500000;
     struct dbg_mem_read_cfm rd_mem_addr_cfm;
+#ifdef CONFIG_OOB
+	int oobcfg_num;
+#endif
 
     ret = rwnx_send_dbg_mem_read_req(rwnx_hw, mem_addr, &rd_mem_addr_cfm);
     if (ret) {
@@ -1747,7 +1752,7 @@ void system_config_8800dc(struct aic_sdio_dev *rwnx_hw)
                     return;
                 }
             }
-        } else if (chip_sub_id == 1) {
+        } else if ((chip_sub_id == 1) || (chip_sub_id == 2)) {
             syscfg_num = sizeof(syscfg_tbl_8800dc_sdio_u02) / sizeof(u32) / 2;
             for (cnt = 0; cnt < syscfg_num; cnt++) {
                 ret = rwnx_send_dbg_mem_write_req(rwnx_hw, syscfg_tbl_8800dc_sdio_u02[cnt][0], syscfg_tbl_8800dc_sdio_u02[cnt][1]);
@@ -1758,7 +1763,18 @@ void system_config_8800dc(struct aic_sdio_dev *rwnx_hw)
             }
         }
     }
-
+#ifdef CONFIG_OOB
+	if ((chip_sub_id == 1) || (chip_sub_id == 2)) {
+		oobcfg_num = sizeof(oobcfg_tbl_8800dc_sdio_u02) / sizeof(u32) / 2;
+        for (cnt = 0; cnt < oobcfg_num; cnt++) {
+			ret = rwnx_send_dbg_mem_write_req(rwnx_hw, oobcfg_tbl_8800dc_sdio_u02[cnt][0], oobcfg_tbl_8800dc_sdio_u02[cnt][1]);
+			if (ret) {
+				AICWFDBG(LOGERROR, "%x write fail: %d\n", oobcfg_tbl_8800dc_sdio_u02[cnt][0], ret);
+				return;
+            }
+       }
+	}
+#endif
     if (IS_CHIP_ID_H()) {
         syscfg_num = sizeof(syscfg_tbl_masked_8800dc_h) / sizeof(u32) / 3;
         p_syscfg_msk_tbl = syscfg_tbl_masked_8800dc_h;
@@ -2000,9 +2016,19 @@ int aicwf_dpd_calib_8800dc(struct aic_sdio_dev *sdiodev, rf_misc_ram_lite_t *dpd
 {
     int ret = 0;
     uint32_t fw_addr, boot_type;
+    int valid_flag;
 
 	printk("%s\n", __func__);
 
+    ret = aicwf_misc_ram_valid_check_8800dc(sdiodev, &valid_flag);
+    if (ret) {
+        AICWFDBG(LOGINFO, "misc ram check fail: %d\n", ret);
+        return ret;
+    }
+    if (valid_flag) {
+        AICWFDBG(LOGINFO, "misc ram valid, skip calib process\n");
+        return ret;
+    }
     ret = aicwf_plat_calib_load_8800dc(sdiodev);
     if (ret) {
         AICWFDBG(LOGINFO, "load calib bin fail: %d\n", ret);
@@ -2119,26 +2145,33 @@ int aicwf_dpd_result_apply_8800dc(struct aic_sdio_dev *sdiodev, rf_misc_ram_lite
 }
 
 #ifndef CONFIG_FORCE_DPD_CALIB
-int aicwf_dpd_result_load_8800dc(struct aic_sdio_dev *sdiodev)
+int aicwf_dpd_result_load_8800dc(struct aic_sdio_dev *sdiodev, rf_misc_ram_lite_t *dpd_res)
 {
     int ret = 0;
-    uint32_t cfg_base = 0x10164;
-    struct dbg_mem_read_cfm cfm;
-    uint32_t misc_ram_addr;
-
-    AICWFDBG(LOGINFO, "%s\n", __func__);
-	if (testmode == 1) {
-		cfg_base = RAM_LMAC_FW_ADDR + 0x0164;
-	}
-    if ((ret = rwnx_send_dbg_mem_read_req(sdiodev, cfg_base + 0x14, &cfm))) {
-        AICWFDBG(LOGERROR, "rf misc ram[0x%x] rd fail: %d\n", cfg_base + 0x14, ret);
-        return ret;
+    int size;
+    u32 *dst=NULL;
+    char *filename = FW_DPDRESULT_NAME_8800DC;
+    struct device *dev = sdiodev->dev;
+    AICWFDBG(LOGINFO, "%s: dpd_res file path:%s \r\n", __func__, filename);
+    /* load file */
+    size = rwnx_load_firmware(&dst, filename, dev);
+    if (size <= 0) {
+        AICWFDBG(LOGERROR, "wrong size of dpd_res file\n");
+        if (dst) {
+            #ifndef CONFIG_FIRMWARE_ARRAY
+            vfree(dst);
+            #endif
+            dst = NULL;
+        }
+        return -1;
     }
-    misc_ram_addr = cfm.memdata;
-    ret = rwnx_plat_bin_fw_upload_android(sdiodev, misc_ram_addr, FW_DPDRESULT_NAME_8800DC);
-    if (ret) {
-        AICWFDBG(LOGINFO, "load calib bin fail: %d\n", ret);
-        return ret;
+    AICWFDBG(LOGINFO, "### Load file done: %s, size=%d, dst[0]=%x\n", filename, size, dst[0]);
+    memcpy((u8 *)dpd_res, (u8 *)dst, sizeof(rf_misc_ram_lite_t));
+    if (dst) {
+        #ifndef CONFIG_FIRMWARE_ARRAY
+        vfree(dst);
+        #endif
+        dst = NULL;
     }
     return ret;
 }

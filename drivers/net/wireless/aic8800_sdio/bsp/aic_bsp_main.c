@@ -97,6 +97,25 @@ const struct aicbsp_firmware fw_8800dc_u02[] = {
 	},
 };
 
+const struct aicbsp_firmware fw_8800dc_h_u02[] = {
+	[AICBSP_CPMODE_WORK] = {
+		.desc          = "normal work mode(8800dc_h sdio u02)",
+		.bt_adid       = "fw_adid_8800dc_u02h.bin",
+		.bt_patch      = "fw_patch_8800dc_u02h.bin",
+		.bt_table      = "fw_patch_table_8800dc_u02h.bin",
+		.wl_fw         = "fmacfw_patch_8800dc_h_u02.bin"
+	},
+
+	[AICBSP_CPMODE_TEST] = {
+		.desc          = "rf test mode(8800dc_h sdio u02)",
+		.bt_adid       = "fw_adid_8800dc_u02h.bin",
+		.bt_patch      = "fw_patch_8800dc_u02h.bin",
+		.bt_table      = "fw_patch_table_8800dc_u02h.bin",
+		.wl_fw         = "lmacfw_rf_8800dc.bin" //u01,u02 lmacfw load same bin
+	},
+};
+
+
 const struct aicbsp_firmware fw_8800d80_u01[] = {
 	[AICBSP_CPMODE_WORK] = {
 		.desc          = "normal work mode(8800d80 sdio u01)",
@@ -138,7 +157,11 @@ struct aicbsp_info_t aicbsp_info = {
 	.hwinfo   = AICBSP_HWINFO_DEFAULT,
 	.cpmode   = AICBSP_CPMODE_DEFAULT,
 	.fwlog_en = AICBSP_FWLOG_EN_DEFAULT,
-	.irqf     = AIC_IRQ_WAKE_FLAG,
+#ifdef CONFIG_IRQ_FALL
+	.irqf     = 1,
+#else
+	.irqf     = 0,
+#endif
 };
 
 struct mutex aicbsp_power_lock;

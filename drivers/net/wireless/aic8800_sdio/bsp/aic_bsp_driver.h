@@ -311,6 +311,7 @@ struct dbg_start_app_cfm {
 int aicwf_plat_patch_load_8800dc(struct aic_sdio_dev *sdiodev);
 int aicwf_plat_rftest_load_8800dc(struct aic_sdio_dev *sdiodev);
 #ifdef CONFIG_DPD
+int aicwf_misc_ram_valid_check_8800dc(struct aic_sdio_dev *sdiodev, int *valid_out);
 int aicwf_plat_calib_load_8800dc(struct aic_sdio_dev *sdiodev);
 #endif
 
@@ -332,7 +333,7 @@ void rwnx_rx_handle_msg(struct aic_sdio_dev *sdiodev, struct ipc_e2a_msg *msg);
 int aicbsp_platform_init(struct aic_sdio_dev *sdiodev);
 void aicbsp_platform_deinit(struct aic_sdio_dev *sdiodev);
 int aicbsp_driver_fw_init(struct aic_sdio_dev *sdiodev);
-#ifdef CONFIG_DPD
+#if (defined(CONFIG_DPD) && !defined(CONFIG_FORCE_DPD_CALIB))
 int is_file_exist(char* name);
 #endif
 int aicbsp_resv_mem_init(void);
@@ -500,7 +501,6 @@ enum chip_rev {
 #define AICBT_TXPWR_LVL_DEFAULT_8800d80 AICBT_TXPWR_LVL_8800d80
 
 
-#define AIC_IRQ_WAKE_FLAG           0          // 0: rising edge, 1: falling edge
 #define FEATURE_SDIO_CLOCK          50000000 // 0: default, other: target clock rate
 #define FEATURE_SDIO_CLOCK_V3       150000000 // 0: default, other: target clock rate
 #define FEATURE_SDIO_PHASE          2        // 0: default, 2: 180°
@@ -558,6 +558,7 @@ extern const struct aicbsp_firmware fw_u02[];
 extern const struct aicbsp_firmware fw_u03[];
 extern const struct aicbsp_firmware fw_8800dc_u01[];
 extern const struct aicbsp_firmware fw_8800dc_u02[];
+extern const struct aicbsp_firmware fw_8800dc_h_u02[];
 extern const struct aicbsp_firmware fw_8800d80_u01[];
 extern const struct aicbsp_firmware fw_8800d80_u02[];
 

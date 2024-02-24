@@ -183,15 +183,7 @@ int aicbsp_set_subsys(int subsys, int state)
 			aicbsp_sdio_release(aicbsp_sdiodev);
 #endif
 
-#ifdef CONFIG_PLATFORM_ROCKCHIP
-#ifdef CONFIG_GPIO_WAKEUP
-			//BT_SLEEP:true,BT_WAKEUP:false
-			rfkill_rk_sleep_bt(true);
-			printk("%s BT wake default to SLEEP\r\n", __func__);
-#endif
-#endif
-
-#ifdef CONFIG_PLATFORM_ROCKCHIP2
+#if defined CONFIG_PLATFORM_ROCKCHIP || defined CONFIG_PLATFORM_ROCKCHIP2
 #ifdef CONFIG_GPIO_WAKEUP
 			//BT_SLEEP:true,BT_WAKEUP:false
 			rfkill_rk_sleep_bt(true);
@@ -735,7 +727,7 @@ int aicwf_sdio_wakeup(struct aic_sdio_dev *sdiodev)
 	int ret = 0;
 	int read_retry;
 	int write_retry = 20;
-    int wakeup_reg_val;
+    int wakeup_reg_val = 0;
 
     if (sdiodev->chipid == PRODUCT_ID_AIC8801 ||
         sdiodev->chipid == PRODUCT_ID_AIC8800DC ||

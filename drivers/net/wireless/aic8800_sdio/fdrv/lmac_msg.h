@@ -391,6 +391,9 @@ enum mm_msg_tag {
 
     MM_CFG_RSSI_CFM,
 
+    MM_SET_VENDOR_SWCONFIG_REQ,
+    MM_SET_VENDOR_SWCONFIG_CFM,
+
     /// MAX number of messages
     MM_MAX,
 };
@@ -1157,6 +1160,7 @@ struct mm_set_arpoffload_en_cfm {
 struct mm_set_agg_disable_req {
 	u8_l disable;
 	u8_l staidx;
+    u8_l disable_rx;
 };
 
 struct mm_set_coex_req {
@@ -1299,6 +1303,29 @@ typedef struct {
 	s8_l chan_122_140;
 	s8_l chan_142_165;
 } txpwr_ofst_conf_t;
+
+/*
+ * pwrofst2x_tbl_2g4[3][3]:
+ * +---------------+----------+----------+----------+
+ * | RateTyp\ChGrp |  CH_1_4  |  CH_5_9  | CH_10_13 |
+ * +---------------+----------+----------+----------+
+ * | DSSS          |  [0][0]  |  [0][1]  |  [0][2]  |
+ * +---------------+----------+----------+----------+
+ * | OFDM_HIGHRATE |  [1][0]  |  [1][1]  |  [1][2]  |
+ * +---------------+----------+----------+----------+
+ * | OFDM_LOWRATE  |  [2][0]  |  [2][1]  |  [2][2]  |
+ * +---------------+----------+----------+----------+
+ * pwrofst2x_tbl_5g[3][6]:
+ * +---------------+--------------+--------------+----------------+----------------+----------------+----------------+
+ * | RateTyp\ChGrp | CH_42(36~50) | CH_58(51~64) | CH_106(98~114) | CH_122(115~130)| CH_138(131~146)| CH_155(147~166)|
+ * +---------------+--------------+--------------+----------------+----------------+----------------+----------------+
+ * | OFDM_LOWRATE  |    [0][0]    |    [0][1]    |     [0][2]     |     [0][3]     |     [0][4]     |     [0][5]     |
+ * +---------------+--------------+--------------+----------------+----------------+----------------+----------------+
+ * | OFDM_HIGHRATE |    [1][0]    |    [1][1]    |     [1][2]     |     [1][3]     |     [1][4]     |     [1][5]     |
+ * +---------------+--------------+--------------+----------------+----------------+----------------+----------------+
+ * | OFDM_MIDRATE  |    [2][0]    |    [2][1]    |     [2][2]     |     [2][3]     |     [2][4]     |     [2][5]     |
+ * +---------------+--------------+--------------+----------------+----------------+----------------+----------------+
+ */
 
 typedef struct
 {
@@ -1819,6 +1846,7 @@ enum vendor_hwconfig_tag{
 	MAC_TIMESCALE_REQ,
 	CCA_THRESHOLD_REQ,
 	BWMODE_REQ,
+	CHIP_TEMP_GET_REQ,
 };
 
 enum {
@@ -1846,6 +1874,7 @@ struct mm_set_channel_access_req
 	u8_l  long_nav_en;
 	u8_l  cfe_en;
 	u8_l  rc_retry_cnt[3];
+	s8_l ccademod_th;
 };
 
 struct mm_set_mac_timescale_req
@@ -1876,6 +1905,24 @@ struct mm_set_bwmode_req
     u8_l bwmode;
 };
 
+struct mm_get_chip_temp_req
+{
+    u32_l hwconfig_id;
+};
+
+struct mm_get_chip_temp_cfm
+{
+    /// Temp degree val
+    s8_l degree;
+};
+
+struct mm_set_vendor_hwconfig_cfm
+{
+    u32_l hwconfig_id;
+    union {
+        struct mm_get_chip_temp_cfm chip_temp_cfm;
+    };
+};
 
 struct mm_set_txop_req
 {
@@ -1891,6 +1938,71 @@ struct mm_get_fw_version_cfm
 {
     u8_l fw_version_len;
     u8_l fw_version[63];
+};
+
+struct mm_get_wifi_disable_cfm
+{
+    u8_l wifi_disable;
+};
+
+enum vendor_swconfig_tag
+{
+    BCN_CFG_REQ = 0,
+    TEMP_COMP_SET_REQ,
+    TEMP_COMP_GET_REQ,
+};
+
+struct mm_set_bcn_cfg_req
+{
+    /// Ignore or not bcn tim bcmc bit
+    bool_l tim_bcmc_ignored_enable;
+};
+
+struct mm_set_bcn_cfg_cfm
+{
+    /// Request status
+    bool_l tim_bcmc_ignored_status;
+};
+
+struct mm_set_temp_comp_req
+{
+    /// Enable or not temp comp
+    u8_l enable;
+    u8_l reserved[3];
+    u32_l tmr_period_ms;
+};
+
+struct mm_set_temp_comp_cfm
+{
+    /// Request status
+    u8_l status;
+};
+
+struct mm_get_temp_comp_cfm
+{
+    /// Request status
+    u8_l status;
+    /// Temp degree val
+    s8_l degree;
+};
+
+struct mm_set_vendor_swconfig_req
+{
+    u32_l swconfig_id;
+    union {
+        struct mm_set_bcn_cfg_req bcn_cfg_req;
+        struct mm_set_temp_comp_req temp_comp_set_req;
+    };
+};
+
+struct mm_set_vendor_swconfig_cfm
+{
+    u32_l swconfig_id;
+    union {
+        struct mm_set_bcn_cfg_cfm bcn_cfg_cfm;
+        struct mm_set_temp_comp_cfm temp_comp_set_cfm;
+        struct mm_get_temp_comp_cfm temp_comp_get_cfm;
+    };
 };
 
 /// Structure containing the parameters of the @ref ME_RC_STATS_REQ message.
