@@ -220,7 +220,7 @@
 	mmc-pwrseq = <&sdio_pwrseq>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdio0_bus4 &sdio0_cmd &sdio0_clk>;
-	status = "disabled";
+	status = "okay";
 
 	wifi: wifi@1 {
 		compatible = "aicsemi,aic8800-fdrv";
@@ -234,7 +234,7 @@
 };
 
 &uart2 {
-	status = "disabled";
+	status = "okay";
 	pinctrl-names = "default";
 	//pinctrl-0 = <&uart2m1_xfer &uart2m1_ctsn &uart2m1_gpio>;
 	pinctrl-0 = <&uart2m1_xfer &uart2m1_ctsn &uart2m1_rtsn>;
