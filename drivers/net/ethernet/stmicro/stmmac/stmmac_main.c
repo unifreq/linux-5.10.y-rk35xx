@@ -5069,6 +5069,7 @@ int stmmac_dvr_probe(struct device *device,
 {
 	struct net_device *ndev = NULL;
 	struct stmmac_priv *priv;
+	const char *devname = of_get_property(device->of_node, "label", NULL);
 	u32 rxq;
 	int i, ret = 0;
 
@@ -5076,6 +5077,9 @@ int stmmac_dvr_probe(struct device *device,
 				       MTL_MAX_TX_QUEUES, MTL_MAX_RX_QUEUES);
 	if (!ndev)
 		return -ENOMEM;
+
+	if (devname)
+		strlcpy(ndev->name, devname, IFNAMSIZ);
 
 	SET_NETDEV_DEV(ndev, device);
 
