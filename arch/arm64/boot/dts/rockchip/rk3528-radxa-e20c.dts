@@ -104,6 +104,8 @@
 		regulator-always-on;
 		regulator-boot-on;
 		regulator-settling-time-up-us = <250>;
+		regulator-enable-ramp-delay = <400>;
+		regulator-ramp-delay = <12500>;
 		pwm-supply = <&vcc5v0_sys>;
 		status = "okay";
 	};
@@ -118,6 +120,8 @@
 		regulator-always-on;
 		regulator-boot-on;
 		regulator-settling-time-up-us = <250>;
+		regulator-enable-ramp-delay = <400>;
+		regulator-ramp-delay = <12500>;
 		pwm-supply = <&vcc5v0_sys>;
 		status = "okay";
 	};
