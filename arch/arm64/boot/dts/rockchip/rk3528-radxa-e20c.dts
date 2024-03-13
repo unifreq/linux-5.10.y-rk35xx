@@ -410,6 +410,18 @@
 	reset-gpios = <&gpio1 RK_PA2 GPIO_ACTIVE_HIGH>;
 	//vpcie3v3-supply = <&vcc3v3_pcie20>;
 	status = "okay";
+
+	pcie@0,0 {
+		reg = <0x000000 0 0 0 0>;
+		#address-cells = <3>;
+		#size-cells = <2>;
+
+		pcie_eth: pcie-eth@10,0 {
+			compatible = "pci10ec,8168";
+			reg = <0x000000 0 0 0 0>;
+			realtek,led-data = <0x0870>;
+		};
+	};
 };
 
 &i2c0 {
