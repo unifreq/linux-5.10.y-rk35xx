@@ -92,6 +92,7 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3528-evb4-ddr4-v10.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3528-hlink-h28k.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3528-hlink-ht2.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3528-iotest-lp3-v10.dtb
+dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3528-radxa-e20c.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3562-dictpen-test3-v20.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3562-evb1-lp4x-v10.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3562-evb1-lp4x-v10-linux.dtb
