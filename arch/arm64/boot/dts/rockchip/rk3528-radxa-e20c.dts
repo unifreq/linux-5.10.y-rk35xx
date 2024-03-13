@@ -181,6 +181,123 @@
 	cpu-supply = <&vdd_cpu>;
 };
 
+&cpu0_opp_table {
+	opp-408000000 {
+		opp-microvolt-L0 = <905000 905000 1200000>;
+		opp-microvolt-L1 = <895000 895000 1200000>;
+		opp-microvolt-L2 = <885000 885000 1200000>;
+		opp-microvolt-L3 = <875000 875000 1200000>;
+		opp-microvolt-L4 = <865000 865000 1200000>;
+		opp-microvolt-L5 = <855000 855000 1200000>;
+		opp-microvolt = <850000 850000 1200000>;
+	};
+
+	opp-600000000 {
+		opp-microvolt-L0 = <905000 905000 1200000>;
+		opp-microvolt-L1 = <895000 895000 1200000>;
+		opp-microvolt-L2 = <885000 885000 1200000>;
+		opp-microvolt-L3 = <875000 875000 1200000>;
+		opp-microvolt-L4 = <865000 865000 1200000>;
+		opp-microvolt-L5 = <855000 855000 1200000>;
+		opp-microvolt = <850000 850000 1200000>;
+	};
+
+	opp-816000000 {
+		opp-microvolt-L0 = <905000 905000 1200000>;
+		opp-microvolt-L1 = <895000 895000 1200000>;
+		opp-microvolt-L2 = <885000 885000 1200000>;
+		opp-microvolt-L3 = <875000 875000 1200000>;
+		opp-microvolt-L4 = <865000 865000 1200000>;
+		opp-microvolt-L5 = <855000 855000 1200000>;
+		opp-microvolt = <850000 850000 1200000>;
+	};
+
+	opp-1008000000 {
+		opp-microvolt-L0 = <905000 905000 1200000>;
+		opp-microvolt-L1 = <895000 895000 1200000>;
+		opp-microvolt-L2 = <885000 885000 1200000>;
+		opp-microvolt-L3 = <875000 875000 1200000>;
+		opp-microvolt-L4 = <865000 865000 1200000>;
+		opp-microvolt-L5 = <855000 855000 1200000>;
+		opp-microvolt = <850000 850000 1200000>;
+	};
+
+	opp-1200000000 {
+		opp-microvolt-L0 = <935000 935000 1200000>;
+		opp-microvolt-L1 = <922500 922500 1200000>;
+		opp-microvolt-L2 = <910000 910000 1200000>;
+		opp-microvolt-L3 = <897500 897500 1200000>;
+		opp-microvolt-L4 = <885000 885000 1200000>;
+		opp-microvolt-L5 = <872500 872500 1200000>;
+		opp-microvolt-L6 = <860000 860000 1200000>;
+		opp-microvolt = <850000 850000 1200000>;
+	};
+
+	opp-1416000000 {
+		opp-microvolt-L0 = <1002500 1002500 1200000>;
+		opp-microvolt-L1 = <990000 990000 1200000>;
+		opp-microvolt-L2 = <977500 977500 1200000>;
+		opp-microvolt-L3 = <965000 965000 1200000>;
+		opp-microvolt-L4 = <952500 952500 1200000>;
+		opp-microvolt-L5 = <940000 940000 1200000>;
+		opp-microvolt-L6 = <927500 927500 1200000>;
+		opp-microvolt-L7 = <915000 915000 1200000>;
+		opp-microvolt-L8 = <902500 902500 1200000>;
+		opp-microvolt-L9 = <890000 890000 1200000>;
+		opp-microvolt-L10 = <877500 877500 1200000>;
+		opp-microvolt-L11 = <865000 865000 1200000>;
+		opp-microvolt = <865000 865000 1200000>;
+	};
+
+	opp-1608000000 {
+		opp-microvolt-L0 = <1072500 1072500 1200000>;
+		opp-microvolt-L1 = <1060000 1060000 1200000>;
+		opp-microvolt-L2 = <1047500 1047500 1200000>;
+		opp-microvolt-L3 = <1035000 1035000 1200000>;
+		opp-microvolt-L4 = <1022500 1022500 1200000>;
+		opp-microvolt-L5 = <1010000 1010000 1200000>;
+		opp-microvolt-L6 = <997500 997500 1200000>;
+		opp-microvolt-L7 = <985000 985000 1200000>;
+		opp-microvolt-L8 = <972500 972500 1200000>;
+		opp-microvolt-L9 = <960000 960000 1200000>;
+		opp-microvolt-L10 = <947500 947500 1200000>;
+		opp-microvolt-L11 = <935000 935000 1200000>;
+		opp-microvolt = <935000 935000 1200000>;
+	};
+
+	opp-1800000000 {
+		opp-microvolt-L0 = <1142500 1142500 1200000>;
+		opp-microvolt-L1 = <1130000 1130000 1200000>;
+		opp-microvolt-L2 = <1117500 1117500 1200000>;
+		opp-microvolt-L3 = <1105000 1105000 1200000>;
+		opp-microvolt-L4 = <1092500 1092500 1200000>;
+		opp-microvolt-L5 = <1080000 1080000 1200000>;
+		opp-microvolt-L6 = <1067500 1067500 1200000>;
+		opp-microvolt-L7 = <1055000 1055000 1200000>;
+		opp-microvolt-L8 = <1042500 1042500 1200000>;
+		opp-microvolt-L9 = <1030000 1030000 1200000>;
+		opp-microvolt-L10 = <1017500 1017500 1200000>;
+		opp-microvolt-L11 = <1005000 1005000 1200000>;
+		opp-microvolt = <1005000 1005000 1200000>;
+	};
+
+	opp-2016000000 {
+		opp-microvolt-L0 = <1200000 1200000 1200000>;
+		opp-microvolt-L1 = <1190000 1190000 1200000>;
+		opp-microvolt-L2 = <1180000 1180000 1200000>;
+		opp-microvolt-L3 = <1170000 1170000 1200000>;
+		opp-microvolt-L4 = <1160000 1160000 1200000>;
+		opp-microvolt-L5 = <1150000 1150000 1200000>;
+		opp-microvolt-L6 = <1140000 1140000 1200000>;
+		opp-microvolt-L7 = <1130000 1130000 1200000>;
+		opp-microvolt-L8 = <1120000 1120000 1200000>;
+		opp-microvolt-L9 = <1110000 1110000 1200000>;
+		opp-microvolt-L10 = <1100000 1100000 1200000>;
+		opp-microvolt-L11 = <1090000 1090000 1200000>;
+		opp-microvolt = <1090000 1090000 1200000>;
+	};
+};
+
 &crypto {
 	status = "okay";
 };
