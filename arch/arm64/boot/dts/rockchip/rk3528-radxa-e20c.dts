@@ -17,6 +17,14 @@
 	model = "Radxa E20C";
 	compatible = "radxa,e20c", "rockchip,rk3528";
 
+	aliases {
+		/delete-property/ ethernet1;
+		mmc0 = <&sdmmc>;
+		mmc1 = <&sdhci>;
+		ethernet0 = <&gmac1>;
+		rtc0 = <&hym8563>;
+	};
+
 	/delete-node/ chosen;
 
 	vcc5v0_sys: vcc5v0-sys {
