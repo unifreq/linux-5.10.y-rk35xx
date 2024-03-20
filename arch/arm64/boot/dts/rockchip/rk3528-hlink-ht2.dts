@@ -27,10 +27,18 @@
 	sdio_pwrseq: sdio-pwrseq {
 		status = "okay";
 		compatible = "mmc-pwrseq-simple";
+		clocks = <&wifi32k>;
+		clock-names = "ext_clock";
 		pinctrl-names = "default";
 		pinctrl-0 = <&wifi_enable_h>;
 		reset-gpios = <&gpio1 RK_PA6 GPIO_ACTIVE_LOW>;
-		post-power-on-delay-ms = <100>;
+		post-power-on-delay-ms = <1000>;
+	};
+
+	wifi32k: wifi32k {
+		compatible = "fixed-clock";
+		clock-frequency = <32768>;
+		#clock-cells = <0>;
 	};
 };
 
@@ -39,8 +47,8 @@
 };
 
 &gmac1 {
-	tx_delay = <0x33>;
-	rx_delay = <0x2a>;
+	tx_delay = <0x3b>;
+	rx_delay = <0x30>;
 };
 
 &hdmi {
@@ -58,13 +66,13 @@
 &pinctrl {
 	sdio-pwrseq {
 		wifi_enable_h: wifi-enable-h {
-			rockchip,pins = <1 RK_PA6 RK_FUNC_GPIO &pcfg_pull_down>;
+			rockchip,pins = <1 RK_PA6 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 
 	wireless-wlan {
 		wifi_wake_host_irq: wifi-wake-host-irq {
-			rockchip,pins = <1 RK_PA7 RK_FUNC_GPIO &pcfg_pull_down>;
+			rockchip,pins = <1 RK_PA7 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
 		host_wake_wifi: host-wake-wifi {
@@ -220,6 +228,8 @@
 	mmc-pwrseq = <&sdio_pwrseq>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdio0_bus4 &sdio0_cmd &sdio0_clk>;
+	vmmc-supply = <&vcc_3v3_s3>;
+	vqmmc-supply = <&vcc_3v3_s3>;
 	status = "okay";
 
 	wifi: wifi@1 {
@@ -229,7 +239,7 @@
 		interrupts = <RK_PA7 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-names = "host-wake";
 		pinctrl-names = "default";
-		pinctrl-0 = <&wifi_wake_host_irq &host_wake_wifi>;
+		pinctrl-0 = <&wifi_wake_host_irq>;
 	};
 };
 
