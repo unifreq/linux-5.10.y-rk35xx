@@ -69,7 +69,7 @@
 			#gpio-cells = <2>;
 
 			rk806_dvs1_null: rk806_dvs1_null {
-				pins = "gpio_pwrctrl2";
+				pins = "gpio_pwrctrl1";
 				function = "pin_fun0";
 			};
 
