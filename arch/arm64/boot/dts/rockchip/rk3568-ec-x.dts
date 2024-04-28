@@ -655,6 +655,7 @@
 
 &usbdrd_dwc3 {
 	status = "okay";
+	dr_mode = "host";
 	phys = <&u2phy0_otg>;
 	phy-names = "usb2-phy";
 	extcon = <&usb2phy0>;
