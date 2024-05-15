@@ -22,7 +22,6 @@
 		mmc0 = <&sdmmc>;
 		mmc1 = <&sdhci>;
 		ethernet0 = <&gmac1>;
-		rtc0 = <&hym8563>;
 	};
 
 	/delete-node/ chosen;
@@ -550,7 +549,7 @@
 };
 
 &i2c0 {
-	status = "okay";
+	status = "disabled";
 	pinctrl-names = "default";
 	pinctrl-0 = <&i2c0m1_xfer>;
 
