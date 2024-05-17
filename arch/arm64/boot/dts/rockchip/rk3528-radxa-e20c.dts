@@ -26,6 +26,32 @@
 
 	/delete-node/ chosen;
 
+	gpio_leds: gpio-leds {
+		compatible = "gpio-leds";
+
+		led_green_sys: led-green-sys {
+			gpios = <&gpio4 RK_PC1 GPIO_ACTIVE_HIGH>;
+			label = "green:sys";
+			linux,default-trigger = "heartbeat";
+			pinctrl-0 = <&led_green_sys_en>;
+			pinctrl-names = "default";
+		};
+
+		led_green_lan: led-green-lan {
+			gpios = <&gpio4 RK_PB5 GPIO_ACTIVE_HIGH>;
+			label = "green:lan";
+			pinctrl-0 = <&led_green_lan_en>;
+			pinctrl-names = "default";
+		};
+
+		led_green_wan: led-green-wan {
+			gpios = <&gpio4 RK_PC0 GPIO_ACTIVE_HIGH>;
+			label = "green:wan";
+			pinctrl-0 = <&led_green_wan_en>;
+			pinctrl-names = "default";
+		};
+	};
+
 	vcc5v0_sys: vcc5v0-sys {
 		compatible = "regulator-fixed";
 		regulator-name = "vcc5v0_sys";
@@ -576,6 +602,20 @@
 };
 
 &pinctrl {
+	leds {
+		led_green_sys_en: led-green-sys-en {
+			rockchip,pins = <4 RK_PC1 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		led_green_lan_en: led-green-lan-en {
+			rockchip,pins = <4 RK_PB5 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		led_green_wan_en: led-green-wan-en {
+			rockchip,pins = <4 RK_PC0 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
 	usb {
 		vcc5v0_host_en: vcc5v0-host-en {
 			rockchip,pins = <4 RK_PB4 RK_FUNC_GPIO &pcfg_pull_none>;
