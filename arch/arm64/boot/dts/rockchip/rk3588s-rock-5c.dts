@@ -147,15 +147,15 @@
 		compatible = "gpio-leds";
 		pinctrl-names = "default";
 
-		user-led1 {
+		led_green_sys: led-green-sys {
+			label = "green:sys";
 			gpios = <&gpio3 RK_PC4 GPIO_ACTIVE_HIGH>;
-			linux,default-trigger = "default-on";
-			default-state = "on";
+			linux,default-trigger = "heartbeat";
 		};
 
-		user-led2 {
+		led_blue_lan: led-blue-lan {
+			label = "blue:lan";
 			gpios = <&gpio3 RK_PD5 GPIO_ACTIVE_HIGH>;
-			linux,default-trigger = "heartbeat";
 		};
 	};
 };
