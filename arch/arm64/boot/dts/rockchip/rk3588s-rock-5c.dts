@@ -347,43 +347,43 @@
 };
 
 &rkvdec_ccu {
-	status = "okay";
+	status = "disabled";
 };
 
 &rkvdec0 {
-	status = "okay";
+	status = "disabled";
 };
 
 &rkvdec0_mmu {
-	status = "okay";
+	status = "disabled";
 };
 
 &rkvdec1 {
-	status = "okay";
+	status = "disabled";
 };
 
 &rkvdec1_mmu {
-	status = "okay";
+	status = "disabled";
 };
 
 &rkvenc_ccu {
-	status = "okay";
+	status = "disabled";
 };
 
 &rkvenc0 {
-	status = "okay";
+	status = "disabled";
 };
 
 &rkvenc0_mmu {
-	status = "okay";
+	status = "disabled";
 };
 
 &rkvenc1 {
-	status = "okay";
+	status = "disabled";
 };
 
 &rkvenc1_mmu {
-	status = "okay";
+	status = "disabled";
 };
 
 &saradc {
