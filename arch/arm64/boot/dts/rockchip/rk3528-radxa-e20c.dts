@@ -601,6 +601,19 @@
 			<4 RK_PA0 2 &pcfg_pull_up>;
 };
 
+&i2c1 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c1m0_xfer>;
+
+	eeprom:	bl24c16@50 {
+		status = "okay";
+		compatible = "atmel,24c16";
+		reg = <0x50>;
+		pagesize = <16>;
+	};
+};
+
 &pinctrl {
 	leds {
 		led_green_sys_en: led-green-sys-en {
