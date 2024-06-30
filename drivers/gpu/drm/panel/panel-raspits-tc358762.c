@@ -382,7 +382,7 @@ static int raspits_tc358762_mipi_probe(struct mipi_dsi_device *dsi, const struct
 	struct device_node *backlight, *ddc;
 	struct raspits_tc358762 *panel;
 	struct device *dev = &dsi->dev;
-	int err;
+	int err = 0;
 
 	panel = devm_kzalloc(dev, sizeof(*panel), GFP_KERNEL);
 	if (!panel)
