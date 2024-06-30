@@ -10,6 +10,7 @@
 #include <drm/drm_dp_helper.h>
 #include <drm/drm_panel.h>
 #include <drm/drm_probe_helper.h>
+#include <sound/hdmi-codec.h>
 
 #include "rockchip_drm_drv.h"
 
@@ -60,8 +61,7 @@ struct cdn_dp_port {
 	bool phy_enabled;
 	u8 id;
 };
-typedef void (*hdmi_codec_plugged_cb)(struct device *dev,
-				      bool plugged);
+
 struct cdn_dp_device {
 	struct device *dev;
 	struct drm_device *drm_dev;
