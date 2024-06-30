@@ -599,7 +599,7 @@ static const struct jadard_panel_desc radxa_display_10hd_ad001_desc = {
 	},
 	.lanes = 4,
 	.format = MIPI_DSI_FMT_RGB888,
-	.init_cmds = cz101b4001_init_cmds,
+	.init_cmds = radxa_display_10hd_ad001_init_cmds,
 	.num_init_cmds = ARRAY_SIZE(radxa_display_10hd_ad001_init_cmds),
 };
 
