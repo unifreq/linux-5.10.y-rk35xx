@@ -15,12 +15,13 @@
 
 / {
 	model = "Radxa E20C";
-	compatible = "radxa,e20c", "rockchip,rk3528";
+	compatible = "radxa,e20c", "rockchip,rk3528a";
 
 	aliases {
 		/delete-property/ ethernet1;
 		mmc0 = <&sdmmc>;
 		mmc1 = <&sdhci>;
+		mmc2 = <&sdio0>;
 		ethernet0 = <&gmac1>;
 	};
 
@@ -109,7 +110,7 @@
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
 		enable-active-high;
-		gpio = <&gpio4 RK_PB4 GPIO_ACTIVE_HIGH>;
+		gpio = <&gpio0 RK_PA1 GPIO_ACTIVE_HIGH>;
 		vin-supply = <&vcc5v0_sys>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&vcc5v0_host_en>;
@@ -120,11 +121,6 @@
 		regulator-name = "vcc5v0_otg";
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
-		//enable-active-high;
-		//gpio = <&gpio1 RK_PC3 GPIO_ACTIVE_HIGH>;
-		//vin-supply = <&vcc5v0_sys>;
-		//pinctrl-names = "default";
-		//pinctrl-0 = <&vcc5v0_otg_en>;
 	};
 
 	vdd_gpu: vdd_logic: vdd-logic {
@@ -546,7 +542,6 @@
 };
 
 &usbdrd_dwc3 {
-	//dr_mode = "host";
 	extcon = <&usb2phy>;
 	phys = <&u2phy_otg>;
 	phy-names = "usb2-phy";
@@ -558,7 +553,6 @@
 
 &pcie2x1 {
 	reset-gpios = <&gpio1 RK_PA2 GPIO_ACTIVE_HIGH>;
-	//vpcie3v3-supply = <&vcc3v3_pcie20>;
 	status = "okay";
 
 	pcie@0,0 {
@@ -631,7 +625,7 @@
 
 	usb {
 		vcc5v0_host_en: vcc5v0-host-en {
-			rockchip,pins = <4 RK_PB4 RK_FUNC_GPIO &pcfg_pull_none>;
+			rockchip,pins = <0 RK_PA1 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 
