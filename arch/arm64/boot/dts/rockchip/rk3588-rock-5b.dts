@@ -918,10 +918,37 @@
 	status = "okay";
 };
 
+/* rtl8125b eth0 */
 &pcie2x1l2 {
 	reset-gpios = <&gpio3 RK_PB0 GPIO_ACTIVE_HIGH>;
 	vpcie3v3-supply = <&vcc3v3_pcie2x1l2>;
 	status = "okay";
+
+	pcie@40 {
+		reg = <0x00400000 0 0 0 0>;
+		#address-cells = <3>;
+		#size-cells = <2>;
+
+		rtl8125: pcie-eth@40,0 {
+			compatible = "pci10ec,8125";
+			label = "eth0";
+			reg = <0x000000 0 0 0 0>;
+
+			/* G+: LED0
+			 * G-: LED1
+			 * Y+: 3v3
+			 * Y-: LED2
+			 */
+			// LED0: active high, link on all speed
+			r8125,led0 = <0x102b>;
+
+			// LED1: active low, link on 100 + 1000 + 2500
+			r8125,led1 = <0x002a>;
+
+			// LED2: active low, act on all speed
+			r8125,led2 = <0x0200>;
+		};
+	};
 };
 
 &pcie2x1l0 {
