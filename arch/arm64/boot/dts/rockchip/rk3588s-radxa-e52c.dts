@@ -51,6 +51,8 @@
 
 	gpio-leds {
 		compatible = "gpio-leds";
+		pinctrl-names = "led-green-sys", "led-green-wan", "led-green-lan";
+		pinctrl-0 = <&led_green_sys_pin>, <&led_green_wan_pin>, <&led_green_lan_pin>;
 
 		led_green_sys: led-green-sys {
 			gpios = <&gpio3 RK_PC4 GPIO_ACTIVE_HIGH>;
@@ -694,21 +696,35 @@
 };
 
 &pinctrl {
+	leds {
+		led_green_sys_pin: led-green-sys-pin {
+			rockchip,pins = <3 RK_PC4 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		led_green_wan_pin: led-green-wan-pin {
+			rockchip,pins = <4 RK_PB4 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		led_green_lan_pin: led-green-lan-pin {
+			rockchip,pins = <4 RK_PB2 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
 	power {
 		vcc_5v0_en: vcc-5v0-en {
 			rockchip,pins = <4 RK_PA3 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 
-	usb {
-		vcc5v0_otg_en: vcc5v0-otg-en {
-			rockchip,pins = <0 RK_PD4 RK_FUNC_GPIO &pcfg_pull_none>;
+	rtc {
+		hym8563_int: hym8563-int {
+			rockchip,pins = <0 RK_PB0 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 
-	hym8563 {
-		hym8563_int: hym8563-int {
-			rockchip,pins = <0 RK_PB0 RK_FUNC_GPIO &pcfg_pull_none>;
+	usb {
+		vcc5v0_otg_en: vcc5v0-otg-en {
+			rockchip,pins = <0 RK_PD4 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 };
