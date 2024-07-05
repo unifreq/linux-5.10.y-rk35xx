@@ -14,6 +14,26 @@
 &pcie2x1l2 {
 	reset-gpios = <&gpio4 RK_PA5 GPIO_ACTIVE_HIGH>;
 	status = "okay";
+
+	pcie@0,0 {
+		reg = <0x00400000 0 0 0 0>;
+		#address-cells = <3>;
+		#size-cells = <2>;
+
+		rtl8125_2: pcie-eth@0,0 {
+			compatible = "pci10ec,8125";
+			label = "eth2";
+			reg = <0x000000 0 0 0 0>;
+
+			/* G+ 3v3
+			 * G- LED3: LINK on 100 + 1000 + 2500
+			 * Y+ 3v3
+			 * Y- LED2: ACT on all speed
+			 */
+			r8125,led2 = <0x0200>;
+			r8125,led3 = <0x002a>;
+		};
+	};
 };
 
 &combphy0_ps {
