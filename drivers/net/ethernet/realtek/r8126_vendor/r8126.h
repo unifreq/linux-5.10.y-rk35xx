@@ -773,7 +773,7 @@ typedef int *napi_budget;
 typedef struct napi_struct *napi_ptr;
 typedef int napi_budget;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,1,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,1,0) || LINUX_VERSION_CODE == KERNEL_VERSION(5,10,160)
 #define RTL_NAPI_CONFIG(ndev, priv, function, weight)   netif_napi_add_weight(ndev, &priv->napi, function, weight)
 #else
 #define RTL_NAPI_CONFIG(ndev, priv, function, weight)   netif_napi_add(ndev, &priv->napi, function, weight)
