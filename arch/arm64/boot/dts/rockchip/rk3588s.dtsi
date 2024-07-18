@@ -6282,7 +6282,7 @@
 		reg-io-width = <4>;
 		dmas = <&dmac2 11>, <&dmac2 12>;
 		pinctrl-names = "default";
-		pinctrl-0 = <&uart9m0_xfer>;
+		pinctrl-0 = <&uart9m1_xfer>;
 		status = "disabled";
 	};
 
@@ -6899,4 +6899,3 @@
 	};
 };
 #include "rk3588s-pinctrl.dtsi"
-#include "rk3588-vccio3-pinctrl.dtsi"
