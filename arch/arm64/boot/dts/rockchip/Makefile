@@ -183,6 +183,7 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-hlink-h69k.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-hlink-ht3.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-hlink-h88k.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-hlink-h88k-v3.dtb
+dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-hlink-h88k-v31.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-iotest-ddr3-v10.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-iotest-ddr3-v10-linux.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-nvr-demo-v10.dtb
