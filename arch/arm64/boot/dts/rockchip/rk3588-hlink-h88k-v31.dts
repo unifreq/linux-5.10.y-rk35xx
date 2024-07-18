@@ -1064,11 +1064,15 @@
 	};
 };
 
-/* LCD: ST7789 135x240 8PIN
- * DATA  gpio1 RK_PA1
- * CLK   gpio1 RK_PA2
- * CS    gpio1 RK_PA3
- * RESET gpio1 RK_PA4
+/* LCD:   st7789v, 135(H) x 240(V), 8pin, 4Line SPI
+ * pin1:  LEDA:  LED Anode.
+ * pin2:  GND:   Power Ground.
+ * pin3:  RESET: This signal will reset th device, Signal is active low.
+ * pin4:  RS:    Display data/command selection pin in 4-line serial interface.  --> gpio1 RK_PA4
+ * pin5:  SDA:   SPI interface input/output pin.                                 --> gpio1 RK_PA1
+ * pin6:  SCL:   This pin is used to be serial interface clock                   --> gpio1 RK_PA2
+ * pin7:  VDD:   Power Supply for Analog
+ * pin8:  CS:    Chip selection pin. Low enable, High disable.                   --> gpio1 RK_PA3
  */
 &spi4 {
 	status = "disabled";
