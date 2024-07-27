@@ -160,7 +160,43 @@
 		regulator-max-microvolt = <12000000>;
 	};
 
-	/* 5v0 usb: maximum load current 6A */
+	/* vcc4v0_sys
+	 * supply by dc_in
+	 * DC-DC convert by MP2491C
+	 * maximum load current 6A
+	 */
+	vcc4v0_sys: vcc4v0-sys {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc4v0_sys";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <4000000>;
+		regulator-max-microvolt = <4000000>;
+		startup-delay-us = <100000>;
+		vin-supply = <&vcc12v_dcin>;
+	};
+
+	/* vcc3v3_sys
+	 * supply by dc_in, but enabled by vcc4v0_sys
+	 * DC-DC convert by MP2491C
+	 * maximum load current 6A
+	 */
+	vcc3v3_sys: vcc3v3-sys {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc3v3_sys";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		startup-delay-us = <100000>;
+		vin-supply = <&vcc12v_dcin>;
+	};
+
+	/* vcc5v0_usb:
+	 * supply by dc_in, but enabled by vcc3v3_sys
+	 * DC-DC convert by MP2491C
+	 * maximum load current 6A
+	 */
 	vcc5v0_usb: vcc5v0-usb {
 		compatible = "regulator-fixed";
 		regulator-name = "vcc5v0_usb";
@@ -171,6 +207,9 @@
 		vin-supply = <&vcc12v_dcin>;
 	};
 
+	/* vbusb5v0 typec
+	 * power switch by TMI6263BH
+	 */
 	vbus5v0_typec: vbus5v0-typec {
 		compatible = "regulator-fixed";
 		regulator-name = "vbus5v0_typec";
@@ -184,6 +223,9 @@
 		vin-supply = <&vcc5v0_usb>;
 	};
 
+	/* vcc5v0 usbhost
+	 * power switch by TMI6263BH
+	 */
 	vcc5v0_usb_host: vcc5v0-usb-host {
 		compatible = "regulator-fixed";
 		regulator-name = "vcc5v0_usb_host";
@@ -196,18 +238,10 @@
 		vin-supply = <&vcc5v0_usb>;
 	};
 
-	/* 4v0 sys: maximum load current 6A */
-	vcc4v0_sys: vcc4v0-sys {
-		compatible = "regulator-fixed";
-		regulator-name = "vcc4v0_sys";
-		regulator-always-on;
-		regulator-boot-on;
-		regulator-min-microvolt = <4000000>;
-		regulator-max-microvolt = <4000000>;
-		startup-delay-us = <100000>;
-		vin-supply = <&vcc12v_dcin>;
-	};
-
+	/* vcc3v8_modem
+	 * DC-DC convert by MP2315
+	 * maximum load current 3A
+	 */
 	vcc3v8_modem: vcc3v8-modem {
 		compatible = "regulator-fixed";
 		enable-active-high;
@@ -219,22 +253,6 @@
 		regulator-name = "vcc3v8_modem";
 		pinctrl-names = "default";
 		pintctrl-0 = <&vcc3v8_modem_pwren>;
-		vin-supply = <&vcc12v_dcin>;
-	};
-
-	/* 
-	 * 3v3 sys:
-	 * supply by dc in, but enabled by vcc4v0 sys
-	 * maximum load current 6A
-	 */
-	vcc3v3_sys: vcc3v3-sys {
-		compatible = "regulator-fixed";
-		regulator-name = "vcc3v3_sys";
-		regulator-always-on;
-		regulator-boot-on;
-		regulator-min-microvolt = <3300000>;
-		regulator-max-microvolt = <3300000>;
-		startup-delay-us = <100000>;
 		vin-supply = <&vcc12v_dcin>;
 	};
 
