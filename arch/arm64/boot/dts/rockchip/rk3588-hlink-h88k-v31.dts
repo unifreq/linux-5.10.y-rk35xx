@@ -272,7 +272,8 @@
 	/*
 	 * vdd1v2_hub:
 	 * DC-DC 1.2V for GL3523 USB HUB
-	 * maximum load current 0.6A
+	 * convert by SY8089A1AAC
+	 * maximum load current 2A
 	 */
 	vdd1v2_hub: vdd1v2-hub {
 		compatible = "regulator-fixed";
@@ -1092,19 +1093,11 @@
  * pin7:  VDD:   Power Supply for Analog
  * pin8:  CS:    Chip selection pin. Low enable, High disable.                   --> gpio1 RK_PA3
  */
-/* Please Fix ME 
- * When modprobe fb_st7789v, then the kernel log:
- * [   14.672429] fb_st7789v spi4.0: fbtft_property_value: width = 240
- * [   14.672435] fb_st7789v spi4.0: fbtft_property_value: height = 135
- * [   14.672439] fb_st7789v spi4.0: fbtft_property_value: buswidth = 8
- * [   14.672445] fb_st7789v spi4.0: fbtft_property_value: rotate = 1
- * [   14.918047] fb_st7789v: probe of spi4.0 failed with error -22
- */
 &spi4 {
 	#address-cells = <1>;
 	#size-cells = <0>;
 	pinctrl-names = "default";
-	pinctrl-0 = <&spi4m2_pins &spi4m2_cs0>;
+	pinctrl-0 = <&spi4_custom_pins &spi4m2_cs0>;
 	status = "okay";
 
 	panel@0 {
@@ -1116,34 +1109,18 @@
 		pinctrl-0 = <&lcd_dc_pin>;
 		dc-gpios = <&gpio1 RK_PA4 GPIO_ACTIVE_HIGH>;
 
-		/* This is a fake pin. 
-		 * In order to meet the syntax requirements of the device tree, 
-		 * the reset pin is fixed high on the schematic.
-		 */ 
-		reset-gpios = <&gpio3 RK_PB5 GPIO_ACTIVE_HIGH>;
+                spi-max-frequency = <1000000>; // 1Mhz
 
-                spi-max-frequency = <32000000>; // 32Mhz
-
-		width = <135>;
-		height = <240>;
+		//width = <135>;
+		//height = <240>;
 		buswidth = <8>; // Most controllers use this value
-		rotation = <180>;
-		rotate = <1>;
+		rotate = <90>;
 
+		//fps = <60>;
+		//debug = <7>;
 		//spi-cpol;
 		//spi-cpha;
-		//spi-3wire;
 	};
-};
-
-&spi4m2_pins {
-	rockchip,pins =
-		/* spi4_clk_m2 */
-		<1 RK_PA2 8 &pcfg_pull_up_drv_level_6>,
-		/* spi4_mosi_m2 */
-		<1 RK_PA1 8 &pcfg_pull_up_drv_level_6>;
-		///* spi4_miso_m0 */
-		//<1 RK_PC0 8 &pcfg_pull_up_drv_level_6>;
 };
 
 &uart8 {
@@ -1909,7 +1886,17 @@
 
 	lcd {
 		lcd_dc_pin: lcd-dc-pin {
-			rockchip,pins = <1 RK_PA4 RK_FUNC_GPIO &pcfg_pull_none>;
+			rockchip,pins = <1 RK_PA4 RK_FUNC_GPIO &pcfg_pull_down>;
+		};
+
+		spi4_custom_pins: spi4-custom-pins {
+			rockchip,pins =
+				/* spi4_clk_m2 */
+				<1 RK_PA2 8 &pcfg_pull_up_drv_level_6>,
+				/* spi4_mosi_m2 */
+				<1 RK_PA1 8 &pcfg_pull_up_drv_level_6>;
+				/* spi4_miso_m0 */
+				//<1 RK_PC0 8 &pcfg_pull_up_drv_level_6>;
 		};
 	};
 
