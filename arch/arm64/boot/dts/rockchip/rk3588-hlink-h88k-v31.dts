@@ -81,12 +81,12 @@
 		led_red_ai: led-red-ai {
 			label = "red:ai";
 			gpios = <&gpio0 RK_PA0 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "heartbeat";
 		};
 
 		led_green_work: led-green-work {
 			label = "green:work";
 			gpios = <&gpio3 RK_PB7 GPIO_ACTIVE_HIGH>;
-			linux,default-trigger = "heartbeat";
 		};
 
 		led_blue_sata: led-blue-sata {
@@ -1096,6 +1096,9 @@
 &spi4 {
 	#address-cells = <1>;
 	#size-cells = <0>;
+	assigned-clocks = <&cru CLK_SPI4>;
+	assigned-clock-rates = <200000000>;
+	num-cs = <1>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&spi4_custom_pins &spi4m2_cs0>;
 	status = "okay";
@@ -1109,15 +1112,17 @@
 		pinctrl-0 = <&lcd_dc_pin>;
 		dc-gpios = <&gpio1 RK_PA4 GPIO_ACTIVE_HIGH>;
 
-                spi-max-frequency = <1000000>; // 1Mhz
+		/* 2Mhz */
+                spi-max-frequency = <2000000>;
 
 		//width = <135>;
 		//height = <240>;
-		buswidth = <8>; // Most controllers use this value
+		//fps = <20>;
+		buswidth = <8>;
 		rotate = <90>;
 
-		//fps = <60>;
-		//debug = <7>;
+		/* debug: 0-7 */
+		debug = <0>;
 		//spi-cpol;
 		//spi-cpha;
 	};
@@ -1886,7 +1891,7 @@
 
 	lcd {
 		lcd_dc_pin: lcd-dc-pin {
-			rockchip,pins = <1 RK_PA4 RK_FUNC_GPIO &pcfg_pull_down>;
+			rockchip,pins = <1 RK_PA4 RK_FUNC_GPIO &pcfg_pull_up_drv_level_6>;
 		};
 
 		spi4_custom_pins: spi4-custom-pins {
@@ -1894,9 +1899,9 @@
 				/* spi4_clk_m2 */
 				<1 RK_PA2 8 &pcfg_pull_up_drv_level_6>,
 				/* spi4_mosi_m2 */
-				<1 RK_PA1 8 &pcfg_pull_up_drv_level_6>;
+				<1 RK_PA1 8 &pcfg_pull_up_drv_level_6>,
 				/* spi4_miso_m0 */
-				//<1 RK_PC0 8 &pcfg_pull_up_drv_level_6>;
+				<1 RK_PC0 8 &pcfg_pull_up_drv_level_6>;
 		};
 	};
 
