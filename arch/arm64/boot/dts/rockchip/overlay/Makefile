@@ -137,6 +137,7 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
 	rk3588-rkvenc1.dtbo \
 	rk3588-rock-5a-hdmi-8k.dtbo \
 	rk3588-rock-5a-i2c5-rtc-hym8563.dtbo \
+	rk3588-rock-5c-i2c5-rtc-hym8563.dtbo \
 	rk3588-rock-5a-radxa-camera-4k.dtbo \
 	rk3588-rock-5a-radxa-display-10hd.dtbo \
 	rk3588-rock-5a-radxa-display-8hd.dtbo \
