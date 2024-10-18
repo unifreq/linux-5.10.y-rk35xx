@@ -34,7 +34,9 @@
 #include <linux/syscore_ops.h>
 #include <linux/reboot.h>
 #include <linux/security.h>
+#include <linux/decompress/mm.h>
 #include <linux/xz.h>
+#include <linux/zstd.h>
 
 #include <generated/utsrelease.h>
 
@@ -366,7 +368,7 @@ int fw_map_paged_buf(struct fw_priv *fw_priv)
 /*
  * XZ-compressed firmware support
  */
-#ifdef CONFIG_FW_LOADER_COMPRESS
+#ifdef CONFIG_FW_LOADER_COMPRESS_XZ
 /* show an error and return the standard error code */
 static int fw_decompress_xz_error(struct device *dev, enum xz_ret xz_ret)
 {
@@ -460,7 +462,188 @@ static int fw_decompress_xz(struct device *dev, struct fw_priv *fw_priv,
 	else
 		return fw_decompress_xz_pages(dev, fw_priv, in_size, in_buffer);
 }
-#endif /* CONFIG_FW_LOADER_COMPRESS */
+#endif /* CONFIG_FW_LOADER_COMPRESS_XZ */
+
+/*
+ * Zstd-compressed firmware support
+ */
+#ifdef CONFIG_FW_LOADER_COMPRESS_ZSTD
+/* show an error and return the standard error code */
+static int handle_zstd_error(size_t ret)
+{
+	const int err = ZSTD_getErrorCode(ret);
+
+	if (!ZSTD_isError(ret))
+		return 0;
+
+	switch (err) {
+	case ZSTD_error_memory_allocation:
+		printk("ZSTD decompressor ran out of memory");
+		break;
+	case ZSTD_error_prefix_unknown:
+		printk("Input is not in the ZSTD format (wrong magic bytes)");
+		break;
+	case ZSTD_error_dstSize_tooSmall:
+	case ZSTD_error_corruption_detected:
+	case ZSTD_error_checksum_wrong:
+		printk("ZSTD-compressed data is corrupt");
+		break;
+	default:
+		printk("ZSTD-compressed data is probably corrupt");
+		break;
+	}
+	return -1;
+}
+
+/* single-shot decompression onto the pre-allocated buffer */
+static int fw_decompress_zstd_single(struct device *dev,
+				     struct fw_priv *fw_priv, size_t in_size,
+				     const void *in_buffer)
+{
+	const size_t wksp_size = ZSTD_DCtxWorkspaceBound();
+	void *wksp = large_malloc(wksp_size);
+	ZSTD_DCtx *dctx = ZSTD_initDCtx(wksp, wksp_size);
+	int err;
+	size_t ret;
+
+	if (dctx == NULL) {
+		dev_warn(dev, "Out of memory while allocating ZSTD_DCtx");
+		err = -1;
+		goto out;
+	}
+	/* Find out how large the frame actually is, there may be junk at
+	 * the end of the frame that ZSTD_decompressDCtx() can't handle.
+	 */
+	ret = ZSTD_findFrameCompressedSize(in_buffer, in_size);
+	err = handle_zstd_error(ret);
+	if (err)
+		goto out;
+	in_size = (long)ret;
+
+	ret = ZSTD_decompressDCtx(dctx, fw_priv->data, fw_priv->allocated_size,
+				  in_buffer, in_size);
+	err = handle_zstd_error(ret);
+	if (err)
+		goto out;
+
+	fw_priv->size = ret;
+
+out:
+	if (wksp != NULL)
+		large_free(wksp);
+	return err;
+}
+
+/* decompression on paged buffer and map it */
+static int fw_decompress_zstd_pages(struct device *dev, struct fw_priv *fw_priv,
+				    size_t in_size, const void *in_buffer)
+{
+	ZSTD_inBuffer in;
+	ZSTD_outBuffer out;
+	ZSTD_frameParams params;
+	void *wksp = NULL;
+	size_t wksp_size;
+	ZSTD_DStream *dstream;
+	int err = 0;
+	size_t ret;
+
+	struct page *page;
+
+	fw_priv->is_paged_buf = true;
+	fw_priv->size = 0;
+
+	/* Set the first non-empty input buffer. */
+	in.src = in_buffer;
+	in.pos = 0;
+	in.size = in_size;
+
+	/*
+	 * We need to know the window size to allocate the ZSTD_DStream.
+	 * Since we are streaming, we need to allocate a buffer for the sliding
+	 * window. The window size varies from 1 KB to ZSTD_WINDOWSIZE_MAX
+	 * (8 MB), so it is important to use the actual value so as not to
+	 * waste memory when it is smaller.
+	 */
+	ret = ZSTD_getFrameParams(&params, in.src, in.size);
+	err = handle_zstd_error(ret);
+	if (err)
+		goto out;
+	if (ret != 0) {
+		printk("ZSTD-compressed data has an incomplete frame header");
+		err = -1;
+		goto out;
+	}
+	if (params.windowSize > (1 << ZSTD_WINDOWLOG_MAX)) {
+		printk("ZSTD-compressed data has too large a window size");
+		err = -1;
+		goto out;
+	}
+
+	/*
+	 * Allocate the ZSTD_DStream now that we know how much memory is
+	 * required.
+	 */
+	wksp_size = ZSTD_DStreamWorkspaceBound(params.windowSize);
+	wksp = large_malloc(wksp_size);
+	dstream = ZSTD_initDStream(params.windowSize, wksp, wksp_size);
+	if (dstream == NULL) {
+		printk("Out of memory while allocating ZSTD_DStream");
+		err = -1;
+		goto out;
+	}
+
+	/*
+	 * Decompression loop:
+	 * Read more data if necessary (error if no more data can be read).
+	 * Call the decompression function, which returns 0 when finished.
+	 * Flush any data produced if using flush().
+	 */
+	do {
+		/* If we need to reload data the input is truncated. */
+		if (in.pos == in.size) {
+			printk("ZSTD-compressed data is truncated");
+			err = -1;
+			goto out;
+		}
+
+		/* Allocate the output buffer */
+		if (fw_grow_paged_buf(fw_priv, fw_priv->nr_pages + 1)) {
+			err = -ENOMEM;
+			goto out;
+		}
+
+		/* Decompress into the newly allocated page */
+		page = fw_priv->pages[fw_priv->nr_pages - 1];
+		out.dst = kmap(page);
+		out.pos = 0;
+		out.size = PAGE_SIZE;
+
+		/* Returns zero when the frame is complete. */
+		ret = ZSTD_decompressStream(dstream, &out, &in);
+		kunmap(page);
+		err = handle_zstd_error(ret);
+		if (err)
+			goto out;
+		fw_priv->size += out.pos;
+	} while (ret != 0);
+
+	err = fw_map_paged_buf(fw_priv);
+out:
+	if (wksp != NULL)
+		large_free(wksp);
+	return err;
+}
+
+static int fw_decompress_zstd(struct device *dev, struct fw_priv *fw_priv,
+			      size_t in_size, const void *in_buffer)
+{
+	/* if the buffer is pre-allocated, we can perform in single-shot mode */
+	if (fw_priv->data)
+		return fw_decompress_zstd_single(dev, fw_priv, in_size, in_buffer);
+	else
+		return fw_decompress_zstd_pages(dev, fw_priv, in_size, in_buffer);
+}
+#endif /* CONFIG_FW_LOADER_COMPRESS_ZSTD */
 
 /* direct firmware loading support */
 static char fw_path_para[256];
@@ -815,10 +998,15 @@ _request_firmware(const struct firmware **firmware_p, const char *name,
 	if (!(opt_flags & FW_OPT_PARTIAL))
 		nondirect = true;
 
-#ifdef CONFIG_FW_LOADER_COMPRESS
+#ifdef CONFIG_FW_LOADER_COMPRESS_XZ
 	if (ret == -ENOENT && nondirect)
 		ret = fw_get_filesystem_firmware(device, fw->priv, ".xz",
 						 fw_decompress_xz);
+#endif
+#ifdef CONFIG_FW_LOADER_COMPRESS_ZSTD
+	if (ret == -ENOENT && nondirect)
+		ret = fw_get_filesystem_firmware(device, fw->priv, ".zst",
+						fw_decompress_zstd);
 #endif
 	if (ret == -ENOENT && nondirect)
 		ret = firmware_fallback_platform(fw->priv);
