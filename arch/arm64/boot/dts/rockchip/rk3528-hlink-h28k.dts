@@ -21,7 +21,7 @@
 
 		key-factory {
 			debounce-interval = <100>;
-			gpios = <&gpio4 5 GPIO_ACTIVE_LOW>;
+			gpios = <&gpio4 RK_PB5 GPIO_ACTIVE_LOW>;
 			label = "GPIO Key F15";
 			linux,code = <KEY_F15>;
 		};
