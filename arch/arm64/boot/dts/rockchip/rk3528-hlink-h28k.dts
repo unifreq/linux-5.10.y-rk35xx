@@ -14,6 +14,18 @@
 	aliases {
 		ethernet1 = &pcie_eth;
 	};
+
+	gpio_keys: gpio-keys {
+		compatible = "gpio-keys";
+		status = "okay";
+
+		key-factory {
+			debounce-interval = <100>;
+			gpios = <&gpio4 5 GPIO_ACTIVE_LOW>;
+			label = "GPIO Key F15";
+			linux,code = <KEY_F15>;
+		};
+	};
 };
 
 &i2c3 {
