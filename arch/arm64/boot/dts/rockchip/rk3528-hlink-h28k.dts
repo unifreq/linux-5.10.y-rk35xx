@@ -48,7 +48,7 @@
 		pcie_eth: pcie-eth@10,0 {
 			compatible = "pci10ec,8168";
 			reg = <0x000000 0 0 0 0>;
-			realtek,led-data = <0x0780>;
+			realtek,led-data = <0x0870>;
 		};
 	};
 };
