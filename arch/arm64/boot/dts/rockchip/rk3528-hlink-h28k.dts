@@ -61,6 +61,10 @@
 	};
 };
 
+&sdhci {
+	max-frequency = <150000000>;
+};
+
 &u2phy_otg {
 	phy-supply = <&vcc5v0_sys>;
 	vbus-supply = <&vcc_3v3_s3>;
