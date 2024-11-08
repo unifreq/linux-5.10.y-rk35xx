@@ -78,3 +78,7 @@
 	phy-names = "usb2-phy";
 	maximum-speed = "high-speed";
 };
+
+&wdt {
+	status = "okay";
+};
