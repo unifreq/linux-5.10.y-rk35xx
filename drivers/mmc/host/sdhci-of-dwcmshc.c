@@ -297,6 +297,7 @@ static void dwcmshc_rk3568_set_clock(struct sdhci_host *host, unsigned int clock
 			DLL_STRBIN_DELAY_NUM_SEL |
 			drv_data->ddr50_strbin_delay_num << DLL_STRBIN_DELAY_NUM_OFFSET;
 		sdhci_writel(host, extra, DWCMSHC_EMMC_DLL_STRBIN);
+		sdhci_writel(host, extra | DLL_RXCLK_ORI_GATE, DWCMSHC_EMMC_DLL_RXCLK);
 		goto exit;
 	}
 
@@ -495,7 +496,7 @@ static const struct dwcmshc_driver_data dwcmshc_drvdata = {
 
 static const struct dwcmshc_driver_data rk3568_drvdata = {
 	.pdata = &sdhci_dwcmshc_rk35xx_pdata,
-	.flags = RK_PLATFROM | RK_RXCLK_NO_INVERTER,
+	.flags = RK_PLATFROM | RK_RXCLK_NO_INVERTER | RK_TAP_VALUE_SEL | RK_DLL_CMD_OUT,
 	.hs200_tx_tap = 16,
 	.hs400_tx_tap = 8,
 	.hs400_cmd_tap = 8,
@@ -505,7 +506,7 @@ static const struct dwcmshc_driver_data rk3568_drvdata = {
 
 static const struct dwcmshc_driver_data rk3588_drvdata = {
 	.pdata = &sdhci_dwcmshc_rk35xx_pdata,
-	.flags = RK_PLATFROM | RK_DLL_CMD_OUT,
+	.flags = RK_PLATFROM | RK_DLL_CMD_OUT | RK_TAP_VALUE_SEL,
 	.hs200_tx_tap = 16,
 	.hs400_tx_tap = 9,
 	.hs400_cmd_tap = 8,
@@ -566,7 +567,6 @@ static const struct acpi_device_id sdhci_dwcmshc_acpi_ids[] = {
 	},
 	{}
 };
-MODULE_DEVICE_TABLE(acpi, sdhci_dwcmshc_acpi_ids);
 #endif
 
 static int dwcmshc_probe(struct platform_device *pdev)

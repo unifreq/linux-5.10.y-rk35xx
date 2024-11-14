@@ -169,8 +169,17 @@ static int dw_mci_v2_execute_tuning(struct dw_mci_slot *slot, u32 opcode)
 		degree = degrees[i] + priv->last_degree + 90;
 		degree = degree % 360;
 		clk_set_phase(priv->sample_clk, degree);
-		if (!mmc_send_tuning(mmc, opcode, NULL))
-			break;
+		if (mmc_send_tuning(mmc, opcode, NULL)) {
+			/*
+			 * Tuning error, the phase is a bad phase,
+			 * then try using the calculated best phase.
+			 */
+			dev_info(host->dev, "V2 tuned phase to %d error, try the best phase\n", degree);
+			degree = (degree + 180) % 360;
+			clk_set_phase(priv->sample_clk, degree);
+			if (!mmc_send_tuning(mmc, opcode, NULL))
+				break;
+		}
 	}
 
 	if (i == ARRAY_SIZE(degrees)) {
@@ -179,7 +188,7 @@ static int dw_mci_v2_execute_tuning(struct dw_mci_slot *slot, u32 opcode)
 	}
 
 done:
-	dev_info(host->dev, "Successfully tuned phase to %d\n", degree);
+	dev_info(host->dev, "V2 Successfully tuned phase to %d\n", degree);
 	priv->last_degree = degree;
 	return 0;
 }
@@ -288,7 +297,7 @@ static int dw_mci_rk3288_execute_tuning(struct dw_mci_slot *slot, u32 opcode)
 			longest_range = i;
 		}
 
-		dev_dbg(host->dev, "Good phase range %d-%d (%d len)\n",
+		dev_info(host->dev, "Good phase range %d-%d (%d len)\n",
 			TUNING_ITERATION_TO_PHASE(ranges[i].start,
 						  priv->num_phases),
 			TUNING_ITERATION_TO_PHASE(ranges[i].end,
@@ -297,7 +306,7 @@ static int dw_mci_rk3288_execute_tuning(struct dw_mci_slot *slot, u32 opcode)
 		);
 	}
 
-	dev_dbg(host->dev, "Best phase range %d-%d (%d len)\n",
+	dev_info(host->dev, "Best phase range %d-%d (%d len)\n",
 		TUNING_ITERATION_TO_PHASE(ranges[longest_range].start,
 					  priv->num_phases),
 		TUNING_ITERATION_TO_PHASE(ranges[longest_range].end,
@@ -411,7 +420,7 @@ static int dw_mci_rockchip_init(struct dw_mci *host)
 static unsigned long dw_mci_rk3288_dwmmc_caps[4] = {
 	MMC_CAP_CMD23,
 	MMC_CAP_CMD23,
-	MMC_CAP_CMD23,
+	0,//MMC_CAP_CMD23
 	MMC_CAP_CMD23,
 };
 
