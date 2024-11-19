@@ -62,7 +62,7 @@
 };
 
 &sdhci {
-	max-frequency = <150000000>;
+	max-frequency = <200000000>;
 };
 
 &u2phy_otg {
