@@ -10,6 +10,10 @@
 	model = "Hlink HT3";
 	compatible = "hlink,ht3", "hlink,hnas", "rockchip,rk3568";
 
+	aliases {
+		rtc0 = &hym8563;
+	};
+
 	sata_pm_power: sata-pm-power {
 		compatible = "regulator-fixed";
 		regulator-name = "sata_pm_power";
@@ -63,6 +67,14 @@
 		address-width = <8>;
 		pagesize = <8>;
 		size = <256>;
+	};
+
+	hym8563: hym8563@51 {
+		compatible = "haoyu,hym8563";
+		reg = <0x51>;
+		#clock-cells = <0>;
+		clock-frequency = <32768>;
+		clock-output-names = "hym8563";
 	};
 };
 
