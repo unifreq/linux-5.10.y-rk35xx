@@ -1755,13 +1755,14 @@
 			label = "eth1";
 			reg = <0x000000 0 0 0 0>;
 
-			/* G+ 3v3
-			 * G- LED3: LINK on 100 + 1000 + 2500
+			/*
+			 * G+ 3v3
+			 * G- LED3: ACT on all speed
 			 * Y+ 3v3
-			 * Y- LED2: ACT on all speed
+			 * Y- LED2: LINK on 10 + 100 + 1000 + 2500
 			 */
-			r8125,led2 = <0x0200>;
-			r8125,led3 = <0x002a>;
+			r8125,led2 = <0x002b>;
+			r8125,led3 = <0x0200>;
 		};
 	};
 };
@@ -1794,13 +1795,14 @@
 			label = "eth0";
 			reg = <0x000000 0 0 0 0>;
 
-			/* G+ 3v3
-			 * G- LED3: LINK on 100 + 1000 + 2500
+			/*
+			 * G+ 3v3
+			 * G- LED3: ACT on all speed
 			 * Y+ 3v3
-			 * Y- LED2: ACT on all speed
+			 * Y- LED2: LINK on 10 + 100 + 1000 + 2500
 			 */
-			r8125,led2 = <0x0200>;
-			r8125,led3 = <0x002a>;
+			r8125,led2 = <0x002b>;
+			r8125,led3 = <0x0200>;
 		};
 	};
 };
