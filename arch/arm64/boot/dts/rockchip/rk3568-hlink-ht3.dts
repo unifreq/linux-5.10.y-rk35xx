@@ -142,6 +142,28 @@
 	};
 };
 
+&rtl8125_1 {
+	/*
+	 * G+ 3v3
+	 * G- LED3: ACT on all speed
+	 * Y+ 3v3
+	 * Y- LED2: LINK on 10 + 100 + 1000 + 2500
+	 */
+	r8125,led2 = <0x002b>;
+	r8125,led3 = <0x0200>;
+};
+
+&rtl8125_2 {
+	/*
+	 * G+ 3v3
+	 * G- LED3: ACT on all speed
+	 * Y+ 3v3
+	 * Y- LED2: LINK on 10 + 100 + 1000 + 2500
+	 */
+	r8125,led2 = <0x002b>;
+	r8125,led3 = <0x0200>;
+};
+
 &wdt {
 	status = "okay";
 };

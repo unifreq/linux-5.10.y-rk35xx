@@ -1,0 +1,84 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2024 Rockchip Electronics Co., Ltd.
+ * Author: flippy (flippy@sina.com)
+ *
+ */
+
+#include "rk3528-hlink.dtsi"
+
+/ {
+	model = "Hlink H29K";
+	compatible = "hlink,h29k", "rockchip,rk3528";
+
+	aliases {
+		ethernet1 = &pcie_eth;
+	};
+
+	gpio_keys: gpio-keys {
+		compatible = "gpio-keys";
+		status = "okay";
+
+		key-factory {
+			debounce-interval = <100>;
+			gpios = <&gpio4 RK_PB5 GPIO_ACTIVE_LOW>;
+			label = "GPIO Key F15";
+			linux,code = <KEY_F15>;
+		};
+	};
+};
+
+&i2c3 {
+	status = "okay";
+};
+
+&pcie2x1 {
+	status = "okay";
+	reset-gpios = <&gpio4 RK_PA3 GPIO_ACTIVE_HIGH>;
+	vpcie3v3-supply = <&vcc_3v3_s3>;
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&pcie_rtl8111_isolate>;
+
+	pcie@0,0 {
+		reg = <0x000000 0 0 0 0>;
+		#address-cells = <3>;
+		#size-cells = <2>;
+
+		pcie_eth: pcie-eth@10,0 {
+			compatible = "pci10ec,8168";
+			reg = <0x000000 0 0 0 0>;
+			realtek,led-data = <0x0870>;
+		};
+	};
+};
+
+&pinctrl {
+	pcie {
+		pcie_rtl8111_isolate: pcie-rtl8111-isolate {
+			rockchip,pins = <4 RK_PA6 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+};
+
+&sdhci {
+	max-frequency = <200000000>;
+};
+
+&u2phy_otg {
+	phy-supply = <&vcc5v0_sys>;
+	vbus-supply = <&vcc_3v3_s3>;
+	status = "okay";
+};
+
+&usbdrd_dwc3 {
+	status = "okay";
+	dr_mode = "otg";
+	phys = <&u2phy_otg>;
+	phy-names = "usb2-phy";
+	maximum-speed = "high-speed";
+};
+
+&wdt {
+	status = "okay";
+};
