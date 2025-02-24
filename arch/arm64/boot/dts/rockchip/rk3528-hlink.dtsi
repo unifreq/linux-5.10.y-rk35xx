@@ -390,7 +390,7 @@
 };
 
 &crypto {
-	status = "okay";
+	status = "disabled";
 };
 
 &dfi {
@@ -437,7 +437,8 @@
 		     &rgmii_rx_bus2
 		     &rgmii_rgmii_clk
 		     &rgmii_rgmii_bus
-		     &eth_pins>;
+		     &eth_pins
+		     &gmac1_reset_pin>;
 
 	phy-supply = <&vcc_3v3_s3>;
 	phy-handle = <&rgmii_phy>;
@@ -455,12 +456,12 @@
 
 &gpu {
 	mali-supply = <&vdd_gpu>;
-	status = "okay";
+	status = "disabled";
 };
 
 &gpu_bus {
 	bus-supply = <&vdd_logic>;
-	status = "okay";
+	status = "disabled";
 };
 
 &mdio1 {
@@ -519,6 +520,12 @@
 
 		led_blue_en: led-blue-en {
 			rockchip,pins = <4 RK_PC0 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+
+	gmac {
+		gmac1_reset_pin: gmac1-reset-pin {
+			rockchip,pins = <4 RK_PC2 RK_FUNC_GPIO &pcfg_pull_up>;
 		};
 	};
 };

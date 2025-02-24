@@ -51,6 +51,14 @@
 	rx_delay = <0x30>;
 };
 
+&gpu {
+	status = "okay";
+};
+
+&gpu_bus {
+	status = "okay";
+};
+
 &hdmi {
 	status = "okay";
 };
