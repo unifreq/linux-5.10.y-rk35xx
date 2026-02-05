@@ -84,7 +84,7 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&lcd_panel_reset>;
 
-		ports {
+		port {
 			panel_in_edp: endpoint {
 				remote-endpoint = <&edp_out_panel>;
 			};
